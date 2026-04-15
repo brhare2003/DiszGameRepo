@@ -249,6 +249,17 @@
       text-shadow: 0 0 12px rgba(168, 218, 220, 0.8);
     }
     .score-item.draw-score span { color: #888; }
+
+    #board-wrapper {
+      position: relative;
+    }
+
+    #win-line-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -265,16 +276,19 @@
   <h1>TIC TAC TOE</h1>
   <div id="status">Player X's turn</div>
 
-  <div id="board">
-    <div class="cell" data-index="0"></div>
-    <div class="cell" data-index="1"></div>
-    <div class="cell" data-index="2"></div>
-    <div class="cell" data-index="3"></div>
-    <div class="cell" data-index="4"></div>
-    <div class="cell" data-index="5"></div>
-    <div class="cell" data-index="6"></div>
-    <div class="cell" data-index="7"></div>
-    <div class="cell" data-index="8"></div>
+  <div id="board-wrapper">
+    <div id="board">
+      <div class="cell" data-index="0"></div>
+      <div class="cell" data-index="1"></div>
+      <div class="cell" data-index="2"></div>
+      <div class="cell" data-index="3"></div>
+      <div class="cell" data-index="4"></div>
+      <div class="cell" data-index="5"></div>
+      <div class="cell" data-index="6"></div>
+      <div class="cell" data-index="7"></div>
+      <div class="cell" data-index="8"></div>
+    </div>
+    <canvas id="win-line-canvas" width="342" height="342"></canvas>
   </div>
 
   <div id="controls">
@@ -496,6 +510,7 @@
         scores[player]++;
         updateScores();
         gameOver = true;
+        drawWinLine(winLine, player);
         return;
       }
       if (board.every(Boolean)) {
@@ -581,6 +596,9 @@
         cell.className = 'cell';
       });
 
+      const winCanvas = document.getElementById('win-line-canvas');
+      winCanvas.getContext('2d').clearRect(0, 0, winCanvas.width, winCanvas.height);
+
       if (vsComputer && currentPlayer === 'O') {
         statusEl.textContent = 'CPU is thinking...';
         setTimeout(cpuMove, 400);
@@ -596,6 +614,67 @@
       modeBtnEl.style.color       = vsComputer ? '#e94560' : '#a8dadc';
       modeBtnEl.style.borderColor = vsComputer ? '#e94560' : '#a8dadc';
       restart();
+    }
+
+    function drawWinLine(winLine, player) {
+      const canvas = document.getElementById('win-line-canvas');
+      const ctx = canvas.getContext('2d');
+      const CELL = 110, GAP = 6;
+
+      const centerOf = idx => ({
+        x: (idx % 3) * (CELL + GAP) + CELL / 2,
+        y: Math.floor(idx / 3) * (CELL + GAP) + CELL / 2
+      });
+
+      const s = centerOf(winLine[0]);
+      const e = centerOf(winLine[2]);
+      const dx = e.x - s.x, dy = e.y - s.y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      const ext = 28;
+      const nx = dx / len, ny = dy / len;
+      const x1 = s.x - nx * ext, y1 = s.y - ny * ext;
+      const x2 = e.x + nx * ext, y2 = e.y + ny * ext;
+      const color = player === 'X' ? '#ff3060' : '#a8dadc';
+
+      let startTime = null;
+      const DURATION = 380;
+
+      function animate(ts) {
+        if (!startTime) startTime = ts;
+        const t = Math.min((ts - startTime) / DURATION, 1);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Glow pass
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 14;
+        ctx.lineCap = 'round';
+        ctx.globalAlpha = 0.35;
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = color;
+        ctx.stroke();
+        ctx.restore();
+
+        // Core line
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = color;
+        ctx.stroke();
+        ctx.restore();
+
+        if (t < 1) requestAnimationFrame(animate);
+      }
+
+      requestAnimationFrame(animate);
     }
 
     function updateScores() {
