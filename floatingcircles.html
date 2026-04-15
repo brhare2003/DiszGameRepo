@@ -66,17 +66,67 @@
       color: #fff;
     }
 
-    /* Pop particles are pure canvas — no DOM overlay needed */
+    #target-panel {
+      text-align: center;
+      pointer-events: none;
+    }
+
+    #target-label {
+      font-size: 0.7rem;
+      color: #aaa;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    #target-swatches {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .target-swatch {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.35);
+      animation: swatchPulse 1.4s ease-in-out infinite alternate;
+    }
+
+    @keyframes swatchPulse {
+      from { transform: scale(0.93); }
+      to   { transform: scale(1.07); }
+    }
+
+    #target-change-flash {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      background: rgba(255,255,255,0.07);
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+
+    #target-change-flash.flash {
+      opacity: 1;
+      transition: none;
+    }
   </style>
 </head>
 <body>
 
   <canvas id="game-canvas"></canvas>
 
+  <div id="target-change-flash"></div>
+
   <div id="hud">
     <div>
       <div id="score-label">SCORE</div>
       <div id="score-display">0</div>
+    </div>
+    <div id="target-panel">
+      <div id="target-label">POP THESE</div>
+      <div id="target-swatches"></div>
     </div>
     <a href="index.html" id="home-btn">&#8592; HOME</a>
   </div>
@@ -85,7 +135,9 @@
   (function () {
     const canvas = document.getElementById('game-canvas');
     const ctx    = canvas.getContext('2d');
-    const scoreEl = document.getElementById('score-display');
+    const scoreEl   = document.getElementById('score-display');
+    const flashEl   = document.getElementById('target-change-flash');
+    const swatchesEl = document.getElementById('target-swatches');
 
     // ── Palette of bright primary / secondary colours ─────────────────────
     const COLORS = [
@@ -101,8 +153,39 @@
 
     let W, H;
     let score = 0;
-    const circles  = [];
+    const circles   = [];
     const particles = [];
+    const floatingTexts = [];
+
+    // ── Target colour logic ───────────────────────────────────────────────
+    const TARGET_INTERVAL = 15000; // ms between target changes
+    let targetColors = [];
+    let lastTargetChange = -TARGET_INTERVAL; // fires immediately on first frame
+
+    function pickTargets(ts) {
+      const shuffled = [...COLORS].sort(() => Math.random() - 0.5);
+      targetColors = shuffled.slice(0, 2);
+      lastTargetChange = ts;
+      renderSwatches();
+      // brief screen flash to signal new targets
+      flashEl.classList.add('flash');
+      requestAnimationFrame(() => flashEl.classList.remove('flash'));
+    }
+
+    function renderSwatches() {
+      swatchesEl.innerHTML = '';
+      targetColors.forEach(color => {
+        const d = document.createElement('div');
+        d.className = 'target-swatch';
+        d.style.background = color;
+        d.style.boxShadow = `0 0 14px 3px ${color}`;
+        swatchesEl.appendChild(d);
+      });
+    }
+
+    function spawnFloatingText(x, y, text, color) {
+      floatingTexts.push({ x, y, text, color, alpha: 1, vy: -1.8, life: 1 });
+    }
 
     // ── Resize ────────────────────────────────────────────────────────────
     function resize() {
@@ -175,7 +258,13 @@
         const dy = py - c.y;
         if (dx * dx + dy * dy <= c.r * c.r) {
           c.popped = true;
-          score++;
+          if (targetColors.includes(c.color)) {
+            score++;
+            spawnFloatingText(c.x, c.y - c.r, '+1', c.color);
+          } else {
+            score = Math.max(0, score - 1);
+            spawnFloatingText(c.x, c.y - c.r, '-1', '#ff4444');
+          }
           scoreEl.textContent = score;
           popBurst(c.x, c.y, c.color);
           return;
@@ -254,6 +343,11 @@
 
       drawBackground();
 
+      // rotate target colours
+      if (ts - lastTargetChange >= TARGET_INTERVAL) {
+        pickTargets(ts);
+      }
+
       // spawn
       if (ts - lastSpawn > spawnInterval()) {
         spawnCircle();
@@ -302,6 +396,26 @@
         ctx.shadowBlur  = 0;
         ctx.globalAlpha = 1;
       }
+
+      // floating score texts
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const t = floatingTexts[i];
+        t.y    += t.vy;
+        t.life -= 0.022;
+        if (t.life <= 0) { floatingTexts.splice(i, 1); continue; }
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, t.life);
+        ctx.font = 'bold 30px "Segoe UI", sans-serif';
+        ctx.fillStyle   = t.color;
+        ctx.shadowBlur  = 12;
+        ctx.shadowColor = t.color;
+        ctx.fillText(t.text, t.x, t.y);
+        ctx.restore();
+      }
+      ctx.textAlign    = 'left';
+      ctx.textBaseline = 'alphabetic';
     }
 
     requestAnimationFrame(loop);
