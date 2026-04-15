@@ -60,44 +60,121 @@
       -webkit-backdrop-filter: blur(10px);
       border: 2px solid rgba(15, 52, 96, 0.9);
       border-radius: 8px;
-      font-size: 3rem;
+      font-size: 3.2rem;
       font-weight: bold;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      transition: background 0.15s, box-shadow 0.15s, border-color 0.15s;
       user-select: none;
       box-shadow: 0 0 12px rgba(15, 52, 96, 0.6), inset 0 0 18px rgba(15, 52, 96, 0.2);
     }
 
     .cell:hover:not(.taken) {
       background: rgba(15, 52, 96, 0.75);
-      transform: scale(1.04);
       box-shadow: 0 0 20px rgba(168, 218, 220, 0.45), inset 0 0 18px rgba(15, 52, 96, 0.4);
       border-color: rgba(168, 218, 220, 0.5);
     }
 
+    /* ── X symbol ────────────────────────────────────────────────────── */
     .cell.x {
-      color: #e94560;
-      text-shadow: 0 0 14px #e94560, 0 0 28px rgba(233, 69, 96, 0.5);
+      color: #ff3060;
+      border-color: rgba(255, 48, 96, 0.55);
+      box-shadow:
+        0 0 18px rgba(255, 48, 96, 0.45),
+        inset 0 0 22px rgba(255, 48, 96, 0.12);
+      text-shadow:
+        0 0 6px  #ff3060,
+        0 0 14px #ff3060,
+        0 0 28px #e94560,
+        0 0 55px rgba(233, 69, 96, 0.55),
+        0 0 90px rgba(233, 69, 96, 0.25);
+      animation:
+        symbolPop  0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+        xPulse     2.4s 0.28s ease-in-out infinite alternate;
     }
 
+    /* ── O symbol ────────────────────────────────────────────────────── */
     .cell.o {
       color: #a8dadc;
-      text-shadow: 0 0 14px #a8dadc, 0 0 28px rgba(168, 218, 220, 0.5);
+      border-color: rgba(168, 218, 220, 0.55);
+      box-shadow:
+        0 0 18px rgba(168, 218, 220, 0.45),
+        inset 0 0 22px rgba(168, 218, 220, 0.12);
+      text-shadow:
+        0 0 6px  #a8dadc,
+        0 0 14px #a8dadc,
+        0 0 28px #7ecbcf,
+        0 0 55px rgba(168, 218, 220, 0.55),
+        0 0 90px rgba(168, 218, 220, 0.25);
+      animation:
+        symbolPop  0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+        oPulse     2.4s 0.28s ease-in-out infinite alternate;
+    }
+
+    /* Pop-in when a symbol is first placed */
+    @keyframes symbolPop {
+      0%   { transform: scale(0.2); opacity: 0; }
+      65%  { transform: scale(1.18); }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+
+    /* Breathing glow for X */
+    @keyframes xPulse {
+      from {
+        text-shadow:
+          0 0 6px  #ff3060,
+          0 0 14px #ff3060,
+          0 0 28px #e94560,
+          0 0 55px rgba(233, 69, 96, 0.55),
+          0 0 90px rgba(233, 69, 96, 0.25);
+      }
+      to {
+        text-shadow:
+          0 0 8px  #ff3060,
+          0 0 22px #ff3060,
+          0 0 46px #e94560,
+          0 0 80px rgba(233, 69, 96, 0.75),
+          0 0 120px rgba(233, 69, 96, 0.35);
+      }
+    }
+
+    /* Breathing glow for O */
+    @keyframes oPulse {
+      from {
+        text-shadow:
+          0 0 6px  #a8dadc,
+          0 0 14px #a8dadc,
+          0 0 28px #7ecbcf,
+          0 0 55px rgba(168, 218, 220, 0.55),
+          0 0 90px rgba(168, 218, 220, 0.25);
+      }
+      to {
+        text-shadow:
+          0 0 8px  #a8dadc,
+          0 0 22px #a8dadc,
+          0 0 46px #7ecbcf,
+          0 0 80px rgba(168, 218, 220, 0.75),
+          0 0 120px rgba(168, 218, 220, 0.35);
+      }
     }
 
     .cell.win {
       background: rgba(15, 52, 96, 0.85);
-      animation: pulse 0.4s ease-in-out;
-      box-shadow: 0 0 28px rgba(168, 218, 220, 0.65), inset 0 0 22px rgba(15, 52, 96, 0.5);
-      border-color: rgba(168, 218, 220, 0.7);
+      animation:
+        winPulse   0.4s ease-in-out,
+        xPulse     2.4s ease-in-out infinite alternate;
+      box-shadow: 0 0 30px rgba(168, 218, 220, 0.7), inset 0 0 22px rgba(15, 52, 96, 0.5);
+      border-color: rgba(168, 218, 220, 0.75);
     }
 
-    @keyframes pulse {
+    .cell.win.x { animation: winPulse 0.4s ease-in-out, xPulse 2.4s ease-in-out infinite alternate; }
+    .cell.win.o { animation: winPulse 0.4s ease-in-out, oPulse 2.4s ease-in-out infinite alternate; }
+
+    @keyframes winPulse {
       0%   { transform: scale(1); }
-      50%  { transform: scale(1.1); }
+      50%  { transform: scale(1.12); }
       100% { transform: scale(1); }
     }
 
@@ -129,7 +206,7 @@
     }
 
     #restart-btn:hover {
-      box-shadow: 0 0 22px rgba(233, 69, 96, 0.9);
+      box-shadow: 0 0 24px rgba(233, 69, 96, 0.9);
     }
 
     #mode-btn {
@@ -141,7 +218,7 @@
     }
 
     #mode-btn:hover {
-      box-shadow: 0 0 20px rgba(168, 218, 220, 0.6);
+      box-shadow: 0 0 22px rgba(168, 218, 220, 0.6);
     }
 
     #score {
@@ -151,9 +228,7 @@
       font-size: 1rem;
     }
 
-    .score-item {
-      text-align: center;
-    }
+    .score-item { text-align: center; }
 
     .score-item span {
       display: block;
@@ -162,12 +237,12 @@
     }
 
     .score-item.x-score span {
-      color: #e94560;
-      text-shadow: 0 0 10px rgba(233, 69, 96, 0.7);
+      color: #ff3060;
+      text-shadow: 0 0 12px rgba(255, 48, 96, 0.8);
     }
     .score-item.o-score span {
       color: #a8dadc;
-      text-shadow: 0 0 10px rgba(168, 218, 220, 0.7);
+      text-shadow: 0 0 12px rgba(168, 218, 220, 0.8);
     }
     .score-item.draw-score span { color: #888; }
   </style>
@@ -203,72 +278,48 @@
   </div>
 
   <script>
-    // ── Neon background animation ──────────────────────────────────────────
+    // ── Static neon background ─────────────────────────────────────────────
     (function () {
       const canvas = document.getElementById('bg-canvas');
-      const ctx = canvas.getContext('2d');
-      let W, H;
+      const ctx    = canvas.getContext('2d');
 
-      function resize() {
-        W = canvas.width  = window.innerWidth;
-        H = canvas.height = window.innerHeight;
-      }
-      resize();
-      window.addEventListener('resize', resize);
-
-      // Twinkling stars in the upper sky region
+      // Generate star positions once so they stay consistent on resize
       const STAR_COUNT = 110;
-      const stars = Array.from({ length: STAR_COUNT }, () => ({
-        x:      Math.random(),
-        y:      Math.random() * 0.56,
-        r:      Math.random() * 1.4 + 0.3,
-        phase:  Math.random() * Math.PI * 2,
-        speed:  Math.random() * 1.2 + 0.6
+      const starData = Array.from({ length: STAR_COUNT }, () => ({
+        rx:    Math.random(),           // relative x (0–1)
+        ry:    Math.random() * 0.56,    // relative y in sky region
+        r:     Math.random() * 1.4 + 0.3,
+        alpha: Math.random() * 0.5 + 0.3
       }));
 
-      // Occasional shooting stars
-      const shoots = [];
-      function spawnShoot() {
-        shoots.push({
-          x:   Math.random() * 0.8 + 0.1,
-          y:   Math.random() * 0.35,
-          len: Math.random() * 0.12 + 0.06,
-          age: 0, life: Math.random() * 0.6 + 0.4
-        });
-      }
-      let nextShoot = 2;
-
-      function drawFrame(ts) {
-        const t = ts / 1000;
-
-        ctx.clearRect(0, 0, W, H);
+      function draw() {
+        const W = canvas.width  = window.innerWidth;
+        const H = canvas.height = window.innerHeight;
 
         const horizon = H * 0.56;
 
-        // ── Backgrounds ──────────────────────────────────────────────────
-        // Sky
+        // ── Backgrounds ────────────────────────────────────────────────
         const skyGrad = ctx.createLinearGradient(0, 0, 0, horizon);
         skyGrad.addColorStop(0, '#010008');
         skyGrad.addColorStop(1, '#0c0028');
         ctx.fillStyle = skyGrad;
         ctx.fillRect(0, 0, W, horizon);
 
-        // Ground
         const groundGrad = ctx.createLinearGradient(0, horizon, 0, H);
         groundGrad.addColorStop(0, '#07001a');
         groundGrad.addColorStop(1, '#020008');
         ctx.fillStyle = groundGrad;
         ctx.fillRect(0, horizon, W, H - horizon);
 
-        // ── Horizon ambient glow ─────────────────────────────────────────
+        // ── Horizon ambient glow ───────────────────────────────────────
         const hGlow = ctx.createRadialGradient(W / 2, horizon, 0, W / 2, horizon, W * 0.65);
-        hGlow.addColorStop(0,   'rgba(233,69,96,0.45)');
-        hGlow.addColorStop(0.25,'rgba(168,80,220,0.20)');
-        hGlow.addColorStop(1,   'rgba(0,0,0,0)');
+        hGlow.addColorStop(0,    'rgba(233,69,96,0.45)');
+        hGlow.addColorStop(0.25, 'rgba(168,80,220,0.20)');
+        hGlow.addColorStop(1,    'rgba(0,0,0,0)');
         ctx.fillStyle = hGlow;
         ctx.fillRect(0, horizon - H * 0.45, W, H * 0.9);
 
-        // ── Retro sun ────────────────────────────────────────────────────
+        // ── Retro sun ──────────────────────────────────────────────────
         const sunCX = W / 2;
         const sunCY = horizon - 28;
         const sunR  = Math.min(W, H) * 0.09;
@@ -282,7 +333,7 @@
         ctx.arc(sunCX, sunCY, sunR * 2.2, 0, Math.PI * 2);
         ctx.fill();
 
-        // Sun body gradient
+        // Sun body
         const sunBody = ctx.createLinearGradient(sunCX, sunCY - sunR, sunCX, sunCY + sunR);
         sunBody.addColorStop(0,   '#ffb3c6');
         sunBody.addColorStop(0.35,'#e94560');
@@ -292,7 +343,7 @@
         ctx.arc(sunCX, sunCY, sunR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Horizontal stripe mask on lower half of sun (classic synthwave look)
+        // Horizontal stripe mask (classic synthwave look)
         ctx.save();
         ctx.beginPath();
         ctx.arc(sunCX, sunCY, sunR - 1, 0, Math.PI * 2);
@@ -307,56 +358,25 @@
         }
         ctx.restore();
 
-        // ── Stars ────────────────────────────────────────────────────────
-        ctx.save();
-        stars.forEach(s => {
-          const tw = Math.sin(t * s.speed + s.phase);
-          const alpha = 0.35 + tw * 0.35;
-          const r     = s.r * (0.82 + tw * 0.18);
-          ctx.shadowBlur  = 4 + tw * 4;
+        // ── Stars ──────────────────────────────────────────────────────
+        starData.forEach(s => {
+          ctx.shadowBlur  = 4;
           ctx.shadowColor = '#ffffff';
-          ctx.fillStyle   = `rgba(255,255,255,${alpha})`;
+          ctx.fillStyle   = `rgba(255,255,255,${s.alpha})`;
           ctx.beginPath();
-          ctx.arc(s.x * W, s.y * H, r, 0, Math.PI * 2);
+          ctx.arc(s.rx * W, s.ry * H, s.r, 0, Math.PI * 2);
           ctx.fill();
         });
-        ctx.restore();
+        ctx.shadowBlur = 0;
 
-        // ── Shooting stars ───────────────────────────────────────────────
-        if (t > nextShoot) {
-          spawnShoot();
-          nextShoot = t + Math.random() * 4 + 3;
-        }
-        ctx.save();
-        for (let i = shoots.length - 1; i >= 0; i--) {
-          const sh = shoots[i];
-          sh.age += 0.016;
-          const frac = sh.age / sh.life;
-          if (frac >= 1) { shoots.splice(i, 1); continue; }
-          const alpha = frac < 0.3 ? frac / 0.3 : (1 - frac) / 0.7;
-          ctx.strokeStyle = `rgba(255,220,240,${alpha * 0.9})`;
-          ctx.lineWidth = 1.5;
-          ctx.shadowBlur  = 6;
-          ctx.shadowColor = '#ffaacc';
-          ctx.beginPath();
-          ctx.moveTo(sh.x * W, sh.y * H);
-          ctx.lineTo((sh.x + sh.len * frac) * W, (sh.y + sh.len * 0.3 * frac) * H);
-          ctx.stroke();
-        }
-        ctx.restore();
-
-        // ── Perspective grid ─────────────────────────────────────────────
-        const vpX  = W / 2;
-        const scroll = (t * 0.38) % 1;
-
-        ctx.save();
+        // ── Perspective grid ───────────────────────────────────────────
+        const vpX = W / 2;
 
         // Vertical lines converging to vanishing point
         const numV = 22;
         for (let i = 0; i <= numV; i++) {
-          const frac = i / numV;                        // 0..1
-          const spread = 2.6;
-          const bx   = vpX + (frac - 0.5) * spread * W; // bottom x
+          const frac  = i / numV;
+          const bx    = vpX + (frac - 0.5) * 2.6 * W;
           const dist  = Math.abs(frac - 0.5);
           const alpha = Math.max(0, (0.5 - dist) * 1.6) * 0.75;
           if (alpha < 0.02) continue;
@@ -370,11 +390,10 @@
           ctx.stroke();
         }
 
-        // Horizontal lines scrolling toward viewer
-        const numH = 28;
-        for (let i = 0; i < numH; i++) {
-          // Depth in [0,1]: 0 = far/horizon, 1 = near/bottom
-          const depth = (i / numH + scroll) % 1.0;
+        // Horizontal lines at fixed perspective depths
+        const numH = 18;
+        for (let i = 1; i <= numH; i++) {
+          const depth   = i / numH;                                  // 0 = horizon, 1 = bottom
           const screenY = horizon + (H + 20 - horizon) * depth * depth;
           if (screenY < horizon || screenY > H + 5) continue;
           const alpha = depth * 0.72 + 0.06;
@@ -388,12 +407,11 @@
           ctx.stroke();
         }
 
-        ctx.restore();
-
-        requestAnimationFrame(drawFrame);
+        ctx.shadowBlur = 0;
       }
 
-      requestAnimationFrame(drawFrame);
+      draw();
+      window.addEventListener('resize', draw);
     })();
 
     // ── Game logic ─────────────────────────────────────────────────────────
@@ -409,12 +427,12 @@
     let vsComputer = false;
     let scores = { X: 0, O: 0, draw: 0 };
 
-    const cells = document.querySelectorAll('.cell');
-    const statusEl = document.getElementById('status');
+    const cells     = document.querySelectorAll('.cell');
+    const statusEl  = document.getElementById('status');
     const modeBtnEl = document.getElementById('mode-btn');
-    const xWinsEl = document.getElementById('x-wins');
-    const oWinsEl = document.getElementById('o-wins');
-    const drawsEl = document.getElementById('draws');
+    const xWinsEl   = document.getElementById('x-wins');
+    const oWinsEl   = document.getElementById('o-wins');
+    const drawsEl   = document.getElementById('draws');
 
     cells.forEach(cell => cell.addEventListener('click', onCellClick));
     document.getElementById('restart-btn').addEventListener('click', restart);
@@ -465,11 +483,9 @@
       return null;
     }
 
-    // Minimax AI for unbeatable CPU
     function cpuMove() {
       if (gameOver) return;
-      const idx = bestMove();
-      makeMove(idx, 'O');
+      makeMove(bestMove(), 'O');
     }
 
     function bestMove() {
@@ -526,8 +542,8 @@
 
     function toggleMode() {
       vsComputer = !vsComputer;
-      modeBtnEl.textContent = vsComputer ? 'vs Human' : 'vs CPU';
-      modeBtnEl.style.color = vsComputer ? '#e94560' : '#a8dadc';
+      modeBtnEl.textContent  = vsComputer ? 'vs Human' : 'vs CPU';
+      modeBtnEl.style.color       = vsComputer ? '#e94560' : '#a8dadc';
       modeBtnEl.style.borderColor = vsComputer ? '#e94560' : '#a8dadc';
       restart();
     }
