@@ -17,14 +17,8 @@
       user-select: none;
     }
 
-    /* ── Starfield canvas sits behind everything ── */
-    #bg {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-    }
+    #bg { position: fixed; inset: 0; z-index: 0; }
 
-    /* ── Top bar ── */
     #top-bar {
       position: fixed;
       top: 0; left: 0; right: 0;
@@ -76,7 +70,7 @@
     }
     #play-again-btn:hover { background: rgba(255,220,68,0.25); }
 
-    /* ── Main game area ── */
+    /* ── Arena ── */
     #arena {
       position: fixed;
       top: 52px; bottom: 0; left: 0; right: 0;
@@ -84,93 +78,101 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-around;
-      padding: 24px 16px 20px;
+      justify-content: center;
+      padding: 10px 8px 14px;
+      gap: clamp(6px, 1.8vh, 18px);
     }
 
-    /* ── Slots row ── */
+    .section-label {
+      font-size: 0.6rem;
+      letter-spacing: 4px;
+      color: rgba(255,255,255,0.28);
+      font-weight: 700;
+    }
+
+    /* ── Slots ── */
     #slots {
       display: flex;
-      gap: clamp(16px, 6vw, 48px);
-      align-items: center;
+      flex-wrap: wrap;
       justify-content: center;
-      flex-shrink: 0;
+      gap: clamp(5px, 1.4vw, 9px);
+      width: 100%;
+    }
+
+    .slot-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
     }
 
     .slot {
-      width: 100px; height: 100px;
+      width: clamp(54px, 11vw, 70px);
+      height: clamp(54px, 11vw, 70px);
       display: flex; align-items: center; justify-content: center;
       position: relative;
       transition: filter 0.2s;
     }
-
-    /* SVG outlines — drawn inline per shape */
     .slot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .slot.highlight { filter: drop-shadow(0 0 8px #fff); }
+
     .slot-label {
-      position: absolute;
-      bottom: -22px;
-      font-size: 0.7rem;
-      letter-spacing: 2px;
+      font-size: clamp(0.42rem, 1.1vw, 0.58rem);
+      letter-spacing: 1px;
       font-weight: 700;
-      opacity: 0.55;
+      opacity: 0.7;
+      white-space: nowrap;
     }
 
-    .slot.highlight { filter: drop-shadow(0 0 10px #fff); }
-
-    /* ── Draggable pieces row ── */
+    /* ── Pieces ── */
     #pieces {
       display: flex;
-      gap: clamp(16px, 6vw, 48px);
-      align-items: center;
+      flex-wrap: wrap;
       justify-content: center;
-      flex-shrink: 0;
+      gap: clamp(5px, 1.4vw, 9px);
+      width: 100%;
     }
 
     .piece {
-      width: 88px; height: 88px;
+      width: clamp(48px, 9.5vw, 62px);
+      height: clamp(48px, 9.5vw, 62px);
       display: flex; align-items: center; justify-content: center;
       cursor: grab;
       position: relative;
-      transition: transform 0.12s, filter 0.12s;
       touch-action: none;
+      filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));
+      transition: filter 0.12s;
     }
     .piece:active { cursor: grabbing; }
     .piece svg { width: 100%; height: 100%; display: block; }
-    .piece.dragging { opacity: 0.0; } /* hide original while cloned ghost follows finger */
+    .piece.dragging { opacity: 0; }
     .piece.matched  { visibility: hidden; }
 
-    /* ── Drag ghost (absolute, follows pointer) ── */
+    /* ── Ghost ── */
     #ghost {
       position: fixed;
       pointer-events: none;
       z-index: 100;
       display: none;
-      width: 88px; height: 88px;
-      transform: translate(-50%, -50%) scale(1.15);
-      filter: drop-shadow(0 6px 18px rgba(0,0,0,0.7));
+      width: clamp(48px, 9.5vw, 62px);
+      height: clamp(48px, 9.5vw, 62px);
+      transform: translate(-50%, -50%) scale(1.22);
+      filter: drop-shadow(0 6px 18px rgba(0,0,0,0.8));
     }
     #ghost svg { width: 100%; height: 100%; }
 
     /* ── Win overlay ── */
     #win-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 50;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 18px;
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(6px);
+      position: fixed; inset: 0; z-index: 50;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center; gap: 18px;
+      background: rgba(0,0,0,0.55); backdrop-filter: blur(6px);
     }
     #win-overlay.show { display: flex; }
 
     #win-text {
-      font-size: clamp(2rem, 8vw, 3.5rem);
-      font-weight: 900;
-      letter-spacing: 6px;
-      color: #ffdd44;
+      font-size: clamp(2rem, 8vw, 3.5rem); font-weight: 900;
+      letter-spacing: 6px; color: #ffdd44;
       text-shadow: 0 0 30px #ff8800, 0 0 60px rgba(255,136,0,0.4);
       animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
@@ -178,40 +180,23 @@
       from { transform: scale(0.4); opacity: 0; }
       to   { transform: scale(1);   opacity: 1; }
     }
-
     #win-stars {
-      font-size: 2.8rem;
-      letter-spacing: 8px;
+      font-size: 2.8rem; letter-spacing: 8px;
       animation: popIn 0.4s 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
-
     #play-again-big {
-      margin-top: 8px;
-      padding: 14px 40px;
-      border-radius: 28px;
-      background: #ffdd44;
-      color: #000;
-      font-size: 1rem;
-      font-weight: 900;
-      letter-spacing: 3px;
-      border: none;
-      cursor: pointer;
+      margin-top: 8px; padding: 14px 40px; border-radius: 28px;
+      background: #ffdd44; color: #000;
+      font-size: 1rem; font-weight: 900; letter-spacing: 3px;
+      border: none; cursor: pointer;
       box-shadow: 0 0 24px rgba(255,220,68,0.55);
       animation: popIn 0.4s 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-      font-family: inherit;
-      transition: transform 0.12s;
+      font-family: inherit; transition: transform 0.12s;
     }
     #play-again-big:active { transform: scale(0.95); }
 
-    /* ── Canvas star burst particles ── */
-    #fx-canvas {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 49;
-    }
+    #fx-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 49; }
 
-    /* ── Snap-in animation on matched slot ── */
     @keyframes snapIn {
       0%   { transform: scale(1.3); }
       60%  { transform: scale(0.88); }
@@ -219,7 +204,6 @@
     }
     .snap-anim { animation: snapIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 
-    /* ── Wrong-drop shake ── */
     @keyframes shake {
       0%,100% { transform: translateX(0); }
       20%     { transform: translateX(-8px); }
@@ -229,17 +213,14 @@
     }
     .shake { animation: shake 0.35s ease both; }
 
-    /* ── Slot fill (matched shape rendered inside slot) ── */
     .slot-fill {
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
       display: flex; align-items: center; justify-content: center;
       pointer-events: none;
     }
-    .slot-fill svg { width: 80%; height: 80%; }
+    .slot-fill svg { width: 78%; height: 78%; }
   </style>
   <script>
-    // Block pinch-zoom, double-tap zoom, gesture zoom, ctrl+scroll zoom
     document.addEventListener('touchmove', function(e) {
       if (e.touches.length > 1) e.preventDefault();
     }, { passive: false });
@@ -270,95 +251,14 @@
   </div>
 
   <div id="arena">
-
-    <!-- Slots -->
-    <div id="slots">
-      <div class="slot" id="slot-square" data-shape="square">
-        <svg viewBox="0 0 100 100">
-          <rect x="10" y="10" width="80" height="80" rx="6"
-            fill="none" stroke="#ff5566" stroke-width="4" stroke-dasharray="8 5" opacity="0.7"/>
-        </svg>
-        <span class="slot-label" style="color:#ff5566;">SQUARE</span>
-      </div>
-      <div class="slot" id="slot-circle" data-shape="circle">
-        <svg viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="40"
-            fill="none" stroke="#44bbff" stroke-width="4" stroke-dasharray="8 5" opacity="0.7"/>
-        </svg>
-        <span class="slot-label" style="color:#44bbff;">CIRCLE</span>
-      </div>
-      <div class="slot" id="slot-triangle" data-shape="triangle">
-        <svg viewBox="0 0 100 100">
-          <polygon points="50,8 94,88 6,88"
-            fill="none" stroke="#aaee44" stroke-width="4" stroke-dasharray="8 5" opacity="0.7"/>
-        </svg>
-        <span class="slot-label" style="color:#aaee44;">TRIANGLE</span>
-      </div>
-    </div>
-
-    <!-- Pieces -->
-    <div id="pieces">
-      <div class="piece" id="piece-square" data-shape="square">
-        <svg viewBox="0 0 100 100">
-          <rect x="8" y="8" width="84" height="84" rx="8" fill="#ff5566"
-            filter="url(#glow-red)"/>
-          <defs>
-            <filter id="glow-red" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="4" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-          <rect x="8" y="8" width="84" height="84" rx="8"
-            fill="none" stroke="rgba(255,255,255,0.30)" stroke-width="3"/>
-          <!-- sheen -->
-          <ellipse cx="36" cy="32" rx="18" ry="9" fill="rgba(255,255,255,0.22)"/>
-        </svg>
-      </div>
-
-      <div class="piece" id="piece-circle" data-shape="circle">
-        <svg viewBox="0 0 100 100">
-          <defs>
-            <filter id="glow-blue" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="4" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-            <radialGradient id="cg" cx="35%" cy="30%" r="65%">
-              <stop offset="0%" stop-color="#88ddff"/>
-              <stop offset="100%" stop-color="#1177cc"/>
-            </radialGradient>
-          </defs>
-          <circle cx="50" cy="50" r="42" fill="url(#cg)" filter="url(#glow-blue)"/>
-          <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2.5"/>
-          <ellipse cx="36" cy="34" rx="14" ry="7" fill="rgba(255,255,255,0.28)"/>
-        </svg>
-      </div>
-
-      <div class="piece" id="piece-triangle" data-shape="triangle">
-        <svg viewBox="0 0 100 100">
-          <defs>
-            <filter id="glow-green" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="4" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-            <linearGradient id="tg" x1="30%" y1="0%" x2="70%" y2="100%">
-              <stop offset="0%" stop-color="#ccff55"/>
-              <stop offset="100%" stop-color="#44aa00"/>
-            </linearGradient>
-          </defs>
-          <polygon points="50,6 96,90 4,90" fill="url(#tg)" filter="url(#glow-green)"/>
-          <polygon points="50,6 96,90 4,90" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2.5"/>
-          <ellipse cx="46" cy="40" rx="14" ry="6" transform="rotate(-15,46,40)"
-            fill="rgba(255,255,255,0.22)"/>
-        </svg>
-      </div>
-    </div>
-
+    <div class="section-label">MATCH THE SHAPES</div>
+    <div id="slots"></div>
+    <div class="section-label">DRAG TO MATCH &#8212; COLORS ARE MISLEADING</div>
+    <div id="pieces"></div>
   </div>
 
-  <!-- Drag ghost -->
   <div id="ghost"></div>
 
-  <!-- Win overlay -->
   <div id="win-overlay">
     <div id="win-stars">&#11088; &#11088; &#11088;</div>
     <div id="win-text">PERFECT!</div>
@@ -368,72 +268,42 @@
   <script>
   (function () {
 
-    // ── Starfield background ───────────────────────────────────────────────
+    // ── Starfield ──────────────────────────────────────────────────────────
     (function () {
-      const c   = document.getElementById('bg');
-      const ctx = c.getContext('2d');
+      const c = document.getElementById('bg'), ctx = c.getContext('2d');
       const stars = Array.from({ length: 140 }, () => ({
         rx: Math.random(), ry: Math.random(),
-        r:  Math.random() * 1.5 + 0.2,
-        a:  Math.random() * 0.5 + 0.3,
+        r: Math.random() * 1.5 + 0.2, a: Math.random() * 0.5 + 0.3,
       }));
       function draw() {
         const W = c.width = window.innerWidth, H = c.height = window.innerHeight;
-        ctx.fillStyle = '#0a0a1e';
-        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1e'; ctx.fillRect(0, 0, W, H);
         stars.forEach(s => {
-          ctx.beginPath();
-          ctx.arc(s.rx * W, s.ry * H, s.r, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255,255,255,${s.a})`;
-          ctx.fill();
+          ctx.beginPath(); ctx.arc(s.rx * W, s.ry * H, s.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,255,${s.a})`; ctx.fill();
         });
       }
-      draw();
-      window.addEventListener('resize', draw);
+      draw(); window.addEventListener('resize', draw);
     })();
 
-    // ── FX canvas (star burst particles) ──────────────────────────────────
+    // ── FX particles ───────────────────────────────────────────────────────
     const fxCanvas = document.getElementById('fx-canvas');
-    const fx       = fxCanvas.getContext('2d');
-    let   particles = [];
-
-    function resizeFx() {
-      fxCanvas.width  = window.innerWidth;
-      fxCanvas.height = window.innerHeight;
-    }
-    resizeFx();
-    window.addEventListener('resize', resizeFx);
+    const fx = fxCanvas.getContext('2d');
+    let particles = [];
+    function resizeFx() { fxCanvas.width = window.innerWidth; fxCanvas.height = window.innerHeight; }
+    resizeFx(); window.addEventListener('resize', resizeFx);
 
     function spawnStars(x, y, color) {
       for (let i = 0; i < 28; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 7 + 2;
-        particles.push({
-          x, y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 2,
-          r:  Math.random() * 5 + 2,
-          color,
-          life: 1,
-          decay: Math.random() * 0.022 + 0.016,
-          isStar: Math.random() < 0.4,
-        });
+        const a = Math.random() * Math.PI * 2, sp = Math.random() * 7 + 2;
+        particles.push({ x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp - 2,
+          r: Math.random()*5+2, color, life: 1, decay: Math.random()*0.022+0.016, isStar: Math.random()<0.4 });
       }
-      // gold star shapes
       for (let i = 0; i < 5; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        particles.push({
-          x, y,
-          vx: Math.cos(angle) * (Math.random() * 4 + 1),
-          vy: Math.sin(angle) * (Math.random() * 4 + 1) - 3,
-          r:  Math.random() * 9 + 6,
-          color: '#ffe044',
-          life: 1,
-          decay: Math.random() * 0.016 + 0.012,
-          isStar: true,
-          rot: Math.random() * Math.PI * 2,
-          rotV: (Math.random() - 0.5) * 0.15,
-        });
+        const a = Math.random() * Math.PI * 2;
+        particles.push({ x, y, vx: Math.cos(a)*(Math.random()*4+1), vy: Math.sin(a)*(Math.random()*4+1)-3,
+          r: Math.random()*9+6, color: '#ffe044', life: 1, decay: Math.random()*0.016+0.012,
+          isStar: true, rot: Math.random()*Math.PI*2, rotV: (Math.random()-0.5)*0.15 });
       }
     }
 
@@ -442,8 +312,8 @@
       for (let i = 0; i < 10; i++) {
         const a = rot + (i * Math.PI) / 5 - Math.PI / 2;
         const d = i % 2 === 0 ? r : r * 0.42;
-        i === 0 ? ctx.moveTo(x + d * Math.cos(a), y + d * Math.sin(a))
-                : ctx.lineTo(x + d * Math.cos(a), y + d * Math.sin(a));
+        i === 0 ? ctx.moveTo(x+d*Math.cos(a), y+d*Math.sin(a))
+                : ctx.lineTo(x+d*Math.cos(a), y+d*Math.sin(a));
       }
       ctx.closePath();
     }
@@ -451,41 +321,82 @@
     let fxRunning = false;
     function fxLoop() {
       if (!particles.length) { fxRunning = false; return; }
-      fxRunning = true;
-      requestAnimationFrame(fxLoop);
-
+      fxRunning = true; requestAnimationFrame(fxLoop);
       fx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        p.x    += p.vx;
-        p.y    += p.vy;
-        p.vy   += 0.18;
-        p.life -= p.decay;
+        p.x += p.vx; p.y += p.vy; p.vy += 0.18; p.life -= p.decay;
         if (p.life <= 0) { particles.splice(i, 1); continue; }
-
-        fx.save();
-        fx.globalAlpha = p.life;
-        fx.fillStyle   = p.color;
-        fx.shadowBlur  = 10;
-        fx.shadowColor = p.color;
-        if (p.isStar) {
-          p.rot = (p.rot || 0) + (p.rotV || 0);
-          drawStar5(fx, p.x, p.y, p.r, p.rot);
-          fx.fill();
-        } else {
-          fx.beginPath();
-          fx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
-          fx.fill();
-        }
+        fx.save(); fx.globalAlpha = p.life; fx.fillStyle = p.color;
+        fx.shadowBlur = 10; fx.shadowColor = p.color;
+        if (p.isStar) { p.rot = (p.rot||0)+(p.rotV||0); drawStar5(fx,p.x,p.y,p.r,p.rot); fx.fill(); }
+        else { fx.beginPath(); fx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2); fx.fill(); }
         fx.restore();
       }
     }
 
-    // ── Game state ────────────────────────────────────────────────────────
-    const SHAPES   = ['square', 'circle', 'triangle'];
-    let   matched  = new Set();
+    // ── Shape definitions ──────────────────────────────────────────────────
+    const SHAPE_DATA = [
+      { id: 'square',      label: 'SQUARE'      },
+      { id: 'circle',      label: 'CIRCLE'      },
+      { id: 'triangle',    label: 'TRIANGLE'    },
+      { id: 'diamond',     label: 'DIAMOND'     },
+      { id: 'pentagon',    label: 'PENTAGON'    },
+      { id: 'hexagon',     label: 'HEXAGON'     },
+      { id: 'star',        label: 'STAR'        },
+      { id: 'heart',       label: 'HEART'       },
+      { id: 'cross',       label: 'CROSS'       },
+      { id: 'arrow',       label: 'ARROW'       },
+    ];
 
-    // Shuffle pieces order each game
+    // 8 vivid colours — assigned randomly, piece ≠ slot for same shape
+    const COLOR_POOL = [
+      '#ff3355', '#ff8c00', '#ffe020', '#44ee55',
+      '#33bbff', '#cc44ff', '#ff66bb', '#00ddcc'
+    ];
+
+    function shapeEl(id, attr) {
+      const shapes = {
+        square:   `<rect x="8" y="8" width="84" height="84" rx="8" ${attr}/>`,
+        circle:   `<circle cx="50" cy="50" r="42" ${attr}/>`,
+        triangle: `<polygon points="50,7 93,87 7,87" ${attr}/>`,
+        diamond:  `<polygon points="50,5 94,50 50,95 6,50" ${attr}/>`,
+        pentagon: `<polygon points="50,8 90,37 75,84 25,84 10,37" ${attr}/>`,
+        hexagon:  `<polygon points="50,6 88,28 88,72 50,94 12,72 12,28" ${attr}/>`,
+        star:     `<polygon points="50,6 61,35 92,36 67,56 76,86 50,68 24,86 33,56 8,36 39,35" ${attr}/>`,
+        heart:    `<path d="M50,82 C20,65 8,48 8,32 C8,18 20,8 32,14 C39,18 45,24 50,30 C55,24 61,18 68,14 C80,8 92,18 92,32 C92,48 80,65 50,82 Z" ${attr}/>`,
+        cross:    `<polygon points="35,8 65,8 65,35 92,35 92,65 65,65 65,92 35,92 35,65 8,65 8,35 35,35" ${attr}/>`,
+        arrow:    `<polygon points="5,36 58,36 58,16 95,50 58,84 58,64 5,64" ${attr}/>`,
+      };
+      return shapes[id] || '';
+    }
+
+    const SHEENS = {
+      square:   `<ellipse cx="32" cy="26" rx="16" ry="8" fill="rgba(255,255,255,0.22)"/>`,
+      circle:   `<ellipse cx="35" cy="32" rx="14" ry="7" fill="rgba(255,255,255,0.28)"/>`,
+      triangle: `<ellipse cx="46" cy="37" rx="12" ry="5" transform="rotate(-15,46,37)" fill="rgba(255,255,255,0.22)"/>`,
+      diamond:  `<ellipse cx="50" cy="26" rx="12" ry="5" fill="rgba(255,255,255,0.22)"/>`,
+      pentagon: `<ellipse cx="50" cy="28" rx="14" ry="6" fill="rgba(255,255,255,0.20)"/>`,
+      hexagon:  `<ellipse cx="50" cy="24" rx="16" ry="7" fill="rgba(255,255,255,0.20)"/>`,
+      star:     `<ellipse cx="50" cy="32" rx="11" ry="5" fill="rgba(255,255,255,0.22)"/>`,
+      heart:    `<ellipse cx="34" cy="28" rx="10" ry="5" transform="rotate(-20,34,28)" fill="rgba(255,255,255,0.22)"/>`,
+      cross:    `<ellipse cx="50" cy="24" rx="10" ry="5" fill="rgba(255,255,255,0.20)"/>`,
+      arrow:    `<ellipse cx="30" cy="44" rx="14" ry="5" fill="rgba(255,255,255,0.20)"/>`,
+    };
+
+    function outlineSVG(id, color) {
+      const a = `fill="none" stroke="${color}" stroke-width="3.5" stroke-dasharray="8 5" opacity="0.8"`;
+      return `<svg viewBox="0 0 100 100">${shapeEl(id, a)}</svg>`;
+    }
+
+    function filledSVG(id, color) {
+      return `<svg viewBox="0 0 100 100">
+        ${shapeEl(id, `fill="${color}"`)}
+        ${shapeEl(id, 'fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2"')}
+        ${SHEENS[id] || ''}
+      </svg>`;
+    }
+
     function shuffle(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -494,122 +405,133 @@
       return arr;
     }
 
+    // ── Game state ─────────────────────────────────────────────────────────
+    const SHAPES = SHAPE_DATA.map(s => s.id);
+    let matched = new Set();
+    let slotColors = {}, pieceColors = {};
+
+    function pickColors() {
+      SHAPES.forEach(id => {
+        slotColors[id] = COLOR_POOL[Math.floor(Math.random() * COLOR_POOL.length)];
+        let pc;
+        do { pc = COLOR_POOL[Math.floor(Math.random() * COLOR_POOL.length)]; }
+        while (pc === slotColors[id]);
+        pieceColors[id] = pc;
+      });
+    }
+
+    function buildSlots() {
+      const container = document.getElementById('slots');
+      container.innerHTML = '';
+      SHAPES.forEach(id => {
+        const label = SHAPE_DATA.find(s => s.id === id).label;
+        const unit = document.createElement('div');
+        unit.className = 'slot-unit';
+
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.id = 'slot-' + id;
+        slot.dataset.shape = id;
+        slot.innerHTML = outlineSVG(id, slotColors[id]);
+
+        const lbl = document.createElement('span');
+        lbl.className = 'slot-label';
+        lbl.style.color = slotColors[id];
+        lbl.textContent = label;
+
+        unit.appendChild(slot);
+        unit.appendChild(lbl);
+        container.appendChild(unit);
+      });
+    }
+
+    function buildPieces() {
+      const container = document.getElementById('pieces');
+      container.innerHTML = '';
+      shuffle([...SHAPES]).forEach(id => {
+        const div = document.createElement('div');
+        div.className = 'piece';
+        div.id = 'piece-' + id;
+        div.dataset.shape = id;
+        div.dataset.color = pieceColors[id];
+        div.innerHTML = filledSVG(id, pieceColors[id]);
+        div.addEventListener('mousedown',  onDragStart);
+        div.addEventListener('touchstart', onDragStart, { passive: false });
+        container.appendChild(div);
+      });
+    }
+
     function resetGame() {
       matched = new Set();
       document.getElementById('win-overlay').classList.remove('show');
       particles = [];
       fx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
-
-      // Reset pieces
-      SHAPES.forEach(s => {
-        const p = document.getElementById('piece-' + s);
-        p.classList.remove('matched', 'dragging');
-        p.style.visibility = '';
-        p.style.opacity    = '';
-      });
-
-      // Reset slots
-      SHAPES.forEach(s => {
-        const slot = document.getElementById('slot-' + s);
-        slot.classList.remove('highlight');
-        const fill = slot.querySelector('.slot-fill');
-        if (fill) fill.remove();
-        // restore dashed outline visibility
-        slot.querySelector('svg').style.opacity = '';
-      });
-
-      // Shuffle the visual order of pieces
-      const piecesEl = document.getElementById('pieces');
-      const order = shuffle([...SHAPES]);
-      order.forEach(s => piecesEl.appendChild(document.getElementById('piece-' + s)));
+      pickColors();
+      buildSlots();
+      buildPieces();
     }
 
-    // ── Drag logic (unified mouse + touch) ────────────────────────────────
-    const ghost     = document.getElementById('ghost');
-    let   dragging  = null;   // { el, shape }
-    let   grabOffset = { x: 0, y: 0 };
+    // ── Drag logic ─────────────────────────────────────────────────────────
+    const ghost = document.getElementById('ghost');
+    let dragging = null;
 
     function getPos(e) {
-      if (e.touches) {
-        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      }
-      return { x: e.clientX, y: e.clientY };
+      return e.touches
+        ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+        : { x: e.clientX, y: e.clientY };
     }
 
     function onDragStart(e) {
       const piece = e.currentTarget;
       if (piece.classList.contains('matched')) return;
       e.preventDefault();
-
-      const shape = piece.dataset.shape;
-      const rect  = piece.getBoundingClientRect();
-      const pos   = getPos(e);
-
-      grabOffset.x = pos.x - (rect.left + rect.width  / 2);
-      grabOffset.y = pos.y - (rect.top  + rect.height / 2);
-
-      dragging = { el: piece, shape };
+      dragging = { el: piece, shape: piece.dataset.shape };
       piece.classList.add('dragging');
-
-      // Clone SVG into ghost
       ghost.innerHTML = piece.innerHTML;
       ghost.style.display = 'block';
-      moveGhost(pos.x, pos.y);
+      moveGhost(getPos(e));
     }
 
-    function moveGhost(cx, cy) {
-      ghost.style.left = cx + 'px';
-      ghost.style.top  = cy + 'px';
-      highlightSlot(cx, cy);
-    }
-
-    function highlightSlot(cx, cy) {
+    function moveGhost({ x, y }) {
+      ghost.style.left = x + 'px';
+      ghost.style.top  = y + 'px';
       SHAPES.forEach(s => {
         const slot = document.getElementById('slot-' + s);
-        const over = isOverSlot(slot, cx, cy);
-        slot.classList.toggle('highlight', over && !matched.has(s));
+        if (slot) slot.classList.toggle('highlight', isOverSlot(slot, x, y) && !matched.has(s));
       });
     }
 
     function isOverSlot(slot, cx, cy) {
-      const r = slot.getBoundingClientRect();
-      const margin = 20;
-      return cx >= r.left - margin && cx <= r.right  + margin &&
-             cy >= r.top  - margin && cy <= r.bottom + margin;
+      const r = slot.getBoundingClientRect(), m = 16;
+      return cx >= r.left-m && cx <= r.right+m && cy >= r.top-m && cy <= r.bottom+m;
     }
 
     function onDragMove(e) {
       if (!dragging) return;
       e.preventDefault();
-      const pos = getPos(e);
-      moveGhost(pos.x, pos.y);
+      moveGhost(getPos(e));
     }
 
     function onDragEnd(e) {
       if (!dragging) return;
       e.preventDefault();
-
-      const pos  = e.changedTouches
+      const pos = e.changedTouches
         ? { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY }
         : { x: e.clientX, y: e.clientY };
 
       ghost.style.display = 'none';
-      SHAPES.forEach(s => document.getElementById('slot-' + s).classList.remove('highlight'));
+      SHAPES.forEach(s => { const sl = document.getElementById('slot-'+s); if (sl) sl.classList.remove('highlight'); });
 
       const { el, shape } = dragging;
       dragging = null;
       el.classList.remove('dragging');
 
-      // Check each slot
-      let dropped = false;
       SHAPES.forEach(s => {
         const slot = document.getElementById('slot-' + s);
-        if (isOverSlot(slot, pos.x, pos.y) && !matched.has(s)) {
-          dropped = true;
+        if (slot && isOverSlot(slot, pos.x, pos.y) && !matched.has(s)) {
           if (s === shape) {
-            doMatch(el, slot, shape, pos);
+            doMatch(el, slot, shape);
           } else {
-            // Wrong slot — shake the slot
             slot.classList.add('shake');
             setTimeout(() => slot.classList.remove('shake'), 400);
           }
@@ -617,59 +539,38 @@
       });
     }
 
-    function doMatch(pieceEl, slotEl, shape, pos) {
+    function doMatch(pieceEl, slotEl, shape) {
       matched.add(shape);
       pieceEl.classList.add('matched');
 
-      // Place a filled copy inside the slot
       const fill = document.createElement('div');
       fill.className = 'slot-fill snap-anim';
       fill.innerHTML = pieceEl.innerHTML;
       slotEl.appendChild(fill);
-
-      // Fade out dashed outline
       slotEl.querySelector('svg').style.opacity = '0';
 
-      // Get slot center for particles
       const r = slotEl.getBoundingClientRect();
-      const cx = r.left + r.width / 2;
-      const cy = r.top  + r.height / 2;
-
-      const colors = { square: '#ff5566', circle: '#44bbff', triangle: '#aaee44' };
-      spawnStars(cx, cy, colors[shape]);
+      spawnStars(r.left + r.width/2, r.top + r.height/2, pieceEl.dataset.color);
       if (!fxRunning) fxLoop();
 
-      if (matched.size === SHAPES.length) {
-        setTimeout(showWin, 500);
-      }
+      if (matched.size === SHAPES.length) setTimeout(showWin, 500);
     }
 
     function showWin() {
-      // Big central burst
-      spawnStars(window.innerWidth / 2, window.innerHeight / 2, '#ffe044');
-      spawnStars(window.innerWidth / 2, window.innerHeight / 2, '#ff88cc');
-      spawnStars(window.innerWidth / 2, window.innerHeight / 2, '#44eeff');
+      spawnStars(window.innerWidth/2, window.innerHeight/2, '#ffe044');
+      spawnStars(window.innerWidth/2, window.innerHeight/2, '#ff88cc');
+      spawnStars(window.innerWidth/2, window.innerHeight/2, '#44eeff');
       if (!fxRunning) fxLoop();
       document.getElementById('win-overlay').classList.add('show');
     }
 
-    // ── Attach events to pieces ───────────────────────────────────────────
-    SHAPES.forEach(s => {
-      const p = document.getElementById('piece-' + s);
-      p.addEventListener('mousedown',  onDragStart);
-      p.addEventListener('touchstart', onDragStart, { passive: false });
-    });
+    document.addEventListener('mousemove',   onDragMove);
+    document.addEventListener('touchmove',   onDragMove, { passive: false });
+    document.addEventListener('mouseup',     onDragEnd);
+    document.addEventListener('touchend',    onDragEnd);
+    document.addEventListener('touchcancel', onDragEnd);
 
-    document.addEventListener('mousemove',  onDragMove);
-    document.addEventListener('touchmove',  onDragMove, { passive: false });
-    document.addEventListener('mouseup',    onDragEnd);
-    document.addEventListener('touchend',   onDragEnd);
-    document.addEventListener('touchcancel',onDragEnd);
-
-    // ── Initial shuffle ───────────────────────────────────────────────────
     resetGame();
-
-    // expose for HTML onclick
     window.resetGame = resetGame;
 
   })();
