@@ -11,6 +11,11 @@
       padding: 0;
     }
 
+    html {
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #000018;
@@ -20,6 +25,9 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: manipulation;
     }
 
     #bg-canvas {
@@ -297,6 +305,25 @@
       100% { opacity: 1; transform: scale(1) rotate(0deg); }
     }
   </style>
+  <script>
+    // Block pinch-zoom, double-tap zoom, gesture zoom, ctrl+scroll zoom
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    (function() {
+      var lt = 0;
+      document.addEventListener('touchend', function(e) {
+        var now = Date.now();
+        if (now - lt < 300) e.preventDefault();
+        lt = now;
+      }, false);
+    })();
+    document.addEventListener('gesturestart',  function(e) { e.preventDefault(); }, false);
+    document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, false);
+    window.addEventListener('wheel', function(e) {
+      if (e.ctrlKey) e.preventDefault();
+    }, { passive: false });
+  </script>
 </head>
 <body>
 
