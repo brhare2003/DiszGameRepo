@@ -306,7 +306,7 @@
     </a>
 
     <a href="floatingcircles.html" class="card card-fc">
-      <div class="card-badge">&#9679;</div>
+      <canvas id="fc-badge" class="card-badge" width="72" height="72"></canvas>
       <div class="card-title">FLOATING CIRCLES</div>
       <div class="card-desc">Pop the colorful bubbles as they float up! Click fast — they disappear before you know it.</div>
       <div class="play-btn">PLAY</div>
@@ -334,6 +334,67 @@
     </a>
 
   </div>
+
+  <script>
+    // ── Floating Circles badge animation ──────────────────────────────────
+    (function () {
+      var cv = document.getElementById('fc-badge');
+      if (!cv) return;
+      var c = cv.getContext('2d');
+      var W = 72, H = 72;
+
+      // 7 orbs spread across different start heights so they're staggered
+      var orbs = [
+        { bx: 15, y: 55,  r: 9,  col: '#3399FF', spd: 0.52, ph: 0.0, ws: 0.040, wa: 5.0 },
+        { bx: 57, y: 38,  r: 6,  col: '#FF33CC', spd: 0.78, ph: 1.6, ws: 0.052, wa: 3.5 },
+        { bx: 36, y: 76,  r: 11, col: '#FFE600', spd: 0.44, ph: 3.1, ws: 0.030, wa: 6.0 },
+        { bx: 13, y: 22,  r: 5,  col: '#33CC33', spd: 0.88, ph: 0.9, ws: 0.062, wa: 3.0 },
+        { bx: 60, y: 63,  r: 7,  col: '#FF8C00', spd: 0.66, ph: 2.3, ws: 0.045, wa: 4.0 },
+        { bx: 43, y: 10,  r: 6,  col: '#CC33FF', spd: 0.61, ph: 4.2, ws: 0.049, wa: 3.5 },
+        { bx: 28, y: 88,  r: 8,  col: '#00DDBB', spd: 0.57, ph: 1.1, ws: 0.036, wa: 4.5 },
+      ];
+
+      var t = 0;
+
+      function drawOrb(x, y, r, col) {
+        c.save();
+        c.shadowBlur  = 12;
+        c.shadowColor = col;
+
+        // 3-D gradient: bright white centre → full colour body
+        var g = c.createRadialGradient(x - r * 0.32, y - r * 0.32, r * 0.05, x, y, r);
+        g.addColorStop(0,    '#ffffff');
+        g.addColorStop(0.22, col);
+        g.addColorStop(1,    col);
+        c.fillStyle = g;
+        c.beginPath();
+        c.arc(x, y, r, 0, Math.PI * 2);
+        c.fill();
+
+        // Glossy sheen ellipse
+        c.globalAlpha = 0.52;
+        c.fillStyle   = '#ffffff';
+        c.beginPath();
+        c.ellipse(x - r * 0.28, y - r * 0.30, r * 0.28, r * 0.17, -0.5, 0, Math.PI * 2);
+        c.fill();
+        c.globalAlpha = 1;
+        c.restore();
+      }
+
+      function tick() {
+        c.clearRect(0, 0, W, H);
+        orbs.forEach(function (o) {
+          o.y -= o.spd;
+          if (o.y + o.r < 0) o.y = H + o.r + Math.random() * 8;
+          drawOrb(o.bx + Math.sin(t * o.ws + o.ph) * o.wa, o.y, o.r, o.col);
+        });
+        t++;
+        requestAnimationFrame(tick);
+      }
+
+      tick();
+    })();
+  </script>
 
   <script>
     // ── Space background (same as tictactoe) ──────────────────────────────
