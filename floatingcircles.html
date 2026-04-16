@@ -275,6 +275,8 @@
     }
 
     // ── Hit detection ─────────────────────────────────────────────────────
+    const HIT_BONUS = 14; // extra px added to radius for forgiving taps
+
     function hitTest(px, py) {
       // iterate in reverse so topmost circle wins
       for (let i = circles.length - 1; i >= 0; i--) {
@@ -282,7 +284,8 @@
         if (c.popped) continue;
         const dx = px - c.x;
         const dy = py - c.y;
-        if (dx * dx + dy * dy <= c.r * c.r) {
+        const hr = c.r + HIT_BONUS;
+        if (dx * dx + dy * dy <= hr * hr) {
           c.popped = true;
           if (targetColors.includes(c.color)) {
             score++;
@@ -298,8 +301,19 @@
       }
     }
 
-    canvas.addEventListener('click',     e => hitTest(e.clientX, e.clientY));
+    // Mouse: click and drag
+    let mouseDown = false;
+    canvas.addEventListener('mousedown',  e => { mouseDown = true;  hitTest(e.clientX, e.clientY); });
+    canvas.addEventListener('mouseup',    ()  => { mouseDown = false; });
+    canvas.addEventListener('mouseleave', ()  => { mouseDown = false; });
+    canvas.addEventListener('mousemove',  e => { if (mouseDown) hitTest(e.clientX, e.clientY); });
+
+    // Touch: tap and drag
     canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      Array.from(e.changedTouches).forEach(t => hitTest(t.clientX, t.clientY));
+    }, { passive: false });
+    canvas.addEventListener('touchmove', e => {
       e.preventDefault();
       Array.from(e.changedTouches).forEach(t => hitTest(t.clientX, t.clientY));
     }, { passive: false });
