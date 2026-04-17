@@ -217,7 +217,7 @@
   <div id="hud">
     <div class="hud-box" id="score-lbl">0</div>
     <div id="timer-bar-wrap"><div id="timer-bar"></div></div>
-    <div class="hud-box" id="lives-lbl">&#10084; 3</div>
+    <div class="hud-box" id="time-lbl">&#9201; 15</div>
   </div>
 
   <div id="monster-wrap">
@@ -234,7 +234,7 @@
 <!-- Start screen -->
 <div class="screen" id="start-screen">
   <h2>FEED THE MONSTER</h2>
-  <p>The monster is hungry! Drag the food that matches its color into its mouth as fast as you can.</p>
+  <p>Feed the monster as many times as possible in 15 seconds! Drag the food that matches its color into its mouth.</p>
   <button class="btn green" id="start-btn">PLAY</button>
 </div>
 
@@ -314,16 +314,14 @@ var COLORS = [
   { name: 'ORANGE', hex: '#ff8833', bg: '#ff883333', emoji: '🥕' },
 ];
 
-var ROUND_TIME  = 5000;   // ms per round
+var GAME_TIME   = 15000;  // total game duration in ms
 var FOOD_COUNT  = 4;      // food items shown per round
-var MAX_LIVES   = 3;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 var score      = 0;
-var lives      = MAX_LIVES;
 var targetIdx  = 0;        // current required color index
-var roundStart = 0;
-var roundTimer = null;
+var gameEndTime = 0;
+var gameTimerId = null;
 var mouthOpen  = false;
 var animating  = false;
 var gameActive = false;
@@ -377,13 +375,18 @@ function drawMonster(colorHex, open, expression) {
     mctx.beginPath();
     mctx.ellipse(cx, cy+30, 34, 22, 0, 0, Math.PI*2);
     mctx.fill();
-    // teeth
+    // teeth — follow the top arc of the mouth ellipse (rx=34, ry=22, center cy+30)
     mctx.fillStyle = '#fff';
+    var mouthCY = cy + 30, mouthRX = 34, mouthRY = 22;
     for (var t = -2; t <= 2; t++) {
+      var tx = t * 13;
+      if (Math.abs(tx) >= mouthRX) continue;
+      // y on the top arc of the ellipse at this x-offset
+      var yBase = mouthCY - mouthRY * Math.sqrt(1 - (tx / mouthRX) * (tx / mouthRX));
       mctx.beginPath();
-      mctx.moveTo(cx + t*13 - 6, cy+12);
-      mctx.lineTo(cx + t*13,     cy+22);
-      mctx.lineTo(cx + t*13 + 6, cy+12);
+      mctx.moveTo(cx + tx - 6, yBase);
+      mctx.lineTo(cx + tx,     yBase + 11);
+      mctx.lineTo(cx + tx + 6, yBase);
       mctx.closePath();
       mctx.fill();
     }
@@ -548,51 +551,22 @@ function overMonsterMouth(x, y) {
 
 // ── Feed logic ────────────────────────────────────────────────────────────────
 function handleFeed(colorIdx) {
-  if (animating) return;
-  clearTimeout(roundTimer);
+  if (animating || !gameActive) return;
   animating = true;
-
-  var elapsed = Date.now() - roundStart;
-  var timeBonus = Math.max(0, Math.round((1 - elapsed / ROUND_TIME) * 50));
 
   if (colorIdx === targetIdx) {
-    // Correct!
-    var pts = 10 + timeBonus;
-    score += pts;
+    score += 10;
     updateHUD();
-    showFeedback('+' + pts, '#33ff99');
+    showFeedback('+10', '#33ff99');
     drawMonster(COLORS[targetIdx].hex, false, 'happy');
-    setTimeout(nextRound, 600);
+    setTimeout(nextRound, 500);
   } else {
-    // Wrong color
-    lives--;
-    updateHUD();
     showFeedback('WRONG!', '#ff3355');
     drawMonster(COLORS[targetIdx].hex, true, 'sad');
-    if (lives <= 0) {
-      setTimeout(gameOver, 800);
-    } else {
-      setTimeout(function() {
-        animating = false;
-        startRoundTimer();
-        drawMonster(COLORS[targetIdx].hex, true, 'normal');
-      }, 700);
-    }
-  }
-}
-
-function timeUp() {
-  if (!gameActive || animating) return;
-  clearTimeout(roundTimer);
-  animating = true;
-  lives--;
-  updateHUD();
-  showFeedback('TOO SLOW!', '#ff9933');
-  drawMonster(COLORS[targetIdx].hex, false, 'sad');
-  if (lives <= 0) {
-    setTimeout(gameOver, 800);
-  } else {
-    setTimeout(nextRound, 800);
+    setTimeout(function() {
+      animating = false;
+      drawMonster(COLORS[targetIdx].hex, true, 'normal');
+    }, 500);
   }
 }
 
@@ -604,7 +578,6 @@ function nextRound() {
   drawMonster(COLORS[targetIdx].hex, true, 'normal');
   document.getElementById('color-label').textContent = COLORS[targetIdx].name;
   document.getElementById('color-label').style.color = COLORS[targetIdx].hex;
-  startRoundTimer();
 }
 
 function pickTarget() {
@@ -612,27 +585,30 @@ function pickTarget() {
   do { targetIdx = Math.floor(Math.random() * COLORS.length); } while (targetIdx === prev && COLORS.length > 1);
 }
 
-function startRoundTimer() {
-  roundStart = Date.now();
+function updateHUD() {
+  document.getElementById('score-lbl').textContent = score;
+  var secsLeft = Math.max(0, Math.ceil((gameEndTime - Date.now()) / 1000));
+  document.getElementById('time-lbl').textContent = '\u23F1 ' + secsLeft;
+}
+
+function startGameTimer() {
+  gameEndTime = Date.now() + GAME_TIME;
   var bar = document.getElementById('timer-bar');
   bar.style.transition = 'none';
   bar.style.width = '100%';
   bar.style.background = 'linear-gradient(90deg,#ff4466,#ff9933)';
-
-  // Force reflow
   void bar.offsetWidth;
-  bar.style.transition = 'width ' + ROUND_TIME/1000 + 's linear';
+  bar.style.transition = 'width ' + GAME_TIME/1000 + 's linear';
   bar.style.width = '0%';
 
-  clearTimeout(roundTimer);
-  roundTimer = setTimeout(timeUp, ROUND_TIME);
-}
-
-function updateHUD() {
-  document.getElementById('score-lbl').textContent = score;
-  var hearts = '';
-  for (var i = 0; i < MAX_LIVES; i++) hearts += (i < lives ? '❤️' : '🖤');
-  document.getElementById('lives-lbl').textContent = hearts;
+  clearInterval(gameTimerId);
+  gameTimerId = setInterval(function() {
+    updateHUD();
+    if (Date.now() >= gameEndTime) {
+      clearInterval(gameTimerId);
+      gameOver();
+    }
+  }, 200);
 }
 
 // ── Feedback flash ────────────────────────────────────────────────────────────
@@ -648,22 +624,23 @@ function showFeedback(msg, color) {
 
 // ── Start / Game Over ─────────────────────────────────────────────────────────
 function startGame() {
-  score = 0; lives = MAX_LIVES;
+  score = 0;
   gameActive = true; animating = false;
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('over-screen').style.display  = 'none';
-  updateHUD();
   nextRound();
+  updateHUD();
+  startGameTimer();
 }
 
 function gameOver() {
   gameActive = false;
-  clearTimeout(roundTimer);
+  clearInterval(gameTimerId);
   ghost.style.display = 'none';
   document.getElementById('final-score').textContent = score;
-  var msg = score >= 200 ? 'You\'re a monster-feeding legend!' :
-            score >= 100 ? 'The monster is satisfied!' :
-            score >= 50  ? 'Keep practicing!' : 'The monster is still hungry…';
+  var msg = score >= 150 ? 'Monster-feeding legend!' :
+            score >= 80  ? 'The monster is satisfied!' :
+            score >= 40  ? 'Keep practicing!' : 'The monster is still hungry…';
   document.getElementById('over-msg').textContent = msg;
   document.getElementById('over-screen').style.display = 'flex';
   drawMonster(COLORS[targetIdx].hex, false, 'sad');
