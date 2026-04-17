@@ -164,6 +164,19 @@
       opacity: 0;
       transition: opacity 0.3s;
     }
+    #diff-bar {
+      position: fixed; bottom: 20px; right: 20px;
+      display: flex; gap: 4px; z-index: 10;
+      background: rgba(0,0,0,0.52); border-radius: 20px; padding: 4px;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    }
+    .diff-btn {
+      padding: 5px 13px; border: none; border-radius: 16px;
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 1.5px;
+      cursor: pointer; background: transparent; color: rgba(255,255,255,0.45);
+      transition: background 0.15s, color 0.15s;
+    }
+    .diff-btn.active { background: rgba(255,100,0,0.3); color: #ff8844; }
   </style>
 </head>
 <body>
@@ -188,6 +201,12 @@
 
 <div id="combo-display"></div>
 
+<div id="diff-bar">
+  <button class="diff-btn" data-d="slow">SLOW</button>
+  <button class="diff-btn" data-d="medium">MEDIUM</button>
+  <button class="diff-btn" data-d="fast">FAST</button>
+</div>
+
 <div id="overlay">
   <h1>FRUIT NINJA</h1>
   <div class="sub">SLASH THE FRUIT!</div>
@@ -201,30 +220,35 @@
 <script>
 // ── constants ────────────────────────────────────────────────────────────────
 const FRUIT_TYPES = [
-  { name:'watermelon', outer:'#2d8c2d', inner:'#e8443a', seed:'#222', emoji:'🍉', size:38 },
-  { name:'orange',     outer:'#f07800', inner:'#ffa030', seed:'#a04000', emoji:'🍊', size:32 },
-  { name:'apple',      outer:'#cc2020', inner:'#e83030', seed:'#333', emoji:'🍎', size:30 },
-  { name:'pineapple',  outer:'#d4a820', inner:'#ffd040', seed:'#8a6010', emoji:'🍍', size:34 },
-  { name:'peach',      outer:'#f09060', inner:'#ffb888', seed:'#885040', emoji:'🍑', size:30 },
-  { name:'lemon',      outer:'#d4c800', inner:'#ffe040', seed:'#999900', emoji:'🍋', size:28 },
-  { name:'grape',      outer:'#7030a0', inner:'#9040c0', seed:'#401060', emoji:'🍇', size:26 },
-  { name:'strawberry', outer:'#cc1020', inner:'#ee3040', seed:'#ffdd00', emoji:'🍓', size:28 },
+  { name:'watermelon', outer:'#2d8c2d', inner:'#e8443a', size:38 },
+  { name:'orange',     outer:'#f07800', inner:'#ffa030', size:32 },
+  { name:'apple',      outer:'#cc2020', inner:'#e83030', size:30 },
+  { name:'pineapple',  outer:'#d4a820', inner:'#ffd040', size:34 },
+  { name:'peach',      outer:'#f09060', inner:'#ffb888', size:30 },
+  { name:'lemon',      outer:'#d4c800', inner:'#ffe040', size:28 },
+  { name:'grape',      outer:'#7030a0', inner:'#9040c0', size:26 },
+  { name:'strawberry', outer:'#cc1020', inner:'#ee3040', size:28 },
 ];
 
-const GRAVITY    = 0.28;
-const SPAWN_RATE_START = 110; // frames between spawns (decreases over time)
-const MIN_SPAWN  = 40;
-const BLADE_LEN  = 22;       // blade trail length
+const BLADE_LEN = 22;
+
+const DIFFS = {
+  slow:   { gravity: 0.14, vyMult: 0.55, spawnStart: 150, minSpawn: 70 },
+  medium: { gravity: 0.22, vyMult: 0.80, spawnStart: 105, minSpawn: 50 },
+  fast:   { gravity: 0.32, vyMult: 1.10, spawnStart:  70, minSpawn: 35 },
+};
 
 // ── state ────────────────────────────────────────────────────────────────────
 let canvas, ctx, W, H;
 let fruits = [], particles = [], bladePoints = [];
 let score = 0, lives = 3, best = 0;
-let frame = 0, spawnCounter = 0, spawnRate = SPAWN_RATE_START;
+let frame = 0, spawnCounter = 0, spawnRate = 150;
 let gameRunning = false;
 let lastPointer = null;
 let comboCount = 0, comboTimer = 0;
 let difficultyTimer = 0;
+let lastTs = 0;
+let difficulty = localStorage.getItem('fn_diff') || 'slow';
 
 // ── init ─────────────────────────────────────────────────────────────────────
 function init() {
@@ -243,6 +267,21 @@ function init() {
 
   document.getElementById('play-btn').addEventListener('click', startGame);
 
+  // difficulty buttons
+  function applyDiffUI() {
+    document.querySelectorAll('.diff-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.d === difficulty)
+    );
+  }
+  document.querySelectorAll('.diff-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      difficulty = b.dataset.d;
+      localStorage.setItem('fn_diff', difficulty);
+      applyDiffUI();
+    });
+  });
+  applyDiffUI();
+
   requestAnimationFrame(loop);
 }
 
@@ -253,6 +292,7 @@ function resize() {
 
 // ── game control ─────────────────────────────────────────────────────────────
 function startGame() {
+  const d   = DIFFS[difficulty];
   fruits    = [];
   particles = [];
   bladePoints = [];
@@ -260,10 +300,11 @@ function startGame() {
   lives     = 3;
   frame     = 0;
   spawnCounter = 0;
-  spawnRate = SPAWN_RATE_START;
+  spawnRate = d.spawnStart;
   comboCount = 0;
   comboTimer = 0;
   difficultyTimer = 0;
+  lastTs    = 0;
   gameRunning = true;
   updateUI();
   document.getElementById('overlay').style.display = 'none';
@@ -303,10 +344,12 @@ function updateUI() {
 
 // ── spawning ──────────────────────────────────────────────────────────────────
 function spawnFruit() {
+  const d    = DIFFS[difficulty];
   const isBomb = Math.random() < 0.12;
   const x   = W * (0.12 + Math.random() * 0.76);
-  const vy  = -(H * 0.022 + Math.random() * H * 0.012);
-  const vx  = (Math.random() - 0.5) * 5.5;
+  const baseVy = -(H * 0.022 + Math.random() * H * 0.012);
+  const vy  = baseVy * d.vyMult;
+  const vx  = (Math.random() - 0.5) * 5.5 * d.vyMult;
   const spin = (Math.random() - 0.5) * 0.12;
   const type = isBomb ? null : FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
   const size = isBomb ? 30 : type.size;
@@ -334,19 +377,28 @@ function drawFruit(f) {
     ctx.beginPath();
     ctx.arc(0, 0, size, 0, Math.PI*2);
     ctx.fill();
-    // fuse
+    // fuse cord
     ctx.strokeStyle = '#cc8800';
     ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(0, -size);
     ctx.quadraticCurveTo(size*0.6, -size*1.5, size*0.3, -size*1.8);
     ctx.stroke();
-    // skull
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${size*0.9}px serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('💣', 0, 2);
+    // fuse spark
+    ctx.fillStyle = '#ffcc00';
+    ctx.shadowBlur = 10; ctx.shadowColor = '#ff8800';
+    ctx.beginPath();
+    ctx.arc(size*0.3, -size*1.8, size*0.15, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // X mark on bomb body
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = Math.max(1.5, size*0.1);
+    ctx.lineCap = 'round';
+    const m = size*0.35;
+    ctx.beginPath(); ctx.moveTo(-m,-m); ctx.lineTo(m,m); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(m,-m);  ctx.lineTo(-m,m); ctx.stroke();
   } else {
     // outer skin
     ctx.shadowBlur  = 10;
@@ -555,42 +607,44 @@ function onUp(e) {
 }
 
 // ── game loop ─────────────────────────────────────────────────────────────────
-function loop() {
+function loop(ts) {
   requestAnimationFrame(loop);
+  const dt = lastTs ? Math.min((ts - lastTs) / 16.667, 3) : 1;
+  lastTs = ts;
   drawBackground();
 
   if (gameRunning) {
+    const d = DIFFS[difficulty];
     frame++;
     difficultyTimer++;
 
     // gradually speed up spawning
-    if (difficultyTimer % 400 === 0 && spawnRate > MIN_SPAWN) {
-      spawnRate = Math.max(MIN_SPAWN, spawnRate - 5);
+    if (difficultyTimer % 400 === 0 && spawnRate > d.minSpawn) {
+      spawnRate = Math.max(d.minSpawn, spawnRate - 5);
     }
 
-    spawnCounter++;
+    spawnCounter += dt;
     if (spawnCounter >= spawnRate) {
       spawnCounter = 0;
       spawnFruit();
-      if (Math.random() < 0.35) { // occasional double
+      if (Math.random() < 0.35) {
         setTimeout(spawnFruit, 200 + Math.random() * 300);
       }
     }
 
     // combo decay
     if (comboTimer > 0) {
-      comboTimer--;
-      if (comboTimer === 0) comboCount = 0;
+      comboTimer -= dt;
+      if (comboTimer <= 0) comboCount = 0;
     }
 
     // update fruits
     for (const f of fruits) {
       if (!f.sliced) {
-        f.x += f.vx;
-        f.y += f.vy;
-        f.vy += GRAVITY;
-        f.angle += f.spin;
-        // miss detection
+        f.x += f.vx * dt;
+        f.y += f.vy * dt;
+        f.vy += d.gravity * dt;
+        f.angle += f.spin * dt;
         if (f.y > H + f.size + 20 && !f.isBomb) {
           f.dead = true;
           lives--;
@@ -599,12 +653,11 @@ function loop() {
         }
         if (f.y > H + f.size + 20) f.dead = true;
       } else if (f.halfL) {
-        // update halves
         for (const h of [f.halfL, f.halfR]) {
-          h.x += h.vx;
-          h.y += h.vy;
-          h.vy += GRAVITY * 1.2;
-          h.angle += h.spin;
+          h.x += h.vx * dt;
+          h.y += h.vy * dt;
+          h.vy += d.gravity * 1.2 * dt;
+          h.angle += h.spin * dt;
         }
         if (f.halfL.y > H + 100 && f.halfR.y > H + 100) f.dead = true;
       }
