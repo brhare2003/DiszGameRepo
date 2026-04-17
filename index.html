@@ -286,6 +286,31 @@
       color: #fff;
       box-shadow: 0 0 16px rgba(204,68,255,0.55);
     }
+
+    /* Fruit Ninja card — red/orange accent */
+    .card-fn {
+      border-color: rgba(255, 80, 0, 0.35);
+    }
+    .card-fn:hover {
+      box-shadow: 0 14px 44px rgba(255, 80, 0, 0.35);
+      border-color: rgba(255, 80, 0, 0.8);
+    }
+
+    .card-fn .card-badge {
+      background: rgba(255,80,0,0.12);
+      border: 2px solid rgba(255,80,0,0.45);
+      color: #ff6622;
+      font-size: 1.8rem;
+      text-shadow: 0 0 12px #ff4400;
+    }
+
+    .card-fn .card-title { color: #ff7744; }
+
+    .card-fn .play-btn {
+      background: linear-gradient(135deg, #ff5500, #ff8800);
+      color: #fff;
+      box-shadow: 0 0 16px rgba(255,80,0,0.55);
+    }
   </style>
   <script>
     // Block pinch-zoom, double-tap zoom, gesture zoom, ctrl+scroll zoom
@@ -362,6 +387,13 @@
       <div class="card-badge">&#127843;</div>
       <div class="card-title">FEED THE MONSTER</div>
       <div class="card-desc">Drag the right colored food into the monster's mouth! Match its color as fast as you can to score big.</div>
+      <div class="play-btn">PLAY</div>
+    </a>
+
+    <a href="fruitninja.html" class="card card-fn">
+      <div class="card-badge">&#127820;</div>
+      <div class="card-title">FRUIT NINJA</div>
+      <div class="card-desc">Swipe to slash flying fruit before it falls! Dodge bombs or it's game over. How high can you combo?</div>
       <div class="play-btn">PLAY</div>
     </a>
 
