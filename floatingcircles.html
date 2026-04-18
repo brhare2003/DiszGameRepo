@@ -105,18 +105,47 @@
       to   { transform: scale(1.07); }
     }
 
+    /* ── Corner colour panels ── */
+    #color-panel-left,
+    #color-panel-right {
+      position: fixed;
+      top: 0;
+      width: min(38vw, 320px);
+      height: min(38vw, 320px);
+      pointer-events: none;
+      z-index: 1;
+      transition: background 0.5s ease;
+    }
+    #color-panel-left  { left: 0;  border-radius: 0 0 100% 0; }
+    #color-panel-right { right: 0; border-radius: 0 0 0 100%; }
+
+    /* label inside each corner */
+    .corner-label {
+      position: absolute;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 3px;
+      color: rgba(255,255,255,0.9);
+      text-shadow: 0 0 8px rgba(0,0,0,0.8);
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    #corner-label-left  { top: 18px; left: 18px; }
+    #corner-label-right { top: 18px; right: 18px; text-align: right; }
+
     #target-change-flash {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      inset: 0;
       pointer-events: none;
-      background: rgba(255,255,255,0.07);
+      z-index: 50;
       opacity: 0;
-      transition: opacity 0.25s;
     }
-
     #target-change-flash.flash {
-      opacity: 1;
-      transition: none;
+      animation: bigFlash 0.75s ease-out forwards;
+    }
+    @keyframes bigFlash {
+      0%   { opacity: 0.72; }
+      100% { opacity: 0; }
     }
   </style>
   <script>
@@ -143,6 +172,11 @@
 
   <canvas id="game-canvas"></canvas>
 
+  <div id="color-panel-left"></div>
+  <div id="color-panel-right"></div>
+  <div id="corner-label-left"  class="corner-label">POP</div>
+  <div id="corner-label-right" class="corner-label">POP</div>
+
   <div id="target-change-flash"></div>
 
   <div id="hud">
@@ -161,9 +195,13 @@
   (function () {
     const canvas = document.getElementById('game-canvas');
     const ctx    = canvas.getContext('2d');
-    const scoreEl   = document.getElementById('score-display');
-    const flashEl   = document.getElementById('target-change-flash');
-    const swatchesEl = document.getElementById('target-swatches');
+    const scoreEl      = document.getElementById('score-display');
+    const flashEl      = document.getElementById('target-change-flash');
+    const swatchesEl   = document.getElementById('target-swatches');
+    const panelLeft    = document.getElementById('color-panel-left');
+    const panelRight   = document.getElementById('color-panel-right');
+    const labelLeft    = document.getElementById('corner-label-left');
+    const labelRight   = document.getElementById('corner-label-right');
 
     // ── Palette of bright primary / secondary colours ─────────────────────
     const COLORS = [
@@ -193,12 +231,17 @@
       targetColors = shuffled.slice(0, 2);
       lastTargetChange = ts;
       renderSwatches();
-      // brief screen flash to signal new targets
+
+      // dramatic two-colour flash across the whole screen
+      flashEl.style.background =
+        `linear-gradient(135deg, ${targetColors[0]}bb 0%, ${targetColors[0]}55 38%, ${targetColors[1]}55 62%, ${targetColors[1]}bb 100%)`;
+      flashEl.classList.remove('flash');
+      void flashEl.offsetWidth; // force reflow to restart animation
       flashEl.classList.add('flash');
-      requestAnimationFrame(() => flashEl.classList.remove('flash'));
     }
 
     function renderSwatches() {
+      // small centre swatches (kept for accessibility)
       swatchesEl.innerHTML = '';
       targetColors.forEach(color => {
         const d = document.createElement('div');
@@ -207,6 +250,24 @@
         d.style.boxShadow = `0 0 14px 3px ${color}`;
         swatchesEl.appendChild(d);
       });
+
+      // large corner panels
+      const [c1, c2] = targetColors;
+      panelLeft.style.background =
+        `radial-gradient(circle at top left, ${c1}cc 0%, ${c1}88 25%, ${c1}33 55%, transparent 72%)`;
+      panelRight.style.background =
+        `radial-gradient(circle at top right, ${c2}cc 0%, ${c2}88 25%, ${c2}33 55%, transparent 72%)`;
+
+      // update corner labels with colour names
+      const nameOf = hex => COLORS.indexOf(hex) >= 0
+        ? ['RED','ORANGE','YELLOW','GREEN','BLUE','PURPLE','PINK','TEAL'][COLORS.indexOf(hex)]
+        : '';
+      labelLeft.textContent  = 'POP ' + nameOf(c1);
+      labelLeft.style.color  = c1;
+      labelLeft.style.textShadow = `0 0 10px ${c1}, 0 0 4px #000`;
+      labelRight.textContent = 'POP ' + nameOf(c2);
+      labelRight.style.color  = c2;
+      labelRight.style.textShadow = `0 0 10px ${c2}, 0 0 4px #000`;
     }
 
     function spawnFloatingText(x, y, text, color) {
