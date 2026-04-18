@@ -315,8 +315,9 @@ const WHEEL_OPTS = [
   { label:'🌈 RAINBOW', style:3 },
 ];
 
-let selColor   = '#ff3355';
-let brushColor = '#ff3355';
+const BODY_COLOR = '#444444';  // fixed dark gray — painting goes on overlay
+let brushColor   = '#ff3355';  // what the brush draws with
+let selColor     = BODY_COLOR; // kept for game car render
 let wheelStyle = 0;
 let brushMode  = 'thick';
 let selStamp   = '⭐';
@@ -516,7 +517,7 @@ function renderPreview(canvas, pCtx, bodyCol, overlay, wStyle, cType) {
 
 // ── Render garage (paint screen) preview ───────────────────────────────────
 function renderGar() {
-  renderPreview(gv,gvCtx,selColor,overlayCV,wheelStyle,carType);
+  renderPreview(gv,gvCtx,BODY_COLOR,overlayCV,wheelStyle,carType);
 }
 
 // ── Car-select screen ──────────────────────────────────────────────────────
@@ -567,7 +568,7 @@ function showScreen(id) {
     b.style.background = c;
     if (c==='#ffffff') b.style.borderColor = 'rgba(200,200,200,0.5)';
     b.addEventListener('pointerdown', () => {
-      selColor = c;
+      brushColor = c;  // only brush color changes — car body stays dark gray
       document.getElementById('brush-dot').style.background = c;
       document.querySelectorAll('.col-swatch').forEach(x=>x.classList.remove('active'));
       b.classList.add('active');
@@ -586,7 +587,7 @@ document.getElementById('btn-thick').addEventListener('pointerdown', ()=>setMode
 document.getElementById('btn-thin' ).addEventListener('pointerdown', ()=>setMode('thin'));
 
 // ── Screen nav buttons ─────────────────────────────────────────────────────
-document.getElementById('next-car').addEventListener('click', () => showScreen('screen-paint'));
+document.getElementById('next-car').addEventListener('click', () => { showScreen('screen-paint'); resizeGar(); });
 document.getElementById('next-paint').addEventListener('click', () => showScreen('screen-stickers'));
 document.getElementById('next-stickers').addEventListener('click', () => showScreen('screen-wheels'));
 
@@ -603,7 +604,7 @@ function garPos(e) {
 function garPaintAt(pos, isFirst) {
   const r = brushMode==='thin' ? 4 : 13;
   overlayCtx.globalCompositeOperation = 'source-over';
-  overlayCtx.fillStyle = selColor;
+  overlayCtx.fillStyle = brushColor;
   if (!isFirst && garLastPos) {
     const dx=pos.x-garLastPos.x, dy=pos.y-garLastPos.y;
     const dist=Math.sqrt(dx*dx+dy*dy);
@@ -847,7 +848,7 @@ function loop() {
   // Player car (with custom paint)
   const showP=state!==STATE.DEAD&&(invincible===0||Math.floor(invincible/6)%2===0);
   if(showP){
-    drawCar(ctx,playerX(),playerY,P_W,P_H,selColor,1,wheelStyle,overlayCV,carType);
+    drawCar(ctx,playerX(),playerY,P_W,P_H,BODY_COLOR,1,wheelStyle,overlayCV,carType);
     if(state===STATE.PLAYING&&speed>9){
       const alpha=Math.min(.6,(speed-9)/10);
       ctx.strokeStyle=`rgba(255,255,255,${alpha})`; ctx.lineWidth=1.5;
