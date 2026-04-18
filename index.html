@@ -57,7 +57,9 @@
     }
 
     .card {
-      display: block;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       text-decoration: none;
       color: #fff;
       width: 260px;
@@ -136,7 +138,7 @@
       font-size: 0.88rem;
       color: #999;
       line-height: 1.6;
-      margin-bottom: 22px;
+      flex: 1;
     }
 
     .play-btn {
@@ -146,6 +148,8 @@
       font-weight: 700;
       font-size: 0.9rem;
       letter-spacing: 2px;
+      color: #000;
+      margin-top: 22px;
     }
 
     .card-ttt .play-btn {
@@ -289,7 +293,6 @@
 
     .card-fm .play-btn {
       background: #cc44ff;
-      color: #fff;
       box-shadow: 0 0 16px rgba(204,68,255,0.55);
     }
 
@@ -314,7 +317,6 @@
 
     .card-fn .play-btn {
       background: linear-gradient(135deg, #ff5500, #ff8800);
-      color: #fff;
       box-shadow: 0 0 16px rgba(255,80,0,0.55);
     }
   </style>
