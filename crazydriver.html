@@ -743,6 +743,7 @@ window.addEventListener('resize', ()=>{ resize(); resizeGar(); });
 const STATE={TITLE:0,PLAYING:1,DEAD:2};
 let state=STATE.TITLE;
 let score,hiScore,lives,speed,frameCount,spawnIn,invincible,shakeFrames;
+let roadStars=[], starSpawnIn=0, starsCollected=0, sparkles=[];
 const P_W=90,P_H=42;
 let playerY,targetY;
 const playerX=()=>W*.18;
@@ -788,7 +789,8 @@ canvas.addEventListener('touchend',  e=>{ e.preventDefault(); pointerActive=fals
 function beginGame() {
   state=STATE.PLAYING; score=0; lives=3; speed=4.5;
   frameCount=0; spawnIn=80; invincible=0; shakeFrames=0;
-  obstacles=[]; playerY=lane2; targetY=lane2;
+  obstacles=[]; roadStars=[]; sparkles=[]; starsCollected=0; starSpawnIn=90;
+  playerY=lane2; targetY=lane2;
 }
 function startGame() { state=STATE.TITLE; loop(); }
 
@@ -885,7 +887,7 @@ function loop() {
 
   // Update
   if(state===STATE.PLAYING) {
-    frameCount++; score=Math.floor(frameCount/6);
+    frameCount++; score=Math.floor(frameCount/6)+starsCollected*5;
     speed=Math.min(16,4.5+Math.floor(frameCount/360)*.7);
     const interval=Math.max(32,80-Math.floor(frameCount/360)*6);
     spawnIn--;
@@ -895,7 +897,26 @@ function loop() {
         color:OB_COLORS[Math.floor(Math.random()*OB_COLORS.length)] });
       spawnIn=interval+Math.floor(Math.random()*20);
     }
+    // Star spawning
+    starSpawnIn--;
+    if(starSpawnIn<=0){
+      const lanes=[lane1,lane2,lane3];
+      roadStars.push({ x:W+20, y:lanes[Math.floor(Math.random()*3)], t:0 });
+      starSpawnIn=70+Math.floor(Math.random()*60);
+    }
     obstacles=obstacles.filter(o=>{ o.x-=speed; return o.x+OB_W>-10; });
+    // Move stars & check collection
+    for(let i=roadStars.length-1;i>=0;i--){
+      roadStars[i].x-=speed; roadStars[i].t+=0.12;
+      if(roadStars[i].x<-30){ roadStars.splice(i,1); continue; }
+      if(Math.abs(roadStars[i].x-playerX())<44 && Math.abs(roadStars[i].y-playerY)<28){
+        starsCollected++;
+        sparkles.push({x:roadStars[i].x, y:roadStars[i].y, life:24});
+        roadStars.splice(i,1);
+      }
+    }
+    // Age sparkles
+    sparkles=sparkles.filter(sp=>{ sp.life--; return sp.life>0; });
     playerY+=(targetY-playerY)*.16;
     if(invincible>0) invincible--;
     if(invincible===0){
@@ -911,6 +932,25 @@ function loop() {
       }
     }
   }
+
+  // Road stars
+  roadStars.forEach(s=>{
+    const bounce=Math.sin(s.t)*4;
+    ctx.save(); ctx.shadowBlur=16; ctx.shadowColor='#ffdd00';
+    drawStar(ctx,s.x,s.y+bounce,14,6,5,'#ffdd00');
+    ctx.restore();
+    drawStar(ctx,s.x,s.y+bounce,8,3,5,'#fffaaa');
+  });
+  // Collect sparkles
+  sparkles.forEach(sp=>{
+    const p=sp.life/24;
+    ctx.globalAlpha=p;
+    for(let j=0;j<6;j++){
+      const a=(j/6)*Math.PI*2, r=(1-p)*32;
+      drawStar(ctx,sp.x+Math.cos(a)*r,sp.y+Math.sin(a)*r,6*p,3*p,5,'#ffdd00');
+    }
+    ctx.globalAlpha=1;
+  });
 
   // Obstacle cars
   obstacles.forEach(o=>drawCar(ctx,o.x,o.y,OB_W,OB_H,o.color,-1,0,null));
@@ -942,6 +982,9 @@ function loop() {
     ctx.fillText(`SCORE  ${score}`,W/2,30);
     ctx.font=`${Math.min(14,W*.028)}px Segoe UI`;
     ctx.fillText(`BEST  ${hiScore}`,W/2,50);
+    ctx.fillStyle='#ffdd00';
+    ctx.font=`bold ${Math.min(16,W*.032)}px Segoe UI`;
+    ctx.fillText(`★ ${starsCollected}`,W/2,70);
     ctx.shadowBlur=0;
     const hr=Math.min(11,W*.018);
     for(let i=0;i<3;i++) drawHeart(W-22-(2-i)*(hr*2.8),14,hr,i<lives);
@@ -958,7 +1001,7 @@ function loop() {
     ctx.shadowBlur=0;
     ctx.fillStyle='#fff';
     ctx.font=`${Math.min(20,W*.042)}px Segoe UI`;
-    ctx.fillText('Drag your finger up and down to dodge the cars!',W/2,H*.50);
+    ctx.fillText('Dodge cars • Collect ★ stars for bonus points!',W/2,H*.50);
     ctx.fillStyle='#aaffaa';
     ctx.font=`bold ${Math.min(26,W*.052)}px Segoe UI`;
     ctx.fillText('Tap anywhere to start',W/2,H*.62);
@@ -975,12 +1018,15 @@ function loop() {
     ctx.shadowBlur=0;
     ctx.fillStyle='#ffee44';
     ctx.font=`${Math.min(28,W*.056)}px Segoe UI`;
-    ctx.fillText(`Score: ${score}`,W/2,H*.49);
+    ctx.fillText(`Score: ${score}`,W/2,H*.47);
+    ctx.fillStyle='#ffdd00';
+    ctx.font=`${Math.min(22,W*.044)}px Segoe UI`;
+    ctx.fillText(`★ Stars: ${starsCollected}`,W/2,H*.56);
     ctx.fillStyle='#aaddff';
-    ctx.fillText(`Best:  ${hiScore}`,W/2,H*.58);
+    ctx.fillText(`Best:  ${hiScore}`,W/2,H*.64);
     ctx.fillStyle='#aaffaa';
     ctx.font=`bold ${Math.min(24,W*.048)}px Segoe UI`;
-    ctx.fillText('Tap to play again',W/2,H*.70);
+    ctx.fillText('Tap to play again',W/2,H*.74);
   }
 }
 
