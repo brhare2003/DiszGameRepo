@@ -316,9 +316,17 @@ const WHEEL_OPTS = [
 ];
 
 let selColor   = '#ff3355';
+let brushColor = '#ff3355';
 let wheelStyle = 0;
-let brushMode  = 'thick';   // 'thick' | 'thin' | 'stamp' | 'erase'
+let brushMode  = 'thick';
 let selStamp   = '⭐';
+let carType    = 'sedan';  // 'sedan' | 'hotrod' | 'monster'
+
+const CAR_TYPES = [
+  { id:'sedan',   label:'SEDAN'   },
+  { id:'hotrod',  label:'HOT ROD' },
+  { id:'monster', label:'MONSTER' },
+];
 
 const overlayCV  = document.createElement('canvas');
 const overlayCtx = overlayCV.getContext('2d');
@@ -390,58 +398,150 @@ function drawWheel(tCtx, wx, wy, wr, wStyle) {
   }
 }
 
-// ── Shared drawCar (used by both garage preview and game) ──────────────────
-function drawCar(tCtx, cx, cy, cw, ch, color, dir, wStyle, overlay) {
+// ── Shared drawCar (sedan | hotrod | monster) ──────────────────────────────
+function drawCar(tCtx, cx, cy, cw, ch, color, dir, wStyle, overlay, cType) {
+  cType = cType || 'sedan';
   const bx=cx-cw/2, by=cy-ch/2;
-  // Shadow
-  tCtx.fillStyle='rgba(0,0,0,0.18)';
-  tCtx.beginPath(); tCtx.ellipse(cx,by+ch+4,cw*.44,5,0,0,Math.PI*2); tCtx.fill();
-  // Body
-  tCtx.fillStyle=color;
-  tCtx.beginPath(); tCtx.roundRect(bx,by,cw,ch,8); tCtx.fill();
-  // Paint overlay clipped to body
-  if (overlay && overlay.width>0) {
-    tCtx.save();
-    tCtx.beginPath(); tCtx.roundRect(bx,by,cw,ch,8); tCtx.clip();
-    tCtx.drawImage(overlay,bx,by,cw,ch);
-    tCtx.restore();
+
+  if (cType === 'hotrod') {
+    // Low sleek body, cabin at rear, spoiler at front
+    tCtx.fillStyle='rgba(0,0,0,0.18)';
+    tCtx.beginPath(); tCtx.ellipse(cx,by+ch+3,cw*.44,4,0,0,Math.PI*2); tCtx.fill();
+    const bodyTop = by + ch*0.12;
+    tCtx.fillStyle=color;
+    tCtx.beginPath(); tCtx.roundRect(bx,bodyTop,cw,ch*0.86,[4,4,8,8]); tCtx.fill();
+    if (overlay && overlay.width>0) {
+      tCtx.save();
+      tCtx.beginPath(); tCtx.roundRect(bx,bodyTop,cw,ch*0.86,[4,4,8,8]); tCtx.clip();
+      tCtx.drawImage(overlay,bx,bodyTop,cw,ch*0.86);
+      tCtx.restore();
+    }
+    // Cabin shifted toward rear (dir>0 means facing right, rear is left)
+    const cabW=cw*.36, cabH=ch*.52;
+    const cabX= dir>0 ? cx-cw*.28-cabW/2 : cx+cw*.28-cabW/2;
+    tCtx.fillStyle=shade(color,-28);
+    tCtx.beginPath(); tCtx.roundRect(cabX,bodyTop-cabH+ch*.24,cabW,cabH,[7,7,3,3]); tCtx.fill();
+    tCtx.fillStyle='#cceeff'; tCtx.globalAlpha=0.88;
+    tCtx.beginPath(); tCtx.roundRect(cabX+4,bodyTop-cabH+ch*.24+5,cabW-8,cabH-12,[5,5,2,2]); tCtx.fill();
+    tCtx.globalAlpha=1;
+    // Spoiler at rear
+    const spX = dir>0 ? bx+2 : bx+cw-10;
+    const spTop = bodyTop - ch*0.22;
+    tCtx.fillStyle=shade(color,-45);
+    tCtx.beginPath(); tCtx.roundRect(spX,spTop,8,ch*0.35,3); tCtx.fill();
+    tCtx.beginPath(); tCtx.roundRect(spX-(dir>0?4:4),spTop-4,18,5,2); tCtx.fill();
+    // Wheels
+    [cx-cw*.30, cx+cw*.26].forEach(wx=>drawWheel(tCtx,wx,by+ch-2,ch*.28,wStyle));
+    // Lights
+    const fX=dir>0?bx+cw-5:bx, tX=dir>0?bx:bx+cw-5;
+    tCtx.fillStyle=dir>0?'#ffee77':'#ff2200';
+    tCtx.beginPath(); tCtx.roundRect(fX,bodyTop+4,5,8,2); tCtx.fill();
+    tCtx.fillStyle=dir>0?'#cc1100':'#ffee77';
+    tCtx.beginPath(); tCtx.roundRect(tX,bodyTop+4,5,8,2); tCtx.fill();
+
+  } else if (cType === 'monster') {
+    // Tall body, huge wheels that extend below
+    const wr = ch*0.52;
+    const wheelY = by+ch*0.78;
+    tCtx.fillStyle='rgba(0,0,0,0.22)';
+    tCtx.beginPath(); tCtx.ellipse(cx,wheelY+wr*0.9,cw*.52,7,0,0,Math.PI*2); tCtx.fill();
+    // Body sits higher (raised over the big wheels)
+    const bodyTop = by - ch*0.08;
+    tCtx.fillStyle=color;
+    tCtx.beginPath(); tCtx.roundRect(bx,bodyTop,cw,ch*0.82,10); tCtx.fill();
+    if (overlay && overlay.width>0) {
+      tCtx.save();
+      tCtx.beginPath(); tCtx.roundRect(bx,bodyTop,cw,ch*0.82,10); tCtx.clip();
+      tCtx.drawImage(overlay,bx,bodyTop,cw,ch*0.82);
+      tCtx.restore();
+    }
+    // Cabin centered
+    const cabW=cw*.52, cabH=ch*.50;
+    const cabX=cx-cabW/2;
+    tCtx.fillStyle=shade(color,-28);
+    tCtx.beginPath(); tCtx.roundRect(cabX,bodyTop-cabH+ch*.22,cabW,cabH,[7,7,3,3]); tCtx.fill();
+    tCtx.fillStyle='#cceeff'; tCtx.globalAlpha=0.88;
+    tCtx.beginPath(); tCtx.roundRect(cabX+4,bodyTop-cabH+ch*.22+5,cabW-8,cabH-12,[5,5,2,2]); tCtx.fill();
+    tCtx.globalAlpha=1;
+    // Big wheels
+    [cx-cw*.27, cx+cw*.27].forEach(wx=>drawWheel(tCtx,wx,wheelY,wr,wStyle));
+    // Lights
+    const fX=dir>0?bx+cw-5:bx, tX=dir>0?bx:bx+cw-5;
+    tCtx.fillStyle=dir>0?'#ffee77':'#ff2200';
+    tCtx.beginPath(); tCtx.roundRect(fX,bodyTop+4,5,8,2); tCtx.fill();
+    tCtx.fillStyle=dir>0?'#cc1100':'#ffee77';
+    tCtx.beginPath(); tCtx.roundRect(tX,bodyTop+4,5,8,2); tCtx.fill();
+
+  } else {
+    // Sedan (original logic)
+    tCtx.fillStyle='rgba(0,0,0,0.18)';
+    tCtx.beginPath(); tCtx.ellipse(cx,by+ch+4,cw*.44,5,0,0,Math.PI*2); tCtx.fill();
+    tCtx.fillStyle=color;
+    tCtx.beginPath(); tCtx.roundRect(bx,by,cw,ch,8); tCtx.fill();
+    if (overlay && overlay.width>0) {
+      tCtx.save();
+      tCtx.beginPath(); tCtx.roundRect(bx,by,cw,ch,8); tCtx.clip();
+      tCtx.drawImage(overlay,bx,by,cw,ch);
+      tCtx.restore();
+    }
+    const cabW=cw*.50, cabH=ch*.55;
+    const cabX=dir>0?cx-cw*.08-cabW/2:cx+cw*.08-cabW/2;
+    tCtx.fillStyle=shade(color,-28);
+    tCtx.beginPath(); tCtx.roundRect(cabX,by-cabH+ch*.18,cabW,cabH,[7,7,3,3]); tCtx.fill();
+    tCtx.fillStyle='#cceeff'; tCtx.globalAlpha=0.88;
+    tCtx.beginPath(); tCtx.roundRect(cabX+4,by-cabH+ch*.18+5,cabW-8,cabH-12,[5,5,2,2]); tCtx.fill();
+    tCtx.globalAlpha=1;
+    [cx-cw*.27,cx+cw*.27].forEach(wx=>drawWheel(tCtx,wx,by+ch-2,ch*.30,wStyle));
+    const fX=dir>0?bx+cw-5:bx, tX=dir>0?bx:bx+cw-5;
+    tCtx.fillStyle=dir>0?'#ffee77':'#ff2200';
+    tCtx.beginPath(); tCtx.roundRect(fX,by+4,5,8,2); tCtx.fill();
+    tCtx.beginPath(); tCtx.roundRect(fX,by+ch-12,5,8,2); tCtx.fill();
+    tCtx.fillStyle=dir>0?'#cc1100':'#ffee77';
+    tCtx.beginPath(); tCtx.roundRect(tX,by+4,5,8,2); tCtx.fill();
+    tCtx.beginPath(); tCtx.roundRect(tX,by+ch-12,5,8,2); tCtx.fill();
   }
-  // Cabin
-  const cabW=cw*.50, cabH=ch*.55;
-  const cabX=dir>0 ? cx-cw*.08-cabW/2 : cx+cw*.08-cabW/2;
-  tCtx.fillStyle=shade(color,-28);
-  tCtx.beginPath(); tCtx.roundRect(cabX,by-cabH+ch*.18,cabW,cabH,[7,7,3,3]); tCtx.fill();
-  // Window
-  tCtx.fillStyle='#cceeff'; tCtx.globalAlpha=0.88;
-  tCtx.beginPath(); tCtx.roundRect(cabX+4,by-cabH+ch*.18+5,cabW-8,cabH-12,[5,5,2,2]); tCtx.fill();
-  tCtx.globalAlpha=1;
-  // Wheels
-  const wy=by+ch-2;
-  [cx-cw*.27, cx+cw*.27].forEach(wx=>drawWheel(tCtx,wx,wy,ch*.30,wStyle));
-  // Lights
-  const fX=dir>0?bx+cw-5:bx, tX=dir>0?bx:bx+cw-5;
-  tCtx.fillStyle=dir>0?'#ffee77':'#ff2200';
-  tCtx.beginPath(); tCtx.roundRect(fX,by+4,5,8,2); tCtx.fill();
-  tCtx.beginPath(); tCtx.roundRect(fX,by+ch-12,5,8,2); tCtx.fill();
-  tCtx.fillStyle=dir>0?'#cc1100':'#ffee77';
-  tCtx.beginPath(); tCtx.roundRect(tX,by+4,5,8,2); tCtx.fill();
-  tCtx.beginPath(); tCtx.roundRect(tX,by+ch-12,5,8,2); tCtx.fill();
 }
 
-// ── Render garage preview ──────────────────────────────────────────────────
-function renderGar() {
-  const W=gv.width, H=gv.height;
-  const cx=W/2, cy=H/2-4, cw=W*.82, ch=H*.65;
-  gvCtx.clearRect(0,0,W,H);
-  // Sky bg
-  const bg=gvCtx.createLinearGradient(0,0,0,H);
+// ── Shared preview renderer ────────────────────────────────────────────────
+function renderPreview(canvas, pCtx, bodyCol, overlay, wStyle, cType) {
+  const W=canvas.width, H=canvas.height;
+  pCtx.clearRect(0,0,W,H);
+  const bg=pCtx.createLinearGradient(0,0,0,H);
   bg.addColorStop(0,'#5bbaf0'); bg.addColorStop(1,'#b8dff5');
-  gvCtx.fillStyle=bg; gvCtx.fillRect(0,0,W,H);
-  // Ground
-  gvCtx.fillStyle='#5cc45c'; gvCtx.fillRect(0,H*.82,W,H*.18);
-  gvCtx.fillStyle='#3da83d'; gvCtx.fillRect(0,H*.82,W,4);
-  drawCar(gvCtx,cx,cy,cw,ch,selColor,1,wheelStyle,overlayCV);
+  pCtx.fillStyle=bg; pCtx.fillRect(0,0,W,H);
+  pCtx.fillStyle='#5cc45c'; pCtx.fillRect(0,H*.82,W,H*.18);
+  pCtx.fillStyle='#3da83d'; pCtx.fillRect(0,H*.82,W,4);
+  drawCar(pCtx,W/2,H/2-4,W*.82,H*.65,bodyCol,1,wStyle,overlay,cType);
 }
+
+// ── Render garage (paint screen) preview ───────────────────────────────────
+function renderGar() {
+  renderPreview(gv,gvCtx,selColor,overlayCV,wheelStyle,carType);
+}
+
+// ── Car-select screen ──────────────────────────────────────────────────────
+(function buildCarSelect() {
+  const container = document.getElementById('car-cards');
+  const cw = Math.min(Math.floor((window.innerWidth - 60) / 3), 150);
+  const ch = Math.round(cw * 0.52);
+  CAR_TYPES.forEach((ct, i) => {
+    const card = document.createElement('div');
+    card.className = 'car-card' + (i===0 ? ' active' : '');
+    card.dataset.type = ct.id;
+    const cv = document.createElement('canvas');
+    cv.width = cw; cv.height = ch;
+    renderPreview(cv, cv.getContext('2d'), '#444444', null, 0, ct.id);
+    const lbl = document.createElement('div');
+    lbl.className = 'card-label'; lbl.textContent = ct.label;
+    card.appendChild(cv); card.appendChild(lbl);
+    card.addEventListener('pointerdown', () => {
+      carType = ct.id;
+      document.querySelectorAll('.car-card').forEach(c=>c.classList.remove('active'));
+      card.classList.add('active');
+    });
+    container.appendChild(card);
+  });
+})();
 
 // ── Screen navigation ──────────────────────────────────────────────────────
 const SCREENS = ['screen-car','screen-paint','screen-stickers','screen-wheels'];
@@ -747,7 +847,7 @@ function loop() {
   // Player car (with custom paint)
   const showP=state!==STATE.DEAD&&(invincible===0||Math.floor(invincible/6)%2===0);
   if(showP){
-    drawCar(ctx,playerX(),playerY,P_W,P_H,selColor,1,wheelStyle,overlayCV);
+    drawCar(ctx,playerX(),playerY,P_W,P_H,selColor,1,wheelStyle,overlayCV,carType);
     if(state===STATE.PLAYING&&speed>9){
       const alpha=Math.min(.6,(speed-9)/10);
       ctx.strokeStyle=`rgba(255,255,255,${alpha})`; ctx.lineWidth=1.5;
