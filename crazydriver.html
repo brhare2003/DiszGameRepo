@@ -588,8 +588,53 @@ document.getElementById('btn-thin' ).addEventListener('pointerdown', ()=>setMode
 
 // ── Screen nav buttons ─────────────────────────────────────────────────────
 document.getElementById('next-car').addEventListener('click', () => { showScreen('screen-paint'); resizeGar(); });
-document.getElementById('next-paint').addEventListener('click', () => showScreen('screen-stickers'));
+document.getElementById('next-paint').addEventListener('click', () => { showScreen('screen-stickers'); initStickerScreen(); });
 document.getElementById('next-stickers').addEventListener('click', () => showScreen('screen-wheels'));
+
+// ── Sticker screen ─────────────────────────────────────────────────────────
+const STICKERS = ['⭐','❤️','🌈','🌸','⚡','🦋','🍭','🎵','🔥','💎'];
+const sv    = document.getElementById('sv');
+const svCtx = sv.getContext('2d');
+
+function initStickerScreen() {
+  const w = Math.min(window.innerWidth-24,400);
+  sv.width = w; sv.height = Math.round(w*0.43);
+  renderPreview(sv,svCtx,BODY_COLOR,overlayCV,wheelStyle,carType);
+}
+
+(function buildStickerUI() {
+  const row = document.getElementById('sticker-row');
+  STICKERS.forEach((s,i) => {
+    const b = document.createElement('button');
+    b.className = 'sticker-btn' + (i===0?' active':'');
+    b.textContent = s;
+    b.addEventListener('pointerdown', () => {
+      selStamp = s;
+      document.querySelectorAll('.sticker-btn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+    });
+    row.appendChild(b);
+  });
+})();
+
+function stickerPos(e) {
+  const rect = sv.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return {
+    x:(src.clientX-rect.left)*(sv.width/rect.width),
+    y:(src.clientY-rect.top)*(sv.height/rect.height)
+  };
+}
+
+sv.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  const pos = stickerPos(e);
+  const fs = Math.round(sv.height*0.3);
+  overlayCtx.font = fs+'px serif';
+  overlayCtx.textAlign = 'center'; overlayCtx.textBaseline = 'middle';
+  overlayCtx.fillText(selStamp, pos.x, pos.y);
+  renderPreview(sv,svCtx,BODY_COLOR,overlayCV,wheelStyle,carType);
+});
 
 // ── Garage painting input ──────────────────────────────────────────────────
 let garPainting=false, garLastPos=null;
