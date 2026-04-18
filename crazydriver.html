@@ -307,13 +307,6 @@ const GAR_COLORS = [
   '#33aaff','#cc44ff','#ff55bb','#00ddcc',
   '#ffffff','#222222'
 ];
-const STAMPS = ['⭐','❤️','🌈','🌸','⚡','🦋','🍭','🎵'];
-const WHEEL_OPTS = [
-  { label:'🔵 NORMAL', style:0 },
-  { label:'⚫ CHUNKY',  style:1 },
-  { label:'⭐ STARS',   style:2 },
-  { label:'🌈 RAINBOW', style:3 },
-];
 
 const BODY_COLOR = '#444444';  // fixed dark gray — painting goes on overlay
 let brushColor   = '#ff3355';  // what the brush draws with
@@ -589,7 +582,7 @@ document.getElementById('btn-thin' ).addEventListener('pointerdown', ()=>setMode
 // ── Screen nav buttons ─────────────────────────────────────────────────────
 document.getElementById('next-car').addEventListener('click', () => { showScreen('screen-paint'); resizeGar(); });
 document.getElementById('next-paint').addEventListener('click', () => { showScreen('screen-stickers'); initStickerScreen(); });
-document.getElementById('next-stickers').addEventListener('click', () => showScreen('screen-wheels'));
+document.getElementById('next-stickers').addEventListener('click', () => { showScreen('screen-wheels'); initWheelScreen(); });
 
 // ── Sticker screen ─────────────────────────────────────────────────────────
 const STICKERS = ['⭐','❤️','🌈','🌸','⚡','🦋','🍭','🎵','🔥','💎'];
@@ -635,6 +628,38 @@ sv.addEventListener('pointerdown', e => {
   overlayCtx.fillText(selStamp, pos.x, pos.y);
   renderPreview(sv,svCtx,BODY_COLOR,overlayCV,wheelStyle,carType);
 });
+
+// ── Wheels screen ──────────────────────────────────────────────────────────
+const wv    = document.getElementById('wv');
+const wvCtx = wv.getContext('2d');
+
+function initWheelScreen() {
+  const w = Math.min(window.innerWidth-24,400);
+  wv.width = w; wv.height = Math.round(w*0.43);
+  renderPreview(wv,wvCtx,BODY_COLOR,overlayCV,wheelStyle,carType);
+}
+
+(function buildWheelUI() {
+  const WHEEL_OPTS = [
+    { label:'🔵 NORMAL', style:0 },
+    { label:'⚫ CHUNKY',  style:1 },
+    { label:'⭐ STARS',   style:2 },
+    { label:'🌈 RAINBOW', style:3 },
+  ];
+  const wr = document.getElementById('wheel-row');
+  WHEEL_OPTS.forEach((opt,i) => {
+    const b = document.createElement('button');
+    b.className = 'wheel-btn' + (i===0?' active':'');
+    b.textContent = opt.label;
+    b.addEventListener('pointerdown', () => {
+      wheelStyle = opt.style;
+      document.querySelectorAll('.wheel-btn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      renderPreview(wv,wvCtx,BODY_COLOR,overlayCV,wheelStyle,carType);
+    });
+    wr.appendChild(b);
+  });
+})();
 
 // ── Garage painting input ──────────────────────────────────────────────────
 let garPainting=false, garLastPos=null;
