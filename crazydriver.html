@@ -29,19 +29,20 @@
     #c { position: fixed; inset: 0; width: 100vw; height: 100vh; display: none; }
 
     /* ══════════════════════════════════════════════════════
-       GARAGE SCREEN
+       SHARED SCREEN STYLES
     ══════════════════════════════════════════════════════ */
-    #garage {
+    .screen {
       position: fixed; inset: 0;
       background: linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
       overflow-y: auto; overflow-x: hidden;
       z-index: 200;
-      display: flex; flex-direction: column; align-items: center;
+      display: none; flex-direction: column; align-items: center;
       padding: 10px 12px 24px;
       gap: 10px;
     }
+    .screen.active { display: flex; }
 
-    #gar-title {
+    .scr-title {
       font-size: clamp(1.3rem, 5vw, 2rem);
       font-weight: 900; letter-spacing: 3px;
       color: #ffdd33;
@@ -50,15 +51,15 @@
       margin-top: 44px;
     }
 
-    /* Car preview canvas */
-    #gv {
-      border-radius: 16px;
-      border: 3px solid rgba(255,255,255,0.18);
-      box-shadow: 0 0 30px rgba(0,0,0,0.5);
-      cursor: crosshair;
-      touch-action: none;
-      max-width: 100%;
+    /* Step dots */
+    .step-dots { display: flex; gap: 8px; align-items: center; }
+    .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      transition: background 0.2s, transform 0.2s;
     }
+    .dot.active  { background: #ffdd33; transform: scale(1.4); }
+    .dot.done    { background: rgba(255,220,50,0.45); }
 
     /* Section labels */
     .gar-label {
@@ -67,8 +68,18 @@
       text-align: center; width: 100%;
     }
 
+    /* Car preview canvas */
+    .preview-cv {
+      border-radius: 16px;
+      border: 3px solid rgba(255,255,255,0.18);
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+      cursor: crosshair;
+      touch-action: none;
+      max-width: 100%;
+    }
+
     /* Color palette */
-    #color-row {
+    .color-row {
       display: flex; flex-wrap: wrap;
       justify-content: center; gap: 9px;
       width: 100%; max-width: 420px;
@@ -86,8 +97,8 @@
       box-shadow: 0 0 14px rgba(255,255,255,0.6);
     }
 
-    /* Tool buttons row */
-    #tool-row {
+    /* Tool buttons */
+    .tool-row {
       display: flex; flex-wrap: wrap;
       justify-content: center; gap: 8px;
       width: 100%; max-width: 420px;
@@ -104,34 +115,31 @@
     .tool-btn:active { transform: scale(0.94); }
     .tool-btn.active {
       background: rgba(255,220,50,0.22);
-      border-color: #ffdd33;
-      color: #ffdd33;
+      border-color: #ffdd33; color: #ffdd33;
     }
 
-    /* Stamp row */
-    #stamp-row {
-      display: none; flex-wrap: wrap;
+    /* Sticker palette */
+    .sticker-row {
+      display: flex; flex-wrap: wrap;
       justify-content: center; gap: 10px;
       width: 100%; max-width: 420px;
     }
-    #stamp-row.visible { display: flex; }
-    .stamp-btn {
-      width: 56px; height: 56px; font-size: 1.8rem;
+    .sticker-btn {
+      width: 58px; height: 58px; font-size: 1.9rem;
       background: rgba(255,255,255,0.1);
       border: 2px solid rgba(255,255,255,0.2);
       border-radius: 14px; cursor: pointer;
       transition: transform 0.1s, background 0.12s, border-color 0.12s;
       display: flex; align-items: center; justify-content: center;
     }
-    .stamp-btn:active { transform: scale(0.88); }
-    .stamp-btn.active {
+    .sticker-btn:active { transform: scale(0.88); }
+    .sticker-btn.active {
       background: rgba(255,220,50,0.22);
-      border-color: #ffdd33;
-      transform: scale(1.1);
+      border-color: #ffdd33; transform: scale(1.1);
     }
 
     /* Wheel row */
-    #wheel-row {
+    .wheel-row {
       display: flex; flex-wrap: wrap;
       justify-content: center; gap: 10px;
       width: 100%; max-width: 420px;
@@ -149,25 +157,64 @@
     .wheel-btn:active { transform: scale(0.93); }
     .wheel-btn.active {
       background: rgba(100,200,255,0.22);
-      border-color: #66ccff;
-      color: #66ccff;
+      border-color: #66ccff; color: #66ccff;
     }
 
-    /* Play button */
-    #play-btn {
-      margin-top: 6px;
-      padding: 18px 48px;
-      font-size: clamp(1.1rem, 4vw, 1.4rem);
+    /* Car type cards */
+    .car-cards {
+      display: flex; flex-wrap: wrap;
+      justify-content: center; gap: 14px;
+      width: 100%; max-width: 500px;
+    }
+    .car-card {
+      background: rgba(255,255,255,0.06);
+      border: 3px solid rgba(255,255,255,0.18);
+      border-radius: 18px;
+      padding: 10px 10px 8px;
+      cursor: pointer; min-width: 130px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      transition: border-color 0.15s, transform 0.12s, box-shadow 0.15s;
+    }
+    .car-card canvas { border-radius: 10px; }
+    .car-card .card-label {
+      color: rgba(255,255,255,0.85); font-size: 0.82rem;
+      font-weight: 800; letter-spacing: 2px;
+    }
+    .car-card.active {
+      border-color: #ffdd33;
+      box-shadow: 0 0 20px rgba(255,220,50,0.4);
+      transform: scale(1.05);
+    }
+
+    /* Brush indicator */
+    .brush-indicator {
+      display: flex; align-items: center; gap: 10px;
+      color: rgba(255,255,255,0.65); font-size: 0.82rem;
+      font-weight: 800; letter-spacing: 2px;
+    }
+    #brush-dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.45);
+      background: #ff3355;
+      transition: background 0.15s;
+    }
+
+    /* Nav / play buttons */
+    .nav-btn {
+      margin-top: 4px;
+      padding: 16px 44px;
+      font-size: clamp(1rem, 4vw, 1.3rem);
       font-weight: 900; letter-spacing: 3px;
-      background: linear-gradient(135deg, #ff6b35, #ff3355);
+      background: linear-gradient(135deg, #33aaff, #1166dd);
       color: #fff; border: none; border-radius: 50px;
       cursor: pointer;
-      box-shadow: 0 0 30px rgba(255,60,80,0.55);
+      box-shadow: 0 0 26px rgba(50,150,255,0.5);
       transition: transform 0.12s, box-shadow 0.12s;
     }
-    #play-btn:active {
-      transform: scale(0.95);
-      box-shadow: 0 0 18px rgba(255,60,80,0.4);
+    .nav-btn:active { transform: scale(0.95); }
+    .nav-btn.red {
+      background: linear-gradient(135deg, #ff6b35, #ff3355);
+      box-shadow: 0 0 28px rgba(255,60,80,0.55);
     }
   </style>
   <script>
@@ -194,30 +241,61 @@
 <a href="index.html" id="home-link">&#8592; Home</a>
 <canvas id="c"></canvas>
 
-<!-- ══════════ GARAGE ══════════ -->
-<div id="garage">
-  <div id="gar-title">🎨 PAINT YOUR CAR! 🚗</div>
+<!-- ══════════ SCREEN 1: CAR SELECT ══════════ -->
+<div class="screen active" id="screen-car">
+  <div class="scr-title">🚗 PICK YOUR RIDE!</div>
+  <div class="step-dots">
+    <div class="dot active"></div><div class="dot"></div>
+    <div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="gar-label">CHOOSE YOUR CAR</div>
+  <div class="car-cards" id="car-cards"></div>
+  <button class="nav-btn" id="next-car">NEXT →</button>
+</div>
 
-  <canvas id="gv"></canvas>
-
-  <div class="gar-label">PICK A COLOR</div>
-  <div id="color-row"></div>
-
-  <div class="gar-label">TOOLS</div>
-  <div id="tool-row">
+<!-- ══════════ SCREEN 2: PAINT ══════════ -->
+<div class="screen" id="screen-paint">
+  <div class="scr-title">🎨 PAINT IT!</div>
+  <div class="step-dots">
+    <div class="dot done"></div><div class="dot active"></div>
+    <div class="dot"></div><div class="dot"></div>
+  </div>
+  <canvas class="preview-cv" id="gv"></canvas>
+  <div class="brush-indicator">BRUSH: <div id="brush-dot"></div></div>
+  <div class="gar-label">PICK BRUSH COLOR</div>
+  <div class="color-row" id="color-row"></div>
+  <div class="gar-label">BRUSH SIZE</div>
+  <div class="tool-row" id="tool-row">
     <button class="tool-btn active" id="btn-thick">🖌️ THICK</button>
     <button class="tool-btn"        id="btn-thin" >✏️ THIN</button>
-    <button class="tool-btn"        id="btn-stamp">⭐ STAMPS</button>
-    <button class="tool-btn"        id="btn-erase">🧹 ERASE</button>
-    <button class="tool-btn"        id="btn-clear">🗑️ CLEAR</button>
   </div>
+  <button class="nav-btn" id="next-paint">NEXT →</button>
+</div>
 
-  <div id="stamp-row"></div>
+<!-- ══════════ SCREEN 3: STICKERS ══════════ -->
+<div class="screen" id="screen-stickers">
+  <div class="scr-title">⭐ STICKERS!</div>
+  <div class="step-dots">
+    <div class="dot done"></div><div class="dot done"></div>
+    <div class="dot active"></div><div class="dot"></div>
+  </div>
+  <canvas class="preview-cv" id="sv"></canvas>
+  <div class="gar-label">PICK A STICKER — TAP THE CAR TO PLACE</div>
+  <div class="sticker-row" id="sticker-row"></div>
+  <button class="nav-btn" id="next-stickers">NEXT →</button>
+</div>
 
-  <div class="gar-label">WHEELS</div>
-  <div id="wheel-row"></div>
-
-  <button id="play-btn">🚗 LET'S DRIVE!</button>
+<!-- ══════════ SCREEN 4: WHEELS ══════════ -->
+<div class="screen" id="screen-wheels">
+  <div class="scr-title">🔧 CHOOSE WHEELS!</div>
+  <div class="step-dots">
+    <div class="dot done"></div><div class="dot done"></div>
+    <div class="dot done"></div><div class="dot active"></div>
+  </div>
+  <canvas class="preview-cv" id="wv"></canvas>
+  <div class="gar-label">WHEEL STYLE</div>
+  <div class="wheel-row" id="wheel-row"></div>
+  <button class="nav-btn red" id="play-btn">🚗 LET'S DRIVE!</button>
 </div>
 
 <script>
@@ -365,70 +443,52 @@ function renderGar() {
   drawCar(gvCtx,cx,cy,cw,ch,selColor,1,wheelStyle,overlayCV);
 }
 
-// ── Build garage UI ────────────────────────────────────────────────────────
-(function buildGarUI() {
-  // Colors
-  const cr=document.getElementById('color-row');
-  GAR_COLORS.forEach((c,i)=>{
-    const b=document.createElement('div');
-    b.className='col-swatch'+(i===0?' active':'');
-    b.style.background=c;
-    if (c==='#ffffff') b.style.borderColor='rgba(200,200,200,0.5)';
-    b.addEventListener('pointerdown',()=>{
-      selColor=c;
+// ── Screen navigation ──────────────────────────────────────────────────────
+const SCREENS = ['screen-car','screen-paint','screen-stickers','screen-wheels'];
+function showScreen(id) {
+  SCREENS.forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.classList.remove('active');
+  });
+  document.getElementById('c').style.display = 'none';
+  if (id === 'game') {
+    document.getElementById('c').style.display = 'block';
+  } else {
+    document.getElementById(id).classList.add('active');
+  }
+}
+
+// ── Build paint UI ─────────────────────────────────────────────────────────
+(function buildPaintUI() {
+  const cr = document.getElementById('color-row');
+  GAR_COLORS.forEach((c,i) => {
+    const b = document.createElement('div');
+    b.className = 'col-swatch' + (i===0 ? ' active' : '');
+    b.style.background = c;
+    if (c==='#ffffff') b.style.borderColor = 'rgba(200,200,200,0.5)';
+    b.addEventListener('pointerdown', () => {
+      selColor = c;
+      document.getElementById('brush-dot').style.background = c;
       document.querySelectorAll('.col-swatch').forEach(x=>x.classList.remove('active'));
       b.classList.add('active');
-      renderGar();
     });
     cr.appendChild(b);
   });
-
-  // Stamps
-  const sr=document.getElementById('stamp-row');
-  STAMPS.forEach((s,i)=>{
-    const b=document.createElement('button');
-    b.className='stamp-btn'+(i===0?' active':'');
-    b.textContent=s;
-    b.addEventListener('pointerdown',()=>{
-      selStamp=s;
-      document.querySelectorAll('.stamp-btn').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-    });
-    sr.appendChild(b);
-  });
-
-  // Wheels
-  const wr=document.getElementById('wheel-row');
-  WHEEL_OPTS.forEach((opt,i)=>{
-    const b=document.createElement('button');
-    b.className='wheel-btn'+(i===0?' active':'');
-    b.textContent=opt.label;
-    b.addEventListener('pointerdown',()=>{
-      wheelStyle=opt.style;
-      document.querySelectorAll('.wheel-btn').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      renderGar();
-    });
-    wr.appendChild(b);
-  });
 })();
 
-// ── Tool buttons ───────────────────────────────────────────────────────────
+// ── Brush size buttons ─────────────────────────────────────────────────────
 function setMode(m) {
-  brushMode=m;
-  ['thick','thin','stamp','erase'].forEach(id=>{
-    const el=document.getElementById('btn-'+id);
-    if(el) el.classList.toggle('active', id===m);
-  });
-  document.getElementById('stamp-row').classList.toggle('visible', m==='stamp');
+  brushMode = m;
+  document.getElementById('btn-thick').classList.toggle('active', m==='thick');
+  document.getElementById('btn-thin' ).classList.toggle('active', m==='thin');
 }
-document.getElementById('btn-thick').addEventListener('pointerdown',()=>setMode('thick'));
-document.getElementById('btn-thin' ).addEventListener('pointerdown',()=>setMode('thin'));
-document.getElementById('btn-stamp').addEventListener('pointerdown',()=>setMode('stamp'));
-document.getElementById('btn-erase').addEventListener('pointerdown',()=>setMode('erase'));
-document.getElementById('btn-clear').addEventListener('pointerdown',()=>{
-  overlayCtx.clearRect(0,0,overlayCV.width,overlayCV.height); renderGar();
-});
+document.getElementById('btn-thick').addEventListener('pointerdown', ()=>setMode('thick'));
+document.getElementById('btn-thin' ).addEventListener('pointerdown', ()=>setMode('thin'));
+
+// ── Screen nav buttons ─────────────────────────────────────────────────────
+document.getElementById('next-car').addEventListener('click', () => showScreen('screen-paint'));
+document.getElementById('next-paint').addEventListener('click', () => showScreen('screen-stickers'));
+document.getElementById('next-stickers').addEventListener('click', () => showScreen('screen-wheels'));
 
 // ── Garage painting input ──────────────────────────────────────────────────
 let garPainting=false, garLastPos=null;
@@ -441,10 +501,9 @@ function garPos(e) {
 }
 
 function garPaintAt(pos, isFirst) {
-  const r = brushMode==='thin' ? 4 : brushMode==='erase' ? 20 : 13;
-  if (brushMode==='stamp') return;
-  overlayCtx.globalCompositeOperation = brushMode==='erase' ? 'destination-out' : 'source-over';
-  overlayCtx.fillStyle = brushMode==='erase' ? 'rgba(0,0,0,1)' : selColor;
+  const r = brushMode==='thin' ? 4 : 13;
+  overlayCtx.globalCompositeOperation = 'source-over';
+  overlayCtx.fillStyle = selColor;
   if (!isFirst && garLastPos) {
     const dx=pos.x-garLastPos.x, dy=pos.y-garLastPos.y;
     const dist=Math.sqrt(dx*dx+dy*dy);
@@ -472,14 +531,12 @@ function garStampAt(pos) {
 
 gv.addEventListener('pointerdown', e=>{
   e.preventDefault(); garPainting=true; garLastPos=null;
-  const p=garPos(e);
-  if (brushMode==='stamp') garStampAt(p);
-  else garPaintAt(p,true);
+  garPaintAt(garPos(e), true);
   gv.setPointerCapture(e.pointerId);
 });
 gv.addEventListener('pointermove', e=>{
   e.preventDefault();
-  if (!garPainting || brushMode==='stamp') return;
+  if (!garPainting) return;
   garPaintAt(garPos(e), false);
 });
 gv.addEventListener('pointerup',   e=>{ e.preventDefault(); garPainting=false; garLastPos=null; });
@@ -487,8 +544,7 @@ gv.addEventListener('pointercancel',e=>{ garPainting=false; garLastPos=null; });
 
 // ── Play button → start game ───────────────────────────────────────────────
 document.getElementById('play-btn').addEventListener('click', ()=>{
-  document.getElementById('garage').style.display='none';
-  document.getElementById('c').style.display='block';
+  showScreen('game');
   startGame();
 });
 
