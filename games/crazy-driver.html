@@ -199,6 +199,29 @@
       transition: background 0.15s;
     }
 
+    /* Difficulty selector */
+    .diff-row {
+      display: flex; gap: 10px; justify-content: center;
+      flex-wrap: wrap; width: 100%; max-width: 420px;
+    }
+    .diff-btn {
+      flex: 1; min-width: 90px;
+      padding: 12px 8px;
+      background: rgba(43,33,64,0.07);
+      border: 3px solid rgba(43,33,64,0.2);
+      border-radius: 14px; color: #2B2140;
+      font-size: 0.85rem; font-weight: 800;
+      cursor: pointer; letter-spacing: 1px;
+      transition: transform 0.1s, background 0.12s, border-color 0.12s;
+      text-align: center; line-height: 1.4;
+    }
+    .diff-btn:active { transform: scale(0.93); }
+    .diff-btn.active {
+      background: rgba(43,33,64,0.18);
+      border-color: #2B2140;
+      box-shadow: 0 3px 0 rgba(43,33,64,0.2);
+    }
+
     /* Nav / play buttons */
     .nav-btn {
       margin-top: 4px;
@@ -295,6 +318,12 @@
   <canvas class="preview-cv" id="wv"></canvas>
   <div class="gar-label">WHEEL STYLE</div>
   <div class="wheel-row" id="wheel-row"></div>
+  <div class="gar-label">SPEED</div>
+  <div class="diff-row">
+    <button class="diff-btn active" data-diff="easy">🐢<br>EASY</button>
+    <button class="diff-btn"        data-diff="medium">🚗<br>MEDIUM</button>
+    <button class="diff-btn"        data-diff="hard">🔥<br>HARD</button>
+  </div>
   <button class="nav-btn red" id="play-btn">🚗 LET'S DRIVE!</button>
 </div>
 
@@ -302,6 +331,15 @@
 // ═══════════════════════════════════════════════════════
 //  GARAGE
 // ═══════════════════════════════════════════════════════
+let diffMode = 'easy';
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    diffMode = btn.dataset.diff;
+  });
+});
+
 const GAR_COLORS = [
   '#ff3355','#ff8c00','#ffdd00','#44cc44',
   '#33aaff','#cc44ff','#ff55bb','#00ddcc',
@@ -797,9 +835,15 @@ canvas.addEventListener('touchmove', e=>{ e.preventDefault(); if(pointerActive) 
 canvas.addEventListener('touchend',  e=>{ e.preventDefault(); pointerActive=false; },{passive:false});
 
 // ── Begin game ─────────────────────────────────────────────────────────────
+const DIFF = {
+  easy:   { startSpeed:2.5, maxSpeed:7,  accel:0.4, accelFrames:500, spawnStart:130, spawnMin:75,  spawnDrop:3 },
+  medium: { startSpeed:4.5, maxSpeed:14, accel:0.7, accelFrames:360, spawnStart:80,  spawnMin:32,  spawnDrop:6 },
+  hard:   { startSpeed:7,   maxSpeed:22, accel:1.2, accelFrames:240, spawnStart:55,  spawnMin:18,  spawnDrop:8 },
+};
 function beginGame() {
-  state=STATE.PLAYING; score=0; lives=3; speed=4.5;
-  frameCount=0; spawnIn=80; invincible=0; shakeFrames=0;
+  const d=DIFF[diffMode];
+  state=STATE.PLAYING; score=0; lives=3; speed=d.startSpeed;
+  frameCount=0; spawnIn=d.spawnStart; invincible=0; shakeFrames=0;
   obstacles=[]; roadStars=[]; sparkles=[]; starsCollected=0; starSpawnIn=90;
   playerY=lane2; targetY=lane2;
 }
@@ -899,8 +943,10 @@ function loop() {
   // Update
   if(state===STATE.PLAYING) {
     frameCount++; score=Math.floor(frameCount/6)+starsCollected*5;
-    speed=Math.min(16,4.5+Math.floor(frameCount/360)*.7);
-    const interval=Math.max(32,80-Math.floor(frameCount/360)*6);
+    const d=DIFF[diffMode];
+    const step=Math.floor(frameCount/d.accelFrames);
+    speed=Math.min(d.maxSpeed, d.startSpeed+step*d.accel);
+    const interval=Math.max(d.spawnMin, d.spawnStart-step*d.spawnDrop);
     spawnIn--;
     if(spawnIn<=0){
       const lanes=[lane1,lane2,lane3];
@@ -970,8 +1016,8 @@ function loop() {
   const showP=state!==STATE.DEAD&&(invincible===0||Math.floor(invincible/6)%2===0);
   if(showP){
     drawCar(ctx,playerX(),playerY,P_W,P_H,BODY_COLOR,1,wheelStyle,overlayCV,carType);
-    if(state===STATE.PLAYING&&speed>9){
-      const alpha=Math.min(.6,(speed-9)/10);
+    if(state===STATE.PLAYING&&speed>DIFF[diffMode].maxSpeed*.65){
+      const alpha=Math.min(.6,(speed-DIFF[diffMode].maxSpeed*.65)/(DIFF[diffMode].maxSpeed*.35));
       ctx.strokeStyle=`rgba(255,255,255,${alpha})`; ctx.lineWidth=1.5;
       for(let i=0;i<4;i++){
         const ly=playerY-10+i*7, len=18+Math.random()*28;
