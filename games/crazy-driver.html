@@ -668,7 +668,18 @@ function garPos(e) {
   const rect=gv.getBoundingClientRect();
   const scX=gv.width/rect.width, scY=gv.height/rect.height;
   const src=e.touches?e.touches[0]:e;
-  return { x:(src.clientX-rect.left)*scX, y:(src.clientY-rect.top)*scY };
+  // Cursor position in gv display-canvas space
+  const xd=(src.clientX-rect.left)*scX, yd=(src.clientY-rect.top)*scY;
+  // The overlayCV is drawn onto the car body via drawImage(overlay, bx, yOrg, cw, yH).
+  // Inverse-transform so the brush appears exactly under the cursor.
+  const W=gv.width, H=gv.height;
+  const cw=W*0.82, ch=H*0.65;
+  const bx=W*0.09, by=H*0.175-4;
+  let yOrg, yH;
+  if (carType==='hotrod')       { yOrg=by+ch*0.12; yH=ch*0.86; }
+  else if (carType==='monster') { yOrg=by-ch*0.08; yH=ch*0.82; }
+  else                          { yOrg=by;          yH=ch;       }
+  return { x:(xd-bx)*W/cw, y:(yd-yOrg)*H/yH };
 }
 
 function garPaintAt(pos, isFirst) {
