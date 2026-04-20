@@ -215,13 +215,6 @@
       ctx.beginPath();
       ctx.roundRect(-rw*0.5,-rh*0.3,rw,rh*0.8,[rw*0.5,rw*0.5,rw*0.2,rw*0.2]);
       ctx.fill(); ctx.stroke();
-      // Nose
-      ctx.fillStyle='#FF6B9D'; ctx.strokeStyle='#2B2140'; ctx.lineWidth=2.5;
-      ctx.beginPath();
-      ctx.moveTo(-rw*0.5,-rh*0.3);
-      ctx.quadraticCurveTo(-rw*0.5,-rh*0.62,0,-rh*0.57);
-      ctx.quadraticCurveTo(rw*0.5,-rh*0.62,rw*0.5,-rh*0.3);
-      ctx.fill(); ctx.stroke();
       // Window
       ctx.fillStyle='#5BB8FF'; ctx.strokeStyle='#2B2140'; ctx.lineWidth=2;
       ctx.beginPath(); ctx.arc(0,-rh*0.05,rw*0.28,0,Math.PI*2); ctx.fill(); ctx.stroke();
