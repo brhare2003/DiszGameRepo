@@ -1,637 +1,464 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Game Hub</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Game Hub</title>
+<link rel="stylesheet" href="shared.css" />
+<style>
+  /* ---- Page layout ---- */
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+  }
 
-    html {
-      overflow-x: hidden;
-      overscroll-behavior: none;
-    }
+  /* ---- Header ---- */
+  .hub-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .hub-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .hub-logo-badge {
+    width: 64px; height: 64px;
+    border-radius: 20px;
+    background: var(--yellow);
+    border: 4px solid var(--ink);
+    box-shadow: 0 4px 0 rgba(43,33,64,0.25);
+    display: grid; place-items: center;
+    transform: rotate(-6deg);
+  }
+  .hub-logo-text {
+    font-family: 'Baloo 2', sans-serif;
+    font-weight: 800;
+    font-size: 34px;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .hub-logo-text .sub {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
 
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #000018;
-      min-height: 100vh;
-      overflow-x: hidden;
-      overscroll-behavior: none;
-      touch-action: manipulation;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-    }
+  .hub-greet {
+    background: white;
+    border: 4px solid var(--ink);
+    border-radius: var(--radius-pill);
+    padding: 10px 18px;
+    font-weight: 600;
+    font-size: 16px;
+    box-shadow: 0 4px 0 rgba(43,33,64,0.18);
+    display: none;
+  }
+  @media (min-width: 640px) { .hub-greet { display: inline-flex; align-items: center; gap: 8px; } }
 
-    #bg-canvas {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: -1;
-    }
+  /* ---- Hero banner (slim) ---- */
+  .hero {
+    position: relative;
+    padding: 0 4px;
+    margin-bottom: 18px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .hero h1 {
+    margin: 0;
+    font-family: 'Baloo 2', sans-serif;
+    font-weight: 800;
+    font-size: clamp(22px, 4.5vw, 32px);
+    line-height: 1.1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 12px;
+    row-gap: 2px;
+  }
+  .hero h1 .wiggle { display: inline-block; color: var(--pink-deep); white-space: nowrap; }
+  .hero h1 .wiggle:nth-child(2) { color: var(--blue-deep); }
+  .hero h1 .wiggle:nth-child(3) { color: var(--mint-deep); }
+  .hero h1 .wiggle:nth-child(4) { color: var(--tangerine-deep); }
 
-    h1 {
-      font-size: clamp(2rem, 6vw, 3.5rem);
-      letter-spacing: 6px;
-      color: #ffdd22;
-      text-shadow: 0 0 20px #ff8800, 0 0 50px rgba(255,136,0,0.4);
-      margin-bottom: 8px;
-    }
+  /* ---- Game grid ---- */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+  }
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: 1fr 1fr; gap: 14px; }
+  }
 
-    .subtitle {
-      color: #aaa;
-      letter-spacing: 3px;
-      font-size: 0.9rem;
-      margin-bottom: 52px;
-    }
+  /* ---- Game card ---- */
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border: 5px solid var(--ink);
+    border-radius: var(--radius-card);
+    padding: 18px 18px 16px;
+    box-shadow: var(--shadow-card);
+    text-decoration: none;
+    color: var(--ink);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    overflow: hidden;
+  }
+  .card:hover { transform: translateY(-4px); }
+  .card:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(43,33,64,0.18), 0 6px 14px rgba(43,33,64,0.12); }
 
-    .games {
-      display: flex;
-      gap: 28px;
-      flex-wrap: wrap;
-      justify-content: center;
-      padding: 0 20px;
-    }
+  .card-art {
+    height: 140px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+    display: grid;
+    place-items: center;
+    position: relative;
+    overflow: hidden;
+    border: 4px solid var(--ink);
+  }
+  .card-art::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 25%, rgba(255,255,255,0.5) 0 6px, transparent 7px),
+      radial-gradient(circle at 78% 60%, rgba(255,255,255,0.4) 0 8px, transparent 9px),
+      radial-gradient(circle at 45% 80%, rgba(255,255,255,0.35) 0 5px, transparent 6px);
+  }
+  .card-art svg { position: relative; z-index: 1; }
 
-    .card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-decoration: none;
-      color: #fff;
-      width: 260px;
-      background: rgba(255,255,255,0.06);
-      border: 2px solid rgba(255,255,255,0.12);
-      border-radius: 18px;
-      padding: 36px 28px 28px;
-      text-align: center;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-    }
+  .card-title {
+    font-family: 'Baloo 2', sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    line-height: 1.05;
+    margin: 0 0 4px;
+  }
+  .card-desc {
+    font-size: 15px;
+    color: var(--ink-soft);
+    font-weight: 500;
+    margin: 0 0 14px;
+    line-height: 1.3;
+    flex: 1;
+  }
+  .card-play {
+    align-self: stretch;
+    min-height: 52px;
+    font-size: 20px;
+    padding: 10px 20px;
+    gap: 8px;
+  }
+  .card-play svg { flex-shrink: 0; }
 
-    .card:hover,
-    .card:active {
-      transform: translateY(-8px);
-    }
+  /* Per-card color themes */
+  .theme-pink   .card-art { background: var(--pink); }
+  .theme-pink   .card-play { background: var(--pink-deep); }
+  .theme-blue   .card-art { background: var(--blue); }
+  .theme-blue   .card-play { background: var(--blue-deep); }
+  .theme-mint   .card-art { background: var(--mint); }
+  .theme-mint   .card-play { background: var(--mint-deep); }
+  .theme-yellow .card-art { background: var(--yellow); }
+  .theme-yellow .card-play { background: var(--yellow-deep); color: var(--ink); text-shadow: none; }
+  .theme-grape  .card-art { background: var(--grape); }
+  .theme-grape  .card-play { background: var(--grape-deep); }
+  .theme-tang   .card-art { background: var(--tangerine); }
+  .theme-tang   .card-play { background: var(--tangerine-deep); }
+  .theme-red    .card-art { background: var(--red); }
+  .theme-red    .card-play { background: var(--red-deep); }
 
-    /* Tic Tac Toe card — pink/red accent */
-    .card-ttt {
-      border-color: rgba(255, 48, 96, 0.35);
-    }
-    .card-ttt:hover {
-      box-shadow: 0 14px 44px rgba(255, 48, 96, 0.35);
-      border-color: rgba(255, 48, 96, 0.8);
-    }
+  /* tiny sparkle badge */
+  .badge {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: var(--yellow);
+    color: var(--ink);
+    border: 3px solid var(--ink);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    z-index: 2;
+    box-shadow: 0 2px 0 rgba(43,33,64,0.2);
+  }
 
-    /* Crazy Driver card — yellow/orange accent */
-    .card-cd {
-      border-color: rgba(255, 200, 30, 0.35);
-    }
-    .card-cd:hover {
-      box-shadow: 0 14px 44px rgba(255, 200, 30, 0.30);
-      border-color: rgba(255, 200, 30, 0.8);
-    }
+  /* Small-screen compaction */
+  @media (max-width: 480px) {
+    .card { padding: 12px 12px 12px; border-width: 4px; }
+    .card-art { height: 110px; border-width: 3px; border-radius: 16px; margin-bottom: 10px; }
+    .card-title { font-size: 20px; }
+    .card-desc { font-size: 13px; margin-bottom: 10px; }
+    .card-play { font-size: 17px; min-height: 46px; padding: 8px 14px; }
+    .hero { padding: 18px 18px; border-width: 4px; border-radius: 24px; }
+  }
 
-    .card-badge {
-      display: inline-block;
-      width: 72px; height: 72px;
-      border-radius: 18px;
-      margin-bottom: 18px;
-      line-height: 72px;
-      font-size: 2.2rem;
-      font-weight: 900;
-    }
+  /* Footer */
+  .foot {
+    margin-top: 40px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
 
-    .card-ttt .card-badge {
-      background: rgba(255,48,96,0.2);
-      border: 2px solid rgba(255,48,96,0.5);
-      color: #ff3060;
-      line-height: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-
-    .card-cd .card-badge {
-      background: rgba(255,200,30,0.15);
-      border: 2px solid rgba(255,200,30,0.5);
-      color: #ffdd22;
-      text-shadow: 0 0 12px #ffaa00;
-    }
-
-    .card-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: 2px;
-      margin-bottom: 10px;
-    }
-
-    .card-ttt .card-title { color: #ff6080; }
-    .card-cd  .card-title { color: #ffdd22; }
-
-    .card-desc {
-      font-size: 0.88rem;
-      color: #999;
-      line-height: 1.6;
-      flex: 1;
-    }
-
-    .play-btn {
-      display: inline-block;
-      padding: 10px 32px;
-      border-radius: 24px;
-      font-weight: 700;
-      font-size: 0.9rem;
-      letter-spacing: 2px;
-      color: #000;
-      margin-top: 22px;
-    }
-
-    .card-ttt .play-btn {
-      background: #ff3060;
-      box-shadow: 0 0 16px rgba(255,48,96,0.55);
-    }
-
-    .card-cd .play-btn {
-      background: #ffaa00;
-      color: #000;
-      box-shadow: 0 0 16px rgba(255,170,0,0.55);
-    }
-
-    /* Floating Circles card — cyan/blue accent */
-    .card-fc {
-      border-color: rgba(51, 153, 255, 0.35);
-    }
-    .card-fc:hover {
-      box-shadow: 0 14px 44px rgba(51, 153, 255, 0.35);
-      border-color: rgba(51, 153, 255, 0.8);
-    }
-
-    .card-fc .card-badge {
-      background: rgba(51,153,255,0.15);
-      border: 2px solid rgba(51,153,255,0.5);
-      color: #3399ff;
-      text-shadow: 0 0 12px #3399ff;
-    }
-
-    .card-fc .card-title { color: #66bbff; }
-
-    .card-fc .play-btn {
-      background: #3399ff;
-      color: #000;
-      box-shadow: 0 0 16px rgba(51,153,255,0.55);
-    }
-
-    /* Rainbow Draw card — green accent */
-    .card-rd {
-      border-color: rgba(51, 220, 100, 0.35);
-    }
-    .card-rd:hover {
-      box-shadow: 0 14px 44px rgba(51, 220, 100, 0.30);
-      border-color: rgba(51, 220, 100, 0.8);
-    }
-
-    .card-rd .card-badge {
-      background: rgba(51,220,100,0.12);
-      border: 2px solid rgba(51,220,100,0.45);
-      /* rainbow text shimmer */
-      color: transparent;
-      background-image: linear-gradient(90deg, #ff3333, #ff9900, #ffee00, #33dd55, #3399ff, #cc33ff, #ff3333);
-      background-size: 200% auto;
-      -webkit-background-clip: text;
-      background-clip: text;
-      animation: badgeShift 3s linear infinite;
-    }
-    @keyframes badgeShift {
-      from { background-position: 0% center; }
-      to   { background-position: 200% center; }
-    }
-
-    .card-rd .card-title { color: #55ee88; }
-
-    .card-rd .play-btn {
-      background: #33cc66;
-      color: #000;
-      box-shadow: 0 0 16px rgba(51,204,102,0.55);
-    }
-
-    /* Shape Match card — gold/yellow accent */
-    .card-sm {
-      border-color: rgba(255, 220, 68, 0.35);
-    }
-    .card-sm:hover {
-      box-shadow: 0 14px 44px rgba(255, 220, 68, 0.30);
-      border-color: rgba(255, 220, 68, 0.8);
-    }
-
-    .card-sm .card-badge {
-      background: rgba(255,220,68,0.12);
-      border: 2px solid rgba(255,220,68,0.45);
-      color: #ffdd44;
-      line-height: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-
-    .card-sm .card-title { color: #ffdd44; }
-
-    .card-sm .play-btn {
-      background: #ffdd44;
-      color: #000;
-      box-shadow: 0 0 16px rgba(255,220,68,0.55);
-    }
-
-    /* Fruit Catcher card — green accent */
-    .card-fc2 {
-      border-color: rgba(68, 221, 136, 0.35);
-    }
-    .card-fc2:hover {
-      box-shadow: 0 14px 44px rgba(68, 221, 136, 0.30);
-      border-color: rgba(68, 221, 136, 0.8);
-    }
-
-    .card-fc2 .card-badge {
-      background: rgba(68,221,136,0.12);
-      border: 2px solid rgba(68,221,136,0.45);
-      color: #44dd88;
-      text-shadow: 0 0 12px #22bb66;
-    }
-
-    .card-fc2 .card-title { color: #44dd88; }
-
-    .card-fc2 .play-btn {
-      background: #44dd88;
-      color: #000;
-      box-shadow: 0 0 16px rgba(68,221,136,0.55);
-    }
-
-    /* Feed the Monster card — vivid purple/magenta accent */
-    .card-fm {
-      border-color: rgba(204, 68, 255, 0.35);
-    }
-    .card-fm:hover {
-      box-shadow: 0 14px 44px rgba(204, 68, 255, 0.30);
-      border-color: rgba(204, 68, 255, 0.8);
-    }
-
-    .card-fm .card-badge {
-      background: rgba(204,68,255,0.12);
-      border: 2px solid rgba(204,68,255,0.45);
-      color: #cc44ff;
-      font-size: 1.8rem;
-      text-shadow: 0 0 12px #aa22dd;
-    }
-
-    .card-fm .card-title { color: #cc44ff; }
-
-    .card-fm .play-btn {
-      background: #cc44ff;
-      box-shadow: 0 0 16px rgba(204,68,255,0.55);
-    }
-
-    /* Fruit Ninja card — red/orange accent */
-    .card-fn {
-      border-color: rgba(255, 80, 0, 0.35);
-    }
-    .card-fn:hover {
-      box-shadow: 0 14px 44px rgba(255, 80, 0, 0.35);
-      border-color: rgba(255, 80, 0, 0.8);
-    }
-
-    .card-fn .card-badge {
-      background: rgba(255,80,0,0.12);
-      border: 2px solid rgba(255,80,0,0.45);
-      color: #ff6622;
-      font-size: 1.8rem;
-      text-shadow: 0 0 12px #ff4400;
-    }
-
-    .card-fn .card-title { color: #ff7744; }
-
-    .card-fn .play-btn {
-      background: linear-gradient(135deg, #ff5500, #ff8800);
-      box-shadow: 0 0 16px rgba(255,80,0,0.55);
-    }
-  </style>
-  <script>
-    // Block pinch-zoom, double-tap zoom, gesture zoom, ctrl+scroll zoom
-    document.addEventListener('touchmove', function(e) {
-      if (e.touches.length > 1) e.preventDefault();
-    }, { passive: false });
-    (function() {
-      var lt = 0;
-      document.addEventListener('touchend', function(e) {
-        var now = Date.now();
-        if (now - lt < 300) e.preventDefault();
-        lt = now;
-      }, false);
-    })();
-    document.addEventListener('gesturestart',  function(e) { e.preventDefault(); }, false);
-    document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, false);
-    window.addEventListener('wheel', function(e) {
-      if (e.ctrlKey) e.preventDefault();
-    }, { passive: false });
-  </script>
+  /* Card entrance stagger */
+  .card { animation: pop 0.5s cubic-bezier(.2, 1.4, .3, 1) both; }
+  .card:nth-child(1){animation-delay:.02s} .card:nth-child(2){animation-delay:.08s}
+  .card:nth-child(3){animation-delay:.14s} .card:nth-child(4){animation-delay:.20s}
+  .card:nth-child(5){animation-delay:.26s} .card:nth-child(6){animation-delay:.32s}
+  .card:nth-child(7){animation-delay:.38s}
+  @keyframes pop {
+    from { opacity: 0; transform: translateY(20px) scale(0.92); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+</style>
 </head>
 <body>
 
-  <canvas id="bg-canvas"></canvas>
+<!-- Shared playful background -->
+<div class="bg-scene"></div>
+<div class="bg-shapes" aria-hidden="true">
+  <svg class="bg-shape" style="top:6%; left:6%; width:62px; --r:-12deg" viewBox="0 0 60 60"><polygon points="30,4 37,22 56,24 41,37 46,56 30,46 14,56 19,37 4,24 23,22" fill="#FFD53E" stroke="#2B2140" stroke-width="4" stroke-linejoin="round"/></svg>
+  <svg class="bg-shape" style="top:14%; right:8%; width:70px; --r:16deg" viewBox="0 0 60 60"><circle cx="30" cy="30" r="22" fill="#FF87B2" stroke="#2B2140" stroke-width="4"/></svg>
+  <svg class="bg-shape" style="top:42%; left:3%; width:54px; --r:-6deg" viewBox="0 0 60 60"><rect x="10" y="10" width="40" height="40" rx="10" fill="#6FE3B4" stroke="#2B2140" stroke-width="4"/></svg>
+  <svg class="bg-shape" style="top:38%; right:5%; width:60px; --r:10deg" viewBox="0 0 60 60"><path d="M10 40 Q20 10 30 40 T50 40" fill="none" stroke="#B48BFF" stroke-width="8" stroke-linecap="round"/></svg>
+  <svg class="bg-shape" style="bottom:18%; left:10%; width:58px; --r:22deg" viewBox="0 0 60 60"><polygon points="30,6 54,52 6,52" fill="#FF9A4D" stroke="#2B2140" stroke-width="4" stroke-linejoin="round"/></svg>
+  <svg class="bg-shape" style="bottom:10%; right:12%; width:66px; --r:-18deg" viewBox="0 0 60 60"><circle cx="30" cy="30" r="22" fill="#5BB8FF" stroke="#2B2140" stroke-width="4"/><circle cx="30" cy="30" r="10" fill="white" stroke="#2B2140" stroke-width="4"/></svg>
+  <svg class="bg-shape" style="top:70%; left:45%; width:46px; --r:8deg" viewBox="0 0 60 60"><polygon points="30,4 37,22 56,24 41,37 46,56 30,46 14,56 19,37 4,24 23,22" fill="#FF87B2" stroke="#2B2140" stroke-width="4" stroke-linejoin="round"/></svg>
+  <svg class="bg-shape" style="top:24%; left:48%; width:40px; --r:-20deg" viewBox="0 0 60 60"><rect x="12" y="12" width="36" height="36" rx="8" fill="#FFD53E" stroke="#2B2140" stroke-width="4"/></svg>
+</div>
 
-  <h1>GAME HUB</h1>
-  <p class="subtitle">PICK A GAME</p>
+<div class="wrap">
 
-  <div class="games">
+  <header class="hub-header">
+    <div class="hub-logo">
+      <div class="hub-logo-badge" aria-hidden="true">
+        <svg width="38" height="38" viewBox="0 0 40 40">
+          <circle cx="13" cy="20" r="7" fill="#FF87B2" stroke="#2B2140" stroke-width="3"/>
+          <circle cx="27" cy="20" r="7" fill="#5BB8FF" stroke="#2B2140" stroke-width="3"/>
+          <rect x="13" y="13" width="14" height="14" fill="#FFF6E4" stroke="#2B2140" stroke-width="3"/>
+          <circle cx="20" cy="20" r="3" fill="#2B2140"/>
+        </svg>
+      </div>
+      <div class="hub-logo-text">
+        Game Hub
+        <span class="sub">Play time!</span>
+      </div>
+    </div>
+    <div class="hub-greet" id="greet">
+      <span>&#128075; Hi, friend!</span>
+    </div>
+  </header>
 
-    <a href="tictactoe.html" class="card card-ttt">
-      <div class="card-badge"><svg width="64" height="64" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
-        <!-- grid lines -->
-        <line x1="24" y1="8"  x2="24" y2="64" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.75"/>
-        <line x1="48" y1="8"  x2="48" y2="64" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.75"/>
-        <line x1="8"  y1="24" x2="64" y2="24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.75"/>
-        <line x1="8"  y1="48" x2="64" y2="48" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.75"/>
-        <!-- X top-left -->
-        <line x1="7"  y1="7"  x2="19" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-        <line x1="19" y1="7"  x2="7"  y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-        <!-- O center -->
-        <circle cx="36" cy="36" r="7" fill="none" stroke="currentColor" stroke-width="2.5"/>
-        <!-- X bottom-right -->
-        <line x1="53" y1="53" x2="65" y2="65" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-        <line x1="65" y1="53" x2="53" y2="65" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-      </svg></div>
-      <div class="card-title">TIC TAC TOE</div>
-      <div class="card-desc">Classic X's and O's. Play against a friend or challenge the unbeatable CPU.</div>
-      <div class="play-btn">PLAY</div>
+  <section class="hero" aria-label="Welcome">
+    <h1>
+      <span class="wiggle">Pick</span>
+      <span class="wiggle">a</span>
+      <span class="wiggle">game</span>
+      <span class="wiggle">to play!</span>
+    </h1>
+  </section>
+
+  <div class="grid" role="list">
+
+    <!-- SHAPE MATCH -->
+    <a class="card theme-yellow" role="listitem" href="games/shape-match.html" aria-label="Play Shape Match">
+      <div class="card-art">
+        <svg width="120" height="110" viewBox="0 0 120 110" aria-hidden="true">
+          <circle cx="30" cy="35" r="18" fill="#FF87B2" stroke="#2B2140" stroke-width="4"/>
+          <rect x="66" y="18" width="36" height="36" rx="6" fill="#5BB8FF" stroke="#2B2140" stroke-width="4"/>
+          <polygon points="60,62 86,100 34,100" fill="#6FE3B4" stroke="#2B2140" stroke-width="4" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2 class="card-title">Shape Match</h2>
+      <p class="card-desc">Put the shapes in the right spot!</p>
+      <span class="kid-btn card-play">
+        <svg width="16" height="18" viewBox="0 0 16 18"><polygon points="2,2 14,9 2,16" fill="#2B2140" stroke="#2B2140" stroke-width="2" stroke-linejoin="round"/></svg>
+        Play
+      </span>
     </a>
 
-    <a href="crazydriver.html" class="card card-cd">
-      <div class="card-badge">&#128663;</div>
-      <div class="card-title">CRAZY DRIVER</div>
-      <div class="card-desc">Dodge the oncoming cars! Drag your finger up and down to survive as long as you can.</div>
-      <div class="play-btn">PLAY</div>
+    <!-- TIC TAC TOE -->
+    <a class="card theme-blue" role="listitem" href="games/tic-tac-toe.html" aria-label="Play Tic Tac Toe">
+      <div class="card-art">
+        <svg width="110" height="110" viewBox="0 0 110 110" aria-hidden="true">
+          <line x1="38" y1="14" x2="38" y2="96" stroke="#2B2140" stroke-width="5" stroke-linecap="round"/>
+          <line x1="72" y1="14" x2="72" y2="96" stroke="#2B2140" stroke-width="5" stroke-linecap="round"/>
+          <line x1="14" y1="38" x2="96" y2="38" stroke="#2B2140" stroke-width="5" stroke-linecap="round"/>
+          <line x1="14" y1="72" x2="96" y2="72" stroke="#2B2140" stroke-width="5" stroke-linecap="round"/>
+          <line x1="19" y1="19" x2="33" y2="33" stroke="#FF6B6B" stroke-width="6" stroke-linecap="round"/>
+          <line x1="33" y1="19" x2="19" y2="33" stroke="#FF6B6B" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="55" cy="55" r="10" fill="none" stroke="#FFD53E" stroke-width="6"/>
+          <line x1="79" y1="79" x2="93" y2="93" stroke="#FF6B6B" stroke-width="6" stroke-linecap="round"/>
+          <line x1="93" y1="79" x2="79" y2="93" stroke="#FF6B6B" stroke-width="6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h2 class="card-title">Tic Tac Toe</h2>
+      <p class="card-desc">Three in a row — you win!</p>
+      <span class="kid-btn card-play">
+        <svg width="16" height="18" viewBox="0 0 16 18"><polygon points="2,2 14,9 2,16" fill="white" stroke="#2B2140" stroke-width="2" stroke-linejoin="round"/></svg>
+        Play
+      </span>
     </a>
 
-    <a href="floatingcircles.html" class="card card-fc">
-      <canvas id="fc-badge" class="card-badge" width="72" height="72"></canvas>
-      <div class="card-title">POPPING BUBBLES</div>
-      <div class="card-desc">Pop the colorful bubbles as they float up! Click fast — they disappear before you know it.</div>
-      <div class="play-btn">PLAY</div>
+    <!-- CRAZY DRIVER -->
+    <a class="card theme-red" role="listitem" href="games/crazy-driver.html" aria-label="Play Crazy Driver">
+      <span class="badge">Zoom!</span>
+      <div class="card-art">
+        <svg width="130" height="110" viewBox="0 0 130 100" aria-hidden="true">
+          <path d="M18 60 L30 40 L90 40 L102 60 L102 72 L18 72 Z" fill="#FFD53E" stroke="#2B2140" stroke-width="4" stroke-linejoin="round"/>
+          <rect x="40" y="44" width="40" height="16" rx="4" fill="#5BB8FF" stroke="#2B2140" stroke-width="3"/>
+          <circle cx="36" cy="76" r="10" fill="#2B2140"/>
+          <circle cx="36" cy="76" r="4" fill="#fff"/>
+          <circle cx="86" cy="76" r="10" fill="#2B2140"/>
+          <circle cx="86" cy="76" r="4" fill="#fff"/>
+          <path d="M108 50 Q118 50 118 58" fill="none" stroke="#FF87B2" stroke-width="4" stroke-linecap="round"/>
+          <path d="M110 40 Q122 40 122 50" fill="none" stroke="#FF87B2" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h2 class="card-title">Crazy Driver</h2>
+      <p class="card-desc">Drive the wacky car on a fun road!</p>
+      <span class="kid-btn card-play">
+        <svg width="16" height="18" viewBox="0 0 16 18"><polygon points="2,2 14,9 2,16" fill="white" stroke="#2B2140" stroke-width="2" stroke-linejoin="round"/></svg>
+        Play
+      </span>
     </a>
 
-    <a href="rainbowdraw.html" class="card card-rd">
-      <div class="card-badge">&#9999;</div>
-      <div class="card-title">RAINBOW DRAW</div>
-      <div class="card-desc">Paint with a brush that flows through every color of the rainbow. Tap the trash can to start fresh.</div>
-      <div class="play-btn">DRAW</div>
+    <!-- RAINBOW DRAW -->
+    <a class="card theme-grape" role="listitem" href="games/rainbow-draw.html" aria-label="Play Rainbow Draw">
+      <div class="card-art">
+        <svg width="130" height="110" viewBox="0 0 130 100" aria-hidden="true">
+          <path d="M15 78 A50 50 0 0 1 115 78" fill="none" stroke="#FF6B6B" stroke-width="8" stroke-linecap="round"/>
+          <path d="M25 78 A40 40 0 0 1 105 78" fill="none" stroke="#FF9A4D" stroke-width="8" stroke-linecap="round"/>
+          <path d="M35 78 A30 30 0 0 1 95 78" fill="none" stroke="#FFD53E" stroke-width="8" stroke-linecap="round"/>
+          <path d="M45 78 A20 20 0 0 1 85 78" fill="none" stroke="#6FE3B4" stroke-width="8" stroke-linecap="round"/>
+          <path d="M55 78 A10 10 0 0 1 75 78" fill="none" stroke="#5BB8FF" stroke-width="8" stroke-linecap="round"/>
+          <rect x="95" y="20" width="10" height="30" rx="2" fill="#FF87B2" stroke="#2B2140" stroke-width="3" transform="rotate(25 100 35)"/>
+          <polygon points="106,48 114,54 108,44" fill="#2B2140"/>
+        </svg>
+      </div>
+      <h2 class="card-title">Rainbow Draw</h2>
+      <p class="card-desc">Paint pretty rainbows with your finger!</p>
+      <span class="kid-btn card-play">
+        <svg width="16" height="18" viewBox="0 0 16 18"><polygon points="2,2 14,9 2,16" fill="white" stroke="#2B2140" stroke-width="2" stroke-linejoin="round"/></svg>
+        Play
+      </span>
     </a>
 
-    <a href="shapematch.html" class="card card-sm">
-      <div class="card-badge"><svg width="64" height="64" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
-        <!-- square top-left -->
-        <rect x="6" y="6" width="24" height="24" rx="3" fill="currentColor"/>
-        <!-- circle top-right, same diameter as square (24px) -->
-        <circle cx="56" cy="18" r="12" fill="currentColor"/>
-        <!-- triangle bottom-center, contained within badge -->
-        <polygon points="36,38 14,66 58,66" fill="currentColor"/>
-      </svg></div>
-      <div class="card-title">SHAPE MATCH</div>
-      <div class="card-desc">Drag each shape to its matching outline. Match them all to earn three stars!</div>
-      <div class="play-btn">PLAY</div>
+    <!-- FRUIT CATCHER -->
+    <a class="card theme-tang" role="listitem" href="games/fruit-catcher.html" aria-label="Play Fruit Catcher">
+      <div class="card-art">
+        <svg width="130" height="110" viewBox="0 0 130 100" aria-hidden="true">
+          <circle cx="40" cy="26" r="12" fill="#FF6B6B" stroke="#2B2140" stroke-width="3"/>
+          <path d="M40 16 Q42 10 48 12" fill="none" stroke="#6FE3B4" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="78" cy="36" r="10" fill="#FFD53E" stroke="#2B2140" stroke-width="3"/>
+          <circle cx="98" cy="20" r="8" fill="#B48BFF" stroke="#2B2140" stroke-width="3"/>
+          <path d="M22 62 Q65 80 108 62 L98 86 Q65 94 32 86 Z" fill="#FF9A4D" stroke="#2B2140" stroke-width="4" stroke-linejoin="round"/>
+          <path d="M30 62 L100 62" stroke="#2B2140" stroke-width="3"/>
+        </svg>
+      </div>
+      <h2 class="card-title">Fruit Catcher</h2>
+      <p class="card-desc">Catch all the yummy fruit in your basket!</p>
+      <span class="kid-btn card-play">
+        <svg width="16" height="18" viewBox="0 0 16 18"><polygon points="2,2 14,9 2,16" fill="white" stroke="#2B2140" stroke-width="2" stroke-linejoin="round"/></svg>
+        Play
+      </span>
     </a>
 
-    <a href="fruitcatcher.html" class="card card-fc2">
-      <div class="card-badge">&#127815;</div>
-      <div class="card-title">FRUIT CATCHER</div>
-      <div class="card-desc">Hold and drag the basket to catch falling fruit before it hits the ground!</div>
-      <div class="play-btn">PLAY</div>
+    <!-- FEED THE MONSTER -->
+    <a class="card theme-mint" role="listitem" href="games/feed-the-monster.html" aria-label="Play Feed the Monster">
+      <span class="badge" style="background: var(--pink);">Yum!</span>
+      <div class="card-art">
+        <svg width="120" height="110" viewBox="0 0 110 100" aria-hidden="true" style="width: 110px">
+          <path d="M20 58 C20 28 90 28 90 58 L90 78 Q80 90 70 82 Q60 90 50 82 Q40 90 30 82 Q22 88 20 78 Z" fill="#B48BFF" stroke="#2B2140" stroke-width="4" stroke-linejoin="round"/>
+          <circle cx="40" cy="48" r="8" fill="#fff" stroke="#2B2140" stroke-width="3"/>
+          <circle cx="70" cy="48" r="8" fill="#fff" stroke="#2B2140" stroke-width="3"/>
+          <circle cx="42" cy="50" r="3" fill="#2B2140"/>
+          <circle cx="72" cy="50" r="3" fill="#2B2140"/>
+          <path d="M40 68 Q55 78 70 68" fill="#FF6B6B" stroke="#2B2140" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+          <path d="M34 42 L26 18" stroke="#2B2140" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="26" cy="16" r="4" fill="#FFD53E" stroke="#2B2140" stroke-width="2"/>
+          <path d="M76 42 L84 18" stroke="#2B2140" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="84" cy="16" r="4" fill="#FFD53E" stroke="#2B2140" stroke-width="2"/>
+        </svg>
+      </div>
+      <h2 class="card-title">Feed the Monster</h2>
+      <p class="card-desc">Give the silly monster its favorite snacks!</p>
+      <span class="kid-btn card-play">
+        <svg width="16" height="18" viewBox="0 0 16 18"><polygon points="2,2 14,9 2,16" fill="white" stroke="#2B2140" stroke-width="2" stroke-linejoin="round"/></svg>
+        Play
+      </span>
     </a>
 
-    <a href="feedthemonster.html" class="card card-fm">
-      <div class="card-badge">&#127843;</div>
-      <div class="card-title">FEED THE MONSTER</div>
-      <div class="card-desc">Drag the right colored food into the monster's mouth! Match its color as fast as you can to score big.</div>
-      <div class="play-btn">PLAY</div>
-    </a>
-
-    <a href="fruitninja.html" class="card card-fn">
-      <div class="card-badge">&#127820;</div>
-      <div class="card-title">FRUIT NINJA</div>
-      <div class="card-desc">Swipe to slash flying fruit before it falls! Dodge bombs or it's game over. How high can you combo?</div>
-      <div class="play-btn">PLAY</div>
+    <!-- FRUIT SLASH -->
+    <a class="card theme-pink" role="listitem" href="games/fruit-slash.html" aria-label="Play Fruit Slash">
+      <div class="card-art">
+        <svg width="140" height="110" viewBox="0 0 140 110" aria-hidden="true">
+          <path d="M10 90 Q55 20 130 40" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" opacity="0.95"/>
+          <path d="M10 90 Q55 20 130 40" fill="none" stroke="#2B2140" stroke-width="2" stroke-linecap="round" opacity="0.25" stroke-dasharray="2 5"/>
+          <path d="M30 88 C18 88 14 72 24 66 C30 63 36 66 38 70 C40 66 46 63 52 66 C62 72 58 88 46 88 C42 94 34 94 30 88 Z"
+                fill="#FF6B6B" stroke="#2B2140" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M38 66 Q38 58 44 56" fill="none" stroke="#6B4423" stroke-width="3" stroke-linecap="round"/>
+          <path d="M42 60 Q48 54 54 58" fill="none" stroke="#6FE3B4" stroke-width="3" stroke-linecap="round"/>
+          <g transform="translate(80 30) rotate(-12)">
+            <path d="M-20 10 A20 20 0 0 1 20 10 Z" fill="#FF87B2" stroke="#2B2140" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M-20 10 A20 20 0 0 1 20 10" fill="none" stroke="#6FE3B4" stroke-width="4"/>
+            <circle cx="-8" cy="2" r="1.5" fill="#2B2140"/>
+            <circle cx="4" cy="0" r="1.5" fill="#2B2140"/>
+            <circle cx="12" cy="4" r="1.5" fill="#2B2140"/>
+          </g>
+          <g transform="translate(96 70) rotate(8)">
+            <path d="M-20 -10 A20 20 0 0 0 20 -10 Z" fill="#FF87B2" stroke="#2B2140" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M-20 -10 A20 20 0 0 0 20 -10" fill="none" stroke="#6FE3B4" stroke-width="4"/>
+            <circle cx="-6" cy="-2" r="1.5" fill="#2B2140"/>
+            <circle cx="6" cy="-4" r="1.5" fill="#2B2140"/>
+            <circle cx="0" cy="-6" r="1.5" fill="#2B2140"/>
+          </g>
+          <circle cx="118" cy="88" r="13" fill="#FF9A4D" stroke="#2B2140" stroke-width="3"/>
+          <path d="M118 77 Q120 72 124 73" fill="none" stroke="#6FE3B4" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h2 class="card-title">Fruit Slash</h2>
+      <p class="card-desc">Swipe the fruits before they fall!</p>
+      <span class="kid-btn card-play">
+        <svg width="16" height="18" viewBox="0 0 16 18"><polygon points="2,2 14,9 2,16" fill="white" stroke="#2B2140" stroke-width="2" stroke-linejoin="round"/></svg>
+        Play
+      </span>
     </a>
 
   </div>
 
-  <script>
-    // ── Floating Circles badge animation ──────────────────────────────────
-    (function () {
-      var cv = document.getElementById('fc-badge');
-      if (!cv) return;
-      var c = cv.getContext('2d');
-      var W = 72, H = 72;
+  <p class="foot">Made for little players</p>
+</div>
 
-      // 7 orbs spread across different start heights so they're staggered
-      var orbs = [
-        { bx: 15, y: 55,  r: 9,  col: '#3399FF', spd: 0.52, ph: 0.0, ws: 0.040, wa: 5.0 },
-        { bx: 57, y: 38,  r: 6,  col: '#FF33CC', spd: 0.78, ph: 1.6, ws: 0.052, wa: 3.5 },
-        { bx: 36, y: 76,  r: 11, col: '#FFE600', spd: 0.44, ph: 3.1, ws: 0.030, wa: 6.0 },
-        { bx: 13, y: 22,  r: 5,  col: '#33CC33', spd: 0.88, ph: 0.9, ws: 0.062, wa: 3.0 },
-        { bx: 60, y: 63,  r: 7,  col: '#FF8C00', spd: 0.66, ph: 2.3, ws: 0.045, wa: 4.0 },
-        { bx: 43, y: 10,  r: 6,  col: '#CC33FF', spd: 0.61, ph: 4.2, ws: 0.049, wa: 3.5 },
-        { bx: 28, y: 88,  r: 8,  col: '#00DDBB', spd: 0.57, ph: 1.1, ws: 0.036, wa: 4.5 },
-      ];
-
-      var t = 0;
-
-      function drawOrb(x, y, r, col) {
-        c.save();
-        c.shadowBlur  = 12;
-        c.shadowColor = col;
-
-        // 3-D gradient: bright white centre → full colour body
-        var g = c.createRadialGradient(x - r * 0.32, y - r * 0.32, r * 0.05, x, y, r);
-        g.addColorStop(0,    '#ffffff');
-        g.addColorStop(0.22, col);
-        g.addColorStop(1,    col);
-        c.fillStyle = g;
-        c.beginPath();
-        c.arc(x, y, r, 0, Math.PI * 2);
-        c.fill();
-
-        // Glossy sheen ellipse
-        c.globalAlpha = 0.52;
-        c.fillStyle   = '#ffffff';
-        c.beginPath();
-        c.ellipse(x - r * 0.28, y - r * 0.30, r * 0.28, r * 0.17, -0.5, 0, Math.PI * 2);
-        c.fill();
-        c.globalAlpha = 1;
-        c.restore();
-      }
-
-      function tick() {
-        c.clearRect(0, 0, W, H);
-        orbs.forEach(function (o) {
-          o.y -= o.spd;
-          if (o.y + o.r < 0) o.y = H + o.r + Math.random() * 8;
-          drawOrb(o.bx + Math.sin(t * o.ws + o.ph) * o.wa, o.y, o.r, o.col);
-        });
-        t++;
-        requestAnimationFrame(tick);
-      }
-
-      tick();
-    })();
-  </script>
-
-  <script>
-    // ── Space background (same as tictactoe) ──────────────────────────────
-    (function () {
-      const canvas = document.getElementById('bg-canvas');
-      const ctx    = canvas.getContext('2d');
-
-      const STARS = Array.from({ length: 180 }, () => ({
-        rx:    Math.random(),
-        ry:    Math.random(),
-        r:     Math.random() * 1.7 + 0.2,
-        alpha: Math.random() * 0.6 + 0.4,
-        warm:  Math.random()
-      }));
-
-      const PLANETS = [
-        { rx:0.07, ry:0.12, rs:0.058, c1:'#ff7744', c2:'#991100', band:'#cc3300', ring:false },
-        { rx:0.88, ry:0.15, rs:0.065, c1:'#ffdd88', c2:'#aa8800', band:'#ddaa44', ring:true,  ringC:'#ccaa33' },
-        { rx:0.09, ry:0.80, rs:0.050, c1:'#44aaff', c2:'#002299', band:'#3388ee', ring:false },
-        { rx:0.87, ry:0.77, rs:0.044, c1:'#66ff44', c2:'#114400', band:'#44cc22', ring:false },
-        { rx:0.50, ry:0.07, rs:0.038, c1:'#cc66ff', c2:'#330077', band:'#aa44dd', ring:false },
-        { rx:0.66, ry:0.90, rs:0.036, c1:'#ff8833', c2:'#882200', band:null,      ring:false },
-      ];
-
-      const ROCKS = Array.from({ length: 10 }, () => ({
-        rx: Math.random() * 0.7 + 0.15,
-        ry: Math.random() * 0.7 + 0.15,
-        rw: Math.random() * 7 + 3,
-        rh: Math.random() * 4 + 2,
-        angle: Math.random() * Math.PI
-      }));
-
-      function drawPlanet(cx, cy, R, p) {
-        if (p.ring) {
-          ctx.save();
-          ctx.translate(cx, cy);
-          ctx.scale(1, 0.28);
-          ctx.globalAlpha  = 0.70;
-          ctx.strokeStyle  = p.ringC;
-          ctx.lineWidth    = R * 0.40;
-          ctx.shadowBlur   = 12;
-          ctx.shadowColor  = p.ringC;
-          ctx.beginPath();
-          ctx.arc(0, 0, R * 1.78, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.restore();
-          ctx.globalAlpha = 1;
-          ctx.shadowBlur  = 0;
-        }
-
-        const g = ctx.createRadialGradient(
-          cx - R * 0.30, cy - R * 0.30, R * 0.06,
-          cx + R * 0.10, cy + R * 0.10, R
-        );
-        g.addColorStop(0,    '#ffffff');
-        g.addColorStop(0.12, p.c1);
-        g.addColorStop(1,    p.c2);
-        ctx.fillStyle   = g;
-        ctx.shadowBlur  = 24;
-        ctx.shadowColor = p.c1;
-        ctx.beginPath();
-        ctx.arc(cx, cy, R, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
-        if (p.band) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(cx, cy, R, 0, Math.PI * 2);
-          ctx.clip();
-          ctx.globalAlpha = 0.18;
-          ctx.fillStyle   = p.band;
-          for (let i = -3; i <= 3; i++) {
-            ctx.beginPath();
-            ctx.ellipse(cx, cy + i * R * 0.32, R, R * 0.10, 0, 0, Math.PI * 2);
-            ctx.fill();
-          }
-          ctx.globalAlpha = 0.32;
-          ctx.fillStyle   = '#ffffff';
-          ctx.beginPath();
-          ctx.ellipse(cx - R * 0.27, cy - R * 0.27, R * 0.20, R * 0.12, -0.4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        }
-      }
-
-      function draw() {
-        const W = canvas.width  = window.innerWidth;
-        const H = canvas.height = window.innerHeight;
-
-        const bg = ctx.createRadialGradient(W * 0.5, H * 0.4, 0, W * 0.5, H * 0.5, Math.max(W, H));
-        bg.addColorStop(0,   '#0c0c2a');
-        bg.addColorStop(0.5, '#060618');
-        bg.addColorStop(1,   '#010108');
-        ctx.fillStyle = bg;
-        ctx.fillRect(0, 0, W, H);
-
-        [
-          { rx:0.18, ry:0.28, r:W*0.36, c:'rgba(70,0,150,0.10)'  },
-          { rx:0.80, ry:0.22, r:W*0.30, c:'rgba(0,80,200,0.09)'  },
-          { rx:0.55, ry:0.72, r:W*0.32, c:'rgba(150,40,0,0.08)'  },
-          { rx:0.08, ry:0.60, r:W*0.24, c:'rgba(0,120,90,0.07)'  },
-        ].forEach(n => {
-          const g = ctx.createRadialGradient(n.rx*W, n.ry*H, 0, n.rx*W, n.ry*H, n.r);
-          g.addColorStop(0, n.c);
-          g.addColorStop(1, 'rgba(0,0,0,0)');
-          ctx.fillStyle = g;
-          ctx.fillRect(0, 0, W, H);
-        });
-
-        STARS.forEach(s => {
-          const hue = s.warm < 0.3 ? '200,220,255' : s.warm < 0.7 ? '255,255,255' : '255,240,170';
-          ctx.fillStyle   = `rgba(${hue},${s.alpha})`;
-          ctx.shadowBlur  = s.r > 1.2 ? 4 : 1;
-          ctx.shadowColor = `rgba(${hue},0.9)`;
-          ctx.beginPath();
-          ctx.arc(s.rx * W, s.ry * H, s.r, 0, Math.PI * 2);
-          ctx.fill();
-        });
-        ctx.shadowBlur = 0;
-
-        PLANETS.forEach(p => {
-          drawPlanet(p.rx * W, p.ry * H, p.rs * Math.min(W, H), p);
-        });
-
-        ROCKS.forEach(a => {
-          ctx.save();
-          ctx.translate(a.rx * W, a.ry * H);
-          ctx.rotate(a.angle);
-          ctx.fillStyle   = '#7a6a55';
-          ctx.shadowBlur  = 3;
-          ctx.shadowColor = '#aaa99a';
-          ctx.beginPath();
-          ctx.ellipse(0, 0, a.rw, a.rh, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        });
-        ctx.shadowBlur = 0;
-      }
-
-      draw();
-      window.addEventListener('resize', draw);
-    })();
-  </script>
-
+<script>
+  const words = document.querySelectorAll('.hero h1 .wiggle');
+  words.forEach((w, i) => {
+    w.style.animation = `bounce 2.4s ease-in-out ${i * 0.15}s infinite`;
+  });
+  const style = document.createElement('style');
+  style.textContent = `@keyframes bounce {
+    0%,100% { transform: translateY(0) rotate(0); }
+    50%     { transform: translateY(-6px) rotate(-2deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero h1 .wiggle { animation: none !important; }
+  }`;
+  document.head.appendChild(style);
+</script>
 </body>
 </html>
