@@ -350,7 +350,7 @@
       const rw = Math.min(W*0.08,48);
       const hitR = rw*0.6;
       items = items.filter(it => {
-        if (magnetActive && it.type!=='cloud') {
+        if (magnetActive && it.type!=='asteroid') {
           const dx=rocketX-it.x, dy=rocketY-it.y;
           const d=Math.sqrt(dx*dx+dy*dy);
           if (d < W*0.42 && d > 1) { it.x+=dx/d*5; it.y+=dy/d*5; }
