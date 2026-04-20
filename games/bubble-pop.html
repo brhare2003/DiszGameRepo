@@ -130,8 +130,8 @@
       text-transform: uppercase;
       pointer-events: none;
     }
-    #corner-label-left  { top: 18px; left: 18px; }
-    #corner-label-right { top: 18px; right: 18px; text-align: right; }
+    #corner-label-left  { top: 78px; left: 18px; }
+    #corner-label-right { top: 78px; right: 18px; text-align: right; }
 
     #target-change-flash {
       position: fixed;
@@ -206,13 +206,10 @@
     // ── Palette of bright primary / secondary colours ─────────────────────
     const COLORS = [
       '#FF3333', // red
-      '#FF8C00', // orange
       '#FFE600', // yellow
       '#33CC33', // green
       '#3399FF', // blue
       '#CC33FF', // purple
-      '#FF33CC', // pink
-      '#00DDBB', // teal
     ];
 
     let W, H;
@@ -260,7 +257,7 @@
 
       // update corner labels with colour names
       const nameOf = hex => COLORS.indexOf(hex) >= 0
-        ? ['RED','ORANGE','YELLOW','GREEN','BLUE','PURPLE','PINK','TEAL'][COLORS.indexOf(hex)]
+        ? ['RED','YELLOW','GREEN','BLUE','PURPLE'][COLORS.indexOf(hex)]
         : '';
       labelLeft.textContent  = 'POP ' + nameOf(c1);
       labelLeft.style.color  = c1;
