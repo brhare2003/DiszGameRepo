@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tic Tac Toe</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #000018;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: manipulation;
+    }
+
+    #bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      letter-spacing: 4px;
+      margin-bottom: 20px;
+      color: #e94560;
+      text-shadow: 0 0 18px #e94560, 0 0 40px rgba(233, 69, 96, 0.5);
+    }
+
+    #status {
+      font-size: 1.2rem;
+      margin-bottom: 24px;
+      min-height: 1.5em;
+      color: #a8dadc;
+      text-shadow: 0 0 10px rgba(168, 218, 220, 0.8);
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 110px);
+      grid-template-rows: repeat(3, 110px);
+      gap: 6px;
+    }
+
+    .cell {
+      background: rgba(22, 33, 62, 0.6);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 2px solid rgba(15, 52, 96, 0.9);
+      border-radius: 8px;
+      font-size: 86px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, box-shadow 0.15s, border-color 0.15s;
+      user-select: none;
+      box-shadow: 0 0 12px rgba(15, 52, 96, 0.6), inset 0 0 18px rgba(15, 52, 96, 0.2);
+    }
+
+    .cell:hover:not(.taken) {
+      background: rgba(15, 52, 96, 0.75);
+      box-shadow: 0 0 20px rgba(168, 218, 220, 0.45), inset 0 0 18px rgba(15, 52, 96, 0.4);
+      border-color: rgba(168, 218, 220, 0.5);
+    }
+
+    /* ── X symbol ────────────────────────────────────────────────────── */
+    .cell.x {
+      color: #ff3060;
+      -webkit-text-stroke: 2.5px #000;
+      text-stroke: 2.5px #000;
+      border-color: rgba(255, 48, 96, 0.55);
+      box-shadow:
+        0 0 18px rgba(255, 48, 96, 0.45),
+        inset 0 0 22px rgba(255, 48, 96, 0.12);
+      text-shadow:
+        0 0 8px  #ff3060,
+        0 0 18px #ff3060,
+        0 0 35px #e94560,
+        0 0 60px rgba(233, 69, 96, 0.6),
+        0 0 100px rgba(233, 69, 96, 0.3);
+      animation:
+        symbolPop  0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+        xPulse     2.4s 0.28s ease-in-out infinite alternate;
+    }
+
+    /* ── O symbol ────────────────────────────────────────────────────── */
+    .cell.o {
+      color: #a8dadc;
+      -webkit-text-stroke: 2.5px #000;
+      text-stroke: 2.5px #000;
+      border-color: rgba(168, 218, 220, 0.55);
+      box-shadow:
+        0 0 18px rgba(168, 218, 220, 0.45),
+        inset 0 0 22px rgba(168, 218, 220, 0.12);
+      text-shadow:
+        0 0 8px  #a8dadc,
+        0 0 18px #a8dadc,
+        0 0 35px #7ecbcf,
+        0 0 60px rgba(168, 218, 220, 0.6),
+        0 0 100px rgba(168, 218, 220, 0.3);
+      animation:
+        symbolPop  0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+        oPulse     2.4s 0.28s ease-in-out infinite alternate;
+    }
+
+    /* Pop-in when a symbol is first placed */
+    @keyframes symbolPop {
+      0%   { transform: scale(0.2); opacity: 0; }
+      65%  { transform: scale(1.18); }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+
+    /* Breathing glow for X */
+    @keyframes xPulse {
+      from {
+        text-shadow:
+          0 0 6px  #ff3060,
+          0 0 14px #ff3060,
+          0 0 28px #e94560,
+          0 0 55px rgba(233, 69, 96, 0.55),
+          0 0 90px rgba(233, 69, 96, 0.25);
+      }
+      to {
+        text-shadow:
+          0 0 8px  #ff3060,
+          0 0 22px #ff3060,
+          0 0 46px #e94560,
+          0 0 80px rgba(233, 69, 96, 0.75),
+          0 0 120px rgba(233, 69, 96, 0.35);
+      }
+    }
+
+    /* Breathing glow for O */
+    @keyframes oPulse {
+      from {
+        text-shadow:
+          0 0 6px  #a8dadc,
+          0 0 14px #a8dadc,
+          0 0 28px #7ecbcf,
+          0 0 55px rgba(168, 218, 220, 0.55),
+          0 0 90px rgba(168, 218, 220, 0.25);
+      }
+      to {
+        text-shadow:
+          0 0 8px  #a8dadc,
+          0 0 22px #a8dadc,
+          0 0 46px #7ecbcf,
+          0 0 80px rgba(168, 218, 220, 0.75),
+          0 0 120px rgba(168, 218, 220, 0.35);
+      }
+    }
+
+    .cell.win {
+      background: rgba(15, 52, 96, 0.85);
+      animation:
+        winPulse   0.4s ease-in-out,
+        xPulse     2.4s ease-in-out infinite alternate;
+      box-shadow: 0 0 30px rgba(168, 218, 220, 0.7), inset 0 0 22px rgba(15, 52, 96, 0.5);
+      border-color: rgba(168, 218, 220, 0.75);
+    }
+
+    .cell.win.x { animation: winPulse 0.4s ease-in-out, xPulse 2.4s ease-in-out infinite alternate; }
+    .cell.win.o { animation: winPulse 0.4s ease-in-out, oPulse 2.4s ease-in-out infinite alternate; }
+
+    @keyframes winPulse {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.12); }
+      100% { transform: scale(1); }
+    }
+
+    #controls {
+      margin-top: 28px;
+      display: flex;
+      gap: 12px;
+    }
+
+    button {
+      padding: 10px 28px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    #restart-btn {
+      background: #e94560;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(233, 69, 96, 0.6);
+    }
+
+    #restart-btn:hover {
+      box-shadow: 0 0 24px rgba(233, 69, 96, 0.9);
+    }
+
+    #mode-btn {
+      background: rgba(15, 52, 96, 0.7);
+      color: #a8dadc;
+      border: 2px solid #a8dadc;
+      box-shadow: 0 0 10px rgba(168, 218, 220, 0.3);
+      backdrop-filter: blur(6px);
+    }
+
+    #mode-btn:hover {
+      box-shadow: 0 0 22px rgba(168, 218, 220, 0.6);
+    }
+
+    #score {
+      display: flex;
+      gap: 32px;
+      margin-top: 24px;
+      font-size: 1rem;
+    }
+
+    .score-item { text-align: center; }
+
+    .score-item span {
+      display: block;
+      font-size: 1.8rem;
+      font-weight: bold;
+    }
+
+    .score-item.x-score span {
+      color: #ff3060;
+      text-shadow: 0 0 12px rgba(255, 48, 96, 0.8);
+    }
+    .score-item.o-score span {
+      color: #a8dadc;
+      text-shadow: 0 0 12px rgba(168, 218, 220, 0.8);
+    }
+    .score-item.draw-score span { color: #888; }
+
+    #board-wrapper {
+      position: relative;
+    }
+
+    #win-line-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+
+    #draw-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    #draw-overlay.show {
+      animation: drawFadeIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    #draw-overlay span {
+      font-size: 5.5rem;
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: #fff;
+      text-shadow:
+        0 0 12px #fff,
+        0 0 30px #ffcc00,
+        0 0 60px #ffaa00,
+        0 0 100px rgba(255, 180, 0, 0.7);
+      -webkit-text-stroke: 2px rgba(255, 200, 0, 0.6);
+    }
+
+    @keyframes drawFadeIn {
+      0%   { opacity: 0; transform: scale(0.4) rotate(-8deg); }
+      70%  { opacity: 1; transform: scale(1.08) rotate(2deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+  </style>
+  <script>
+    // Block pinch-zoom, double-tap zoom, gesture zoom, ctrl+scroll zoom
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    (function() {
+      var lt = 0;
+      document.addEventListener('touchend', function(e) {
+        var now = Date.now();
+        if (now - lt < 300) e.preventDefault();
+        lt = now;
+      }, false);
+    })();
+    document.addEventListener('gesturestart',  function(e) { e.preventDefault(); }, false);
+    document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, false);
+    window.addEventListener('wheel', function(e) {
+      if (e.ctrlKey) e.preventDefault();
+    }, { passive: false });
+  </script>
+</head>
+<body>
+
+  <canvas id="bg-canvas"></canvas>
+
+  <a href="index.html" style="
+    position:fixed;top:14px;left:14px;z-index:10;color:#a8dadc;
+    text-decoration:none;font-size:0.9rem;font-weight:600;
+    background:rgba(15,52,96,0.7);border:1px solid rgba(168,218,220,0.4);
+    padding:6px 14px;border-radius:20px;backdrop-filter:blur(6px);
+  ">&#8592; Home</a>
+
+  <h1>TIC TAC TOE</h1>
+  <div id="status">Player X's turn</div>
+
+  <div id="board-wrapper">
+    <div id="board">
+      <div class="cell" data-index="0"></div>
+      <div class="cell" data-index="1"></div>
+      <div class="cell" data-index="2"></div>
+      <div class="cell" data-index="3"></div>
+      <div class="cell" data-index="4"></div>
+      <div class="cell" data-index="5"></div>
+      <div class="cell" data-index="6"></div>
+      <div class="cell" data-index="7"></div>
+      <div class="cell" data-index="8"></div>
+    </div>
+    <canvas id="win-line-canvas" width="342" height="342"></canvas>
+    <div id="draw-overlay"><span>Draw!</span></div>
+  </div>
+
+  <div id="controls">
+    <button id="mode-btn">vs CPU</button>
+    <button id="restart-btn">Restart</button>
+  </div>
+
+  <div id="score">
+    <div class="score-item x-score">X <span id="x-wins">0</span></div>
+    <div class="score-item draw-score">Draws <span id="draws">0</span></div>
+    <div class="score-item o-score">O <span id="o-wins">0</span></div>
+  </div>
+
+  <script>
+    // ── Static space background ───────────────────────────────────────────
+    (function () {
+      const canvas = document.getElementById('bg-canvas');
+      const ctx    = canvas.getContext('2d');
+
+      // Star field — generated once, stable across resizes
+      const STARS = Array.from({ length: 180 }, () => ({
+        rx:    Math.random(),
+        ry:    Math.random(),
+        r:     Math.random() * 1.7 + 0.2,
+        alpha: Math.random() * 0.6 + 0.4,
+        warm:  Math.random()   // 0 = blue-white, 1 = warm yellow
+      }));
+
+      // Planet definitions — positions/sizes relative to viewport
+      const PLANETS = [
+        // Lava/Mars — upper-left
+        { rx:0.07, ry:0.12, rs:0.058, c1:'#ff7744', c2:'#991100', band:'#cc3300', ring:false },
+        // Saturn (rings!) — upper-right
+        { rx:0.88, ry:0.15, rs:0.065, c1:'#ffdd88', c2:'#aa8800', band:'#ddaa44', ring:true,  ringC:'#ccaa33' },
+        // Ice/Neptune — lower-left
+        { rx:0.09, ry:0.80, rs:0.050, c1:'#44aaff', c2:'#002299', band:'#3388ee', ring:false },
+        // Alien green — lower-right
+        { rx:0.87, ry:0.77, rs:0.044, c1:'#66ff44', c2:'#114400', band:'#44cc22', ring:false },
+        // Purple gas giant — top-center
+        { rx:0.50, ry:0.07, rs:0.038, c1:'#cc66ff', c2:'#330077', band:'#aa44dd', ring:false },
+        // Orange — bottom-center-right
+        { rx:0.66, ry:0.90, rs:0.036, c1:'#ff8833', c2:'#882200', band:null,      ring:false },
+      ];
+
+      // Small random asteroids
+      const ROCKS = Array.from({ length: 10 }, () => ({
+        rx: Math.random() * 0.7 + 0.15,
+        ry: Math.random() * 0.7 + 0.15,
+        rw: Math.random() * 7 + 3,
+        rh: Math.random() * 4 + 2,
+        angle: Math.random() * Math.PI
+      }));
+
+      function drawPlanet(cx, cy, R, p) {
+        // Ring (behind body)
+        if (p.ring) {
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.scale(1, 0.28);
+          ctx.globalAlpha  = 0.70;
+          ctx.strokeStyle  = p.ringC;
+          ctx.lineWidth    = R * 0.40;
+          ctx.shadowBlur   = 12;
+          ctx.shadowColor  = p.ringC;
+          ctx.beginPath();
+          ctx.arc(0, 0, R * 1.78, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+          ctx.globalAlpha = 1;
+          ctx.shadowBlur  = 0;
+        }
+
+        // Planet body with highlight
+        const g = ctx.createRadialGradient(
+          cx - R * 0.30, cy - R * 0.30, R * 0.06,
+          cx + R * 0.10, cy + R * 0.10, R
+        );
+        g.addColorStop(0,    '#ffffff');
+        g.addColorStop(0.12, p.c1);
+        g.addColorStop(1,    p.c2);
+        ctx.fillStyle   = g;
+        ctx.shadowBlur  = 24;
+        ctx.shadowColor = p.c1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Surface bands / detail
+        if (p.band) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, R, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.globalAlpha = 0.18;
+          ctx.fillStyle   = p.band;
+          for (let i = -3; i <= 3; i++) {
+            ctx.beginPath();
+            ctx.ellipse(cx, cy + i * R * 0.32, R, R * 0.10, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          // Specular highlight
+          ctx.globalAlpha = 0.32;
+          ctx.fillStyle   = '#ffffff';
+          ctx.beginPath();
+          ctx.ellipse(cx - R * 0.27, cy - R * 0.27, R * 0.20, R * 0.12, -0.4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function draw() {
+        const W = canvas.width  = window.innerWidth;
+        const H = canvas.height = window.innerHeight;
+
+        // Deep-space gradient background
+        const bg = ctx.createRadialGradient(W * 0.5, H * 0.4, 0, W * 0.5, H * 0.5, Math.max(W, H));
+        bg.addColorStop(0,   '#0c0c2a');
+        bg.addColorStop(0.5, '#060618');
+        bg.addColorStop(1,   '#010108');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // Nebula colour clouds
+        [
+          { rx:0.18, ry:0.28, r:W*0.36, c:'rgba(70,0,150,0.10)'  },
+          { rx:0.80, ry:0.22, r:W*0.30, c:'rgba(0,80,200,0.09)'  },
+          { rx:0.55, ry:0.72, r:W*0.32, c:'rgba(150,40,0,0.08)'  },
+          { rx:0.08, ry:0.60, r:W*0.24, c:'rgba(0,120,90,0.07)'  },
+        ].forEach(n => {
+          const g = ctx.createRadialGradient(n.rx*W, n.ry*H, 0, n.rx*W, n.ry*H, n.r);
+          g.addColorStop(0, n.c);
+          g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, W, H);
+        });
+
+        // Star field
+        STARS.forEach(s => {
+          const hue = s.warm < 0.3 ? '200,220,255' : s.warm < 0.7 ? '255,255,255' : '255,240,170';
+          ctx.fillStyle  = `rgba(${hue},${s.alpha})`;
+          ctx.shadowBlur = s.r > 1.2 ? 4 : 1;
+          ctx.shadowColor = `rgba(${hue},0.9)`;
+          ctx.beginPath();
+          ctx.arc(s.rx * W, s.ry * H, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.shadowBlur = 0;
+
+        // Planets
+        PLANETS.forEach(p => {
+          drawPlanet(p.rx * W, p.ry * H, p.rs * Math.min(W, H), p);
+        });
+
+        // Asteroids
+        ROCKS.forEach(a => {
+          ctx.save();
+          ctx.translate(a.rx * W, a.ry * H);
+          ctx.rotate(a.angle);
+          ctx.fillStyle   = '#7a6a55';
+          ctx.shadowBlur  = 3;
+          ctx.shadowColor = '#aaa99a';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, a.rw, a.rh, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+        ctx.shadowBlur = 0;
+      }
+
+      draw();
+      window.addEventListener('resize', draw);
+    })();
+
+    // ── Game logic ─────────────────────────────────────────────────────────
+    const WINNING_LINES = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+
+    let board = Array(9).fill(null);
+    let currentPlayer = 'X';
+    let gameOver = false;
+    let vsComputer = false;
+    let scores = { X: 0, O: 0, draw: 0 };
+    let nextFirst = 'X'; // alternates each CPU-mode game
+
+    const cells     = document.querySelectorAll('.cell');
+    const statusEl  = document.getElementById('status');
+    const modeBtnEl = document.getElementById('mode-btn');
+    const xWinsEl   = document.getElementById('x-wins');
+    const oWinsEl   = document.getElementById('o-wins');
+    const drawsEl   = document.getElementById('draws');
+
+    cells.forEach(cell => cell.addEventListener('click', onCellClick));
+    document.getElementById('restart-btn').addEventListener('click', restart);
+    modeBtnEl.addEventListener('click', toggleMode);
+
+    function onCellClick(e) {
+      const idx = +e.target.dataset.index;
+      if (gameOver || board[idx]) return;
+      makeMove(idx, currentPlayer);
+      if (!gameOver && vsComputer && currentPlayer === 'O') {
+        setTimeout(cpuMove, 300);
+      }
+    }
+
+    function makeMove(idx, player) {
+      board[idx] = player;
+      const cell = cells[idx];
+      cell.textContent = player;
+      cell.classList.add('taken', player.toLowerCase());
+
+      const winLine = getWinner();
+      if (winLine) {
+        winLine.forEach(i => cells[i].classList.add('win'));
+        statusEl.textContent = `Player ${player} wins!`;
+        scores[player]++;
+        updateScores();
+        gameOver = true;
+        drawWinLine(winLine, player);
+        return;
+      }
+      if (board.every(Boolean)) {
+        statusEl.textContent = "It's a draw!";
+        scores.draw++;
+        updateScores();
+        gameOver = true;
+        document.getElementById('draw-overlay').classList.add('show');
+        return;
+      }
+      currentPlayer = player === 'X' ? 'O' : 'X';
+      statusEl.textContent = vsComputer && currentPlayer === 'O'
+        ? 'CPU is thinking...'
+        : `Player ${currentPlayer}'s turn`;
+    }
+
+    function getWinner() {
+      for (const line of WINNING_LINES) {
+        const [a, b, c] = line;
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) return line;
+      }
+      return null;
+    }
+
+    function cpuMove() {
+      if (gameOver) return;
+      makeMove(bestMove(), 'O');
+    }
+
+    function bestMove() {
+      let best = -Infinity, move = -1;
+      for (let i = 0; i < 9; i++) {
+        if (!board[i]) {
+          board[i] = 'O';
+          const score = minimax(board, 0, false);
+          board[i] = null;
+          if (score > best) { best = score; move = i; }
+        }
+      }
+      return move;
+    }
+
+    function minimax(b, depth, isMax) {
+      const win = minimaxWinner(b);
+      if (win === 'O') return 10 - depth;
+      if (win === 'X') return depth - 10;
+      if (b.every(Boolean)) return 0;
+
+      if (isMax) {
+        let best = -Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) { b[i]='O'; best=Math.max(best,minimax(b,depth+1,false)); b[i]=null; }
+        }
+        return best;
+      } else {
+        let best = Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) { b[i]='X'; best=Math.min(best,minimax(b,depth+1,true)); b[i]=null; }
+        }
+        return best;
+      }
+    }
+
+    function minimaxWinner(b) {
+      for (const [a,c,d] of WINNING_LINES) {
+        if (b[a] && b[a]===b[c] && b[a]===b[d]) return b[a];
+      }
+      return null;
+    }
+
+    function restart() {
+      board = Array(9).fill(null);
+      gameOver = false;
+
+      if (vsComputer) {
+        currentPlayer = nextFirst;
+        nextFirst = nextFirst === 'X' ? 'O' : 'X'; // flip for the game after this one
+      } else {
+        currentPlayer = 'X';
+      }
+
+      cells.forEach(cell => {
+        cell.textContent = '';
+        cell.className = 'cell';
+      });
+
+      const winCanvas = document.getElementById('win-line-canvas');
+      winCanvas.getContext('2d').clearRect(0, 0, winCanvas.width, winCanvas.height);
+      const drawOverlay = document.getElementById('draw-overlay');
+      drawOverlay.classList.remove('show');
+      drawOverlay.style.animation = 'none';
+      drawOverlay.offsetHeight; // reflow to reset animation
+      drawOverlay.style.animation = '';
+
+      if (vsComputer && currentPlayer === 'O') {
+        statusEl.textContent = 'CPU is thinking...';
+        setTimeout(cpuMove, 400);
+      } else {
+        statusEl.textContent = `Player ${currentPlayer}'s turn`;
+      }
+    }
+
+    function toggleMode() {
+      vsComputer = !vsComputer;
+      nextFirst  = 'X'; // reset alternation when switching modes
+      modeBtnEl.textContent       = vsComputer ? 'vs Human' : 'vs CPU';
+      modeBtnEl.style.color       = vsComputer ? '#e94560' : '#a8dadc';
+      modeBtnEl.style.borderColor = vsComputer ? '#e94560' : '#a8dadc';
+      restart();
+    }
+
+    function drawWinLine(winLine, player) {
+      const canvas = document.getElementById('win-line-canvas');
+      const ctx = canvas.getContext('2d');
+      const CELL = 110, GAP = 6;
+
+      const centerOf = idx => ({
+        x: (idx % 3) * (CELL + GAP) + CELL / 2,
+        y: Math.floor(idx / 3) * (CELL + GAP) + CELL / 2
+      });
+
+      const s = centerOf(winLine[0]);
+      const e = centerOf(winLine[2]);
+      const dx = e.x - s.x, dy = e.y - s.y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      const ext = 28;
+      const nx = dx / len, ny = dy / len;
+      const x1 = s.x - nx * ext, y1 = s.y - ny * ext;
+      const x2 = e.x + nx * ext, y2 = e.y + ny * ext;
+      const color = '#ffff00';
+
+      let startTime = null;
+      const DURATION = 380;
+
+      function animate(ts) {
+        if (!startTime) startTime = ts;
+        const t = Math.min((ts - startTime) / DURATION, 1);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Glow pass
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 14;
+        ctx.lineCap = 'round';
+        ctx.globalAlpha = 0.35;
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = color;
+        ctx.stroke();
+        ctx.restore();
+
+        // Core line
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = color;
+        ctx.stroke();
+        ctx.restore();
+
+        if (t < 1) requestAnimationFrame(animate);
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function updateScores() {
+      xWinsEl.textContent = scores.X;
+      oWinsEl.textContent = scores.O;
+      drawsEl.textContent = scores.draw;
+    }
+  </script>
+</body>
+</html>
