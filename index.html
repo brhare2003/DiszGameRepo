@@ -220,7 +220,7 @@
   .card:nth-child(1){animation-delay:.02s} .card:nth-child(2){animation-delay:.08s}
   .card:nth-child(3){animation-delay:.14s} .card:nth-child(4){animation-delay:.20s}
   .card:nth-child(5){animation-delay:.26s} .card:nth-child(6){animation-delay:.32s}
-  .card:nth-child(7){animation-delay:.38s}
+  .card:nth-child(7){animation-delay:.38s} .card:nth-child(8){animation-delay:.44s}
   @keyframes pop {
     from { opacity: 0; transform: translateY(20px) scale(0.92); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -274,6 +274,27 @@
   </section>
 
   <div class="grid" role="list">
+
+    <!-- BUBBLE POP -->
+    <a class="card theme-pink" role="listitem" href="games/bubble-pop.html" aria-label="Play Bubble Pop">
+      <span class="badge">New!</span>
+      <div class="card-art">
+        <svg width="110" height="110" viewBox="0 0 110 110" aria-hidden="true">
+          <circle cx="38" cy="62" r="22" fill="#FFE0EC" stroke="#2B2140" stroke-width="4"/>
+          <circle cx="32" cy="56" r="5" fill="#fff" opacity="0.9"/>
+          <circle cx="72" cy="40" r="16" fill="#FFD53E" stroke="#2B2140" stroke-width="4"/>
+          <circle cx="68" cy="36" r="4" fill="#fff" opacity="0.9"/>
+          <circle cx="80" cy="74" r="14" fill="#5BB8FF" stroke="#2B2140" stroke-width="4"/>
+          <circle cx="76" cy="70" r="3" fill="#fff" opacity="0.9"/>
+        </svg>
+      </div>
+      <h2 class="card-title">Bubble Pop</h2>
+      <p class="card-desc">Tap the bubbles before they float away!</p>
+      <span class="kid-btn card-play">
+        <svg width="16" height="18" viewBox="0 0 16 18"><polygon points="2,2 14,9 2,16" fill="white" stroke="#2B2140" stroke-width="2" stroke-linejoin="round"/></svg>
+        Play
+      </span>
+    </a>
 
     <!-- SHAPE MATCH -->
     <a class="card theme-yellow" role="listitem" href="games/shape-match.html" aria-label="Play Shape Match">
