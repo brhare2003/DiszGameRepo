@@ -455,7 +455,8 @@
         spawnItem();
         spawnInterval = Math.max(28, 80 - Math.floor(score/8));
       }
-      items.forEach(it=>{ it.y+=it.vy; });
+      const speedMult = magnetActive ? 2 : 1;
+      items.forEach(it=>{ it.y+=it.vy*speedMult; });
 
       // Power-up timers
       if (magnetActive  && --magnetTimer  <=0) magnetActive=false;
