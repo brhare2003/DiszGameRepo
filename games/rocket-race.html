@@ -73,8 +73,9 @@
     const hiDisp       = document.getElementById('hi-disp');
 
     let W, H;
-    let state = 'start'; // 'start' | 'playing'
+    let state = 'start'; // 'start' | 'playing' | 'gameover'
     let score = 0, hiScore = +localStorage.getItem('rocketHi') || 0;
+    let lives = 5;
     let frame = 0, lastMilestone = 0;
     let spawnTimer = 0, spawnInterval = 80;
 
@@ -367,9 +368,11 @@
             addFloat(it.x, it.y-22, '+3 💎', '#ff55cc');
             spawnConfetti(it.x, it.y, 14);
           } else if (it.type==='asteroid') {
-            score=Math.max(0,score-1); playSound('cloud');
-            addFloat(it.x, it.y-22, '-1 ☄️', '#99aacc');
-            rocketSpinV += (Math.random()>0.5?1:-1)*0.22;
+            lives--; playSound('cloud');
+            addFloat(it.x, it.y-22, lives>0?'💥 -1 ❤️':'💀 GAME OVER', '#ff4444');
+            rocketSpinV += (Math.random()>0.5?1:-1)*0.28;
+            spawnConfetti(it.x, it.y, 8);
+            if (lives<=0) { state='gameover'; if(score>hiScore){hiScore=score;localStorage.setItem('rocketHi',hiScore);} }
           } else if (it.type==='magnet') {
             magnetActive=true; magnetTimer=320; playSound('whoosh');
             addFloat(it.x, it.y-22, '🧲 MAGNET!', '#ff3366');
@@ -391,6 +394,14 @@
       ctx.fillStyle = partyActive ? PARTY_COLS[partyColorIdx%PARTY_COLS.length] : '#ffffff';
       ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=4;
       ctx.strokeText(score, W/2, 14); ctx.fillText(score, W/2, 14);
+
+      // Hearts
+      ctx.font='22px sans-serif'; ctx.textAlign='left'; ctx.globalAlpha=1;
+      for(let i=0;i<5;i++) {
+        ctx.globalAlpha = i<lives ? 1 : 0.2;
+        ctx.fillText('❤️', 14+i*26, 10);
+      }
+      ctx.globalAlpha=1;
 
       // Power-up bars
       let px=W-14;
@@ -464,6 +475,28 @@
       if (score>hiScore) { hiScore=score; localStorage.setItem('rocketHi',hiScore); }
     }
 
+    // ── Game Over screen ────────────────────────────────────────────────────
+    function drawGameOver() {
+      ctx.save();
+      ctx.fillStyle='rgba(0,0,0,0.72)';
+      ctx.fillRect(0,0,W,H);
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.font=`900 ${Math.round(Math.min(H*0.09,58))}px 'Segoe UI',sans-serif`;
+      ctx.fillStyle='#ff4444';
+      ctx.strokeStyle='#000'; ctx.lineWidth=5;
+      ctx.strokeText('GAME OVER', W/2, H*0.38);
+      ctx.fillText('GAME OVER', W/2, H*0.38);
+      ctx.font=`700 ${Math.round(Math.min(H*0.055,36))}px 'Segoe UI',sans-serif`;
+      ctx.fillStyle='#fff';
+      ctx.fillText(`Score: ${score}`, W/2, H*0.50);
+      ctx.fillStyle='#FFD53E';
+      ctx.fillText(`Best: ${hiScore}`, W/2, H*0.58);
+      ctx.font=`600 ${Math.round(Math.min(H*0.04,26))}px 'Segoe UI',sans-serif`;
+      ctx.fillStyle='rgba(255,255,255,0.7)';
+      ctx.fillText('TAP TO PLAY AGAIN', W/2, H*0.70);
+      ctx.restore();
+    }
+
     // ── Main loop ───────────────────────────────────────────────────────────
     function loop() {
       requestAnimationFrame(loop);
@@ -475,11 +508,12 @@
       drawItems();
       drawRocket(rocketX, rocketY, rocketSpin);
       if (state==='playing') drawHUD();
+      if (state==='gameover') { drawHUD(); drawGameOver(); }
     }
 
-    startBtn.addEventListener('click', ()=>{
+    function startGame() {
       initAudio();
-      score=0; frame=0; lastMilestone=0;
+      score=0; frame=0; lastMilestone=0; lives=5;
       items=[]; floats=[]; confetti=[]; trailParticles=[];
       magnetActive=false; rainbowActive=false; partyActive=false;
       spawnTimer=0; spawnInterval=80;
@@ -487,7 +521,11 @@
       resize();
       startOverlay.style.display='none';
       state='playing';
-    });
+    }
+
+    startBtn.addEventListener('click', startGame);
+    canvas.addEventListener('click', ()=>{ if(state==='gameover') startGame(); });
+    canvas.addEventListener('touchend', ()=>{ if(state==='gameover') startGame(); }, {passive:true});
 
     hiDisp.textContent = hiScore>0 ? `🏆 BEST: ${hiScore}` : '';
     loop();
