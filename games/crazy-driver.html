@@ -799,6 +799,35 @@ function resize() {
 resize();
 window.addEventListener('resize', ()=>{ resize(); resizeGar(); });
 
+// ── Audio ────────────────────────────────────────────────────────────────────
+let _ac=null;
+function getAC(){ if(!_ac) _ac=new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+function playSound(type){
+  try{
+    const a=getAC(), t=a.currentTime;
+    const o=a.createOscillator(), g=a.createGain();
+    o.connect(g); g.connect(a.destination);
+    if(type==='star'){
+      o.frequency.setValueAtTime(880,t); o.frequency.exponentialRampToValueAtTime(1400,t+0.1);
+      g.gain.setValueAtTime(0.18,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.14);
+      o.start(t); o.stop(t+0.14);
+    } else if(type==='crash'){
+      o.type='sawtooth';
+      o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(60,t+0.4);
+      g.gain.setValueAtTime(0.3,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.45);
+      o.start(t); o.stop(t+0.45);
+    } else if(type==='gameover'){
+      [440,370,300,220].forEach((f,i)=>{
+        const o2=a.createOscillator(),g2=a.createGain();
+        o2.connect(g2); g2.connect(a.destination);
+        o2.frequency.setValueAtTime(f,t+i*0.13);
+        g2.gain.setValueAtTime(0.18,t+i*0.13); g2.gain.exponentialRampToValueAtTime(0.001,t+i*0.13+0.18);
+        o2.start(t+i*0.13); o2.stop(t+i*0.13+0.18);
+      }); return;
+    }
+  } catch(e){}
+}
+
 const STATE={TITLE:0,PLAYING:1,DEAD:2};
 let state=STATE.TITLE;
 let score,hiScore,lives,speed,frameCount,spawnIn,invincible,shakeFrames;
@@ -978,6 +1007,7 @@ function loop() {
       if(roadStars[i].x<-30){ roadStars.splice(i,1); continue; }
       if(Math.abs(roadStars[i].x-playerX())<44 && Math.abs(roadStars[i].y-playerY)<28){
         starsCollected++;
+        playSound('star');
         sparkles.push({x:roadStars[i].x, y:roadStars[i].y, life:24});
         roadStars.splice(i,1);
       }
@@ -990,6 +1020,7 @@ function loop() {
       for(const o of obstacles){
         if(Math.abs(o.x-playerX())<(P_W+OB_W)/2-10 && Math.abs(o.y-playerY)<(P_H+OB_H)/2-8){
           lives--; invincible=80; shakeFrames=14;
+          playSound(lives<=0?'gameover':'crash');
           if(lives<=0){
             state=STATE.DEAD;
             if(score>hiScore){ hiScore=score; localStorage.setItem('cdHi',hiScore); }

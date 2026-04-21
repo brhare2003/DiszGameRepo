@@ -314,6 +314,33 @@
     const ctx     = canvas.getContext('2d');
     const brushDot = document.getElementById('brush-dot');
 
+    // ── Audio ─────────────────────────────────────────────────────────────
+    let _ac=null;
+    function getAC(){ if(!_ac) _ac=new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+    let lastTone=0;
+    function playDrawTone(hueVal){
+      const now=Date.now(); if(now-lastTone<80) return; lastTone=now;
+      try{
+        const a=getAC(), t=a.currentTime;
+        const freq=300+((hueVal||180)/360)*600;
+        const o=a.createOscillator(), g=a.createGain();
+        o.type='sine'; o.connect(g); g.connect(a.destination);
+        o.frequency.setValueAtTime(freq,t);
+        g.gain.setValueAtTime(0.08,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.08);
+        o.start(t); o.stop(t+0.08);
+      }catch(e){}
+    }
+    function playClearSound(){
+      try{
+        const a=getAC(), t=a.currentTime;
+        const o=a.createOscillator(), g=a.createGain();
+        o.type='sawtooth'; o.connect(g); g.connect(a.destination);
+        o.frequency.setValueAtTime(400,t); o.frequency.exponentialRampToValueAtTime(80,t+0.3);
+        g.gain.setValueAtTime(0.15,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.32);
+        o.start(t); o.stop(t+0.32);
+      }catch(e){}
+    }
+
     // ── Sizing ────────────────────────────────────────────────────────────
     const TOP_BAR    = 52;
     const BOTTOM_BAR = 88;
@@ -435,7 +462,8 @@
       ctx.stroke();
       ctx.restore();
 
-      if (colorMode === 'rainbow') updateBrushDot();
+      if (colorMode === 'rainbow') { updateBrushDot(); playDrawTone(hue); }
+      else if (colorMode !== 'eraser') playDrawTone(null);
       lastX = x;
       lastY = y;
     }
@@ -466,6 +494,7 @@
 
     // ── Clear button ──────────────────────────────────────────────────────
     document.getElementById('clear-btn').addEventListener('click', () => {
+      playClearSound();
       fillBackground();
     });
 
