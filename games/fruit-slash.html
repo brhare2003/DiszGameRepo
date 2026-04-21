@@ -218,6 +218,46 @@
 <a href="../index.html" id="home-btn">&#8592; HOME</a>
 
 <script>
+// ── Audio ─────────────────────────────────────────────────────────────────────
+let _ac = null;
+function getAC() { if (!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+function playSound(type) {
+  try {
+    const a = getAC(), t = a.currentTime;
+    const o = a.createOscillator(), g = a.createGain();
+    o.connect(g); g.connect(a.destination);
+    if (type === 'slice') {
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(800, t); o.frequency.exponentialRampToValueAtTime(200, t+0.12);
+      g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.14);
+      o.start(t); o.stop(t+0.14);
+    } else if (type === 'bomb') {
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(60, t+0.4);
+      g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.45);
+      o.start(t); o.stop(t+0.45);
+    } else if (type === 'miss') {
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(150, t+0.22);
+      g.gain.setValueAtTime(0.15, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.25);
+      o.start(t); o.stop(t+0.25);
+    } else if (type === 'gameover') {
+      [440,370,330,220].forEach((f,i)=>{
+        const o2=a.createOscillator(), g2=a.createGain();
+        o2.connect(g2); g2.connect(a.destination);
+        o2.frequency.setValueAtTime(f, t+i*0.15);
+        g2.gain.setValueAtTime(0.18, t+i*0.15); g2.gain.exponentialRampToValueAtTime(0.001, t+i*0.15+0.2);
+        o2.start(t+i*0.15); o2.stop(t+i*0.15+0.2);
+      });
+      return;
+    } else if (type === 'combo') {
+      o.frequency.setValueAtTime(880, t); o.frequency.exponentialRampToValueAtTime(1320, t+0.15);
+      g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.2);
+      o.start(t); o.stop(t+0.2);
+    }
+  } catch(e) {}
+}
+
 // ── constants ────────────────────────────────────────────────────────────────
 const FRUIT_TYPES = [
   { name:'watermelon', outer:'#2d8c2d', inner:'#e8443a', size:38 },
@@ -312,6 +352,7 @@ function startGame() {
 
 function endGame() {
   gameRunning = false;
+  playSound('gameover');
   if (score > best) {
     best = score;
     localStorage.setItem('fn_best', best);
@@ -558,6 +599,7 @@ function checkSlice(ax, ay, bx, by) {
 
     f.sliced = true;
     if (f.isBomb) {
+      playSound('bomb');
       spawnExplosion(f.x, f.y);
       lives--;
       updateUI();
@@ -566,7 +608,7 @@ function checkSlice(ax, ay, bx, by) {
       score++;
       comboCount++;
       comboTimer = 90;
-      if (comboCount >= 3) showCombo(comboCount);
+      if (comboCount >= 3) { showCombo(comboCount); playSound('combo'); } else { playSound('slice'); }
       spawnJuice(f.x, f.y, f.type.inner, 16);
       // create two halves
       const perpX = -(by - ay) / Math.sqrt(a), perpY = (bx - ax) / Math.sqrt(a);
@@ -658,6 +700,7 @@ function loop(ts) {
         if (f.y > H + f.size + 20 && !f.isBomb) {
           f.dead = true;
           lives--;
+          playSound('miss');
           updateUI();
           if (lives <= 0) setTimeout(endGame, 400);
         }

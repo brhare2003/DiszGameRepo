@@ -268,6 +268,37 @@
   <script>
   (function () {
 
+    // ── Audio ──────────────────────────────────────────────────────────────
+    let _ac = null;
+    function getAC() { if (!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+    function playSound(type) {
+      try {
+        const a = getAC(), t = a.currentTime;
+        if (type === 'match') {
+          const o = a.createOscillator(), g = a.createGain();
+          o.connect(g); g.connect(a.destination);
+          o.frequency.setValueAtTime(660, t); o.frequency.exponentialRampToValueAtTime(1050, t+0.12);
+          g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.18);
+          o.start(t); o.stop(t+0.18);
+        } else if (type === 'wrong') {
+          const o = a.createOscillator(), g = a.createGain();
+          o.type = 'sawtooth';
+          o.connect(g); g.connect(a.destination);
+          o.frequency.setValueAtTime(260, t); o.frequency.exponentialRampToValueAtTime(140, t+0.18);
+          g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.2);
+          o.start(t); o.stop(t+0.2);
+        } else if (type === 'win') {
+          [523,659,784,1047,1319].forEach((f,i) => {
+            const o=a.createOscillator(), g=a.createGain();
+            o.connect(g); g.connect(a.destination);
+            o.frequency.setValueAtTime(f, t+i*0.09);
+            g.gain.setValueAtTime(0.18, t+i*0.09); g.gain.exponentialRampToValueAtTime(0.001, t+i*0.09+0.22);
+            o.start(t+i*0.09); o.stop(t+i*0.09+0.22);
+          });
+        }
+      } catch(e) {}
+    }
+
     // ── Starfield ──────────────────────────────────────────────────────────
     (function () {
       const c = document.getElementById('bg'), ctx = c.getContext('2d');
@@ -532,6 +563,7 @@
           if (s === shape) {
             doMatch(el, slot, shape);
           } else {
+            playSound('wrong');
             slot.classList.add('shake');
             setTimeout(() => slot.classList.remove('shake'), 400);
           }
@@ -553,10 +585,12 @@
       spawnStars(r.left + r.width/2, r.top + r.height/2, pieceEl.dataset.color);
       if (!fxRunning) fxLoop();
 
+      playSound('match');
       if (matched.size === SHAPES.length) setTimeout(showWin, 500);
     }
 
     function showWin() {
+      playSound('win');
       spawnStars(window.innerWidth/2, window.innerHeight/2, '#ffe044');
       spawnStars(window.innerWidth/2, window.innerHeight/2, '#ff88cc');
       spawnStars(window.innerWidth/2, window.innerHeight/2, '#44eeff');
