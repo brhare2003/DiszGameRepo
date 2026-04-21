@@ -193,6 +193,35 @@
 
   <script>
   (function () {
+    // ── Audio ──────────────────────────────────────────────────────────────
+    let _ac = null;
+    function ac() { if (!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+    function playSound(type) {
+      try {
+        const a = ac(), t = a.currentTime;
+        const o = a.createOscillator(), g = a.createGain();
+        o.connect(g); g.connect(a.destination);
+        if (type === 'good') {
+          o.frequency.setValueAtTime(600, t); o.frequency.exponentialRampToValueAtTime(1200, t+0.1);
+          g.gain.setValueAtTime(0.22, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.18);
+          o.start(t); o.stop(t+0.18);
+        } else if (type === 'bad') {
+          o.type = 'sawtooth';
+          o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(100, t+0.18);
+          g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.2);
+          o.start(t); o.stop(t+0.2);
+        } else if (type === 'target') {
+          [523,659,784].forEach((f,i)=>{
+            const o2=a.createOscillator(), g2=a.createGain();
+            o2.connect(g2); g2.connect(a.destination);
+            o2.frequency.setValueAtTime(f, t+i*0.07);
+            g2.gain.setValueAtTime(0.15, t+i*0.07); g2.gain.exponentialRampToValueAtTime(0.001, t+i*0.07+0.2);
+            o2.start(t+i*0.07); o2.stop(t+i*0.07+0.2);
+          });
+        }
+      } catch(e) {}
+    }
+
     const canvas = document.getElementById('game-canvas');
     const ctx    = canvas.getContext('2d');
     const scoreEl      = document.getElementById('score-display');
@@ -227,6 +256,7 @@
       const shuffled = [...COLORS].sort(() => Math.random() - 0.5);
       targetColors = shuffled.slice(0, 2);
       lastTargetChange = ts;
+      playSound('target');
       renderSwatches();
 
       // dramatic two-colour flash across the whole screen
@@ -348,9 +378,11 @@
           if (targetColors.includes(c.color)) {
             score++;
             spawnFloatingText(c.x, c.y - c.r, '+1', c.color);
+            playSound('good');
           } else {
             score = Math.max(0, score - 1);
             spawnFloatingText(c.x, c.y - c.r, '-1', '#ff4444');
+            playSound('bad');
           }
           scoreEl.textContent = score;
           popBurst(c.x, c.y, c.color);

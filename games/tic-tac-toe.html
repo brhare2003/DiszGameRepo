@@ -537,6 +537,37 @@
     let board = Array(9).fill(null);
     let currentPlayer = 'X';
     let gameOver = false;
+    // ── Audio ──────────────────────────────────────────────────────────────
+    let _ac = null;
+    function getAC() { if (!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+    function playSound(type) {
+      try {
+        const a = getAC(), t = a.currentTime;
+        if (type === 'place') {
+          const o = a.createOscillator(), g = a.createGain();
+          o.connect(g); g.connect(a.destination);
+          o.frequency.setValueAtTime(440, t); o.frequency.exponentialRampToValueAtTime(600, t+0.08);
+          g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.12);
+          o.start(t); o.stop(t+0.12);
+        } else if (type === 'win') {
+          [523,659,784,1047].forEach((f,i) => {
+            const o=a.createOscillator(), g=a.createGain();
+            o.connect(g); g.connect(a.destination);
+            o.frequency.setValueAtTime(f, t+i*0.1);
+            g.gain.setValueAtTime(0.2, t+i*0.1); g.gain.exponentialRampToValueAtTime(0.001, t+i*0.1+0.25);
+            o.start(t+i*0.1); o.stop(t+i*0.1+0.25);
+          });
+        } else if (type === 'draw') {
+          const o = a.createOscillator(), g = a.createGain();
+          o.type = 'triangle';
+          o.connect(g); g.connect(a.destination);
+          o.frequency.setValueAtTime(330, t); o.frequency.exponentialRampToValueAtTime(220, t+0.35);
+          g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.38);
+          o.start(t); o.stop(t+0.38);
+        }
+      } catch(e) {}
+    }
+
     let vsComputer = false;
     let scores = { X: 0, O: 0, draw: 0 };
     let nextFirst = 'X'; // alternates each CPU-mode game
@@ -567,6 +598,7 @@
       cell.textContent = player;
       cell.classList.add('taken', player.toLowerCase());
 
+      playSound('place');
       const winLine = getWinner();
       if (winLine) {
         winLine.forEach(i => cells[i].classList.add('win'));
@@ -574,6 +606,7 @@
         scores[player]++;
         updateScores();
         gameOver = true;
+        playSound('win');
         drawWinLine(winLine, player);
         return;
       }
@@ -582,6 +615,7 @@
         scores.draw++;
         updateScores();
         gameOver = true;
+        playSound('draw');
         document.getElementById('draw-overlay').classList.add('show');
         return;
       }
