@@ -683,11 +683,22 @@
 
   function updateOneFish(fish, dt) {
     fish.wobble += dt * 3;
+
+    // Digest countdown
+    if (fish.digestTimer > 0) fish.digestTimer -= dt;
+
+    // Slow passive growth (time-based, regardless of food)
+    fish.size = Math.min(fish.size + 0.003 * dt, W * 0.25);
+
+    // Seek food only when not digesting; still swim normally while digesting
+    const hungry = fish.digestTimer <= 0;
     let target = null, best = 9999;
-    foods.forEach(f => {
-      const d = Math.hypot(f.x - fish.x, f.y - fish.y);
-      if (d < best) { best = d; target = f; }
-    });
+    if (hungry) {
+      foods.forEach(f => {
+        const d = Math.hypot(f.x - fish.x, f.y - fish.y);
+        if (d < best) { best = d; target = f; }
+      });
+    }
     if (target) {
       const dx = target.x - fish.x, dy = target.y - fish.y;
       fish.vx += (dx / best * 2.2 - fish.vx) * 0.06;
@@ -707,16 +718,27 @@
     if (fish.x > W - r) { fish.x = W - r; fish.vx = -Math.abs(fish.vx); }
     if (fish.y < r + 56) { fish.y = r + 56; fish.vy = Math.abs(fish.vy); }
     if (fish.y > H - 10 - r) { fish.y = H - 10 - r; fish.vy = -Math.abs(fish.vy); }
-    // Eat food
-    for (let i = foods.length - 1; i >= 0; i--) {
-      if (Math.hypot(foods[i].x - fish.x, foods[i].y - fish.y) < r + 8) {
-        const prevSize = fish.size;
-        fish.size = Math.min(fish.size + 1.5, W * 0.25);
-        foods.splice(i, 1);
-        fish.eating = 0.4;
-        window._ff.beep(700, 0.15, 'sine');
-        if (Math.floor(fish.size/20) > Math.floor(prevSize/20)) window._ff.playGrow();
-        for (let b = 0; b < 3; b++) bubbles.push({ x: fish.x+(Math.random()-0.5)*20, y: fish.y, r: 4+Math.random()*6, vy: -0.8-Math.random() });
+
+    // Eat food (only when hungry)
+    if (hungry) {
+      for (let i = foods.length - 1; i >= 0; i--) {
+        if (Math.hypot(foods[i].x - fish.x, foods[i].y - fish.y) < r + 8) {
+          fish.eatCount = (fish.eatCount || 0) + 1;
+          const prevSize = fish.size;
+          fish.size = Math.min(fish.size + 0.8, W * 0.25);
+          foods.splice(i, 1);
+          fish.eating = 0.4;
+          window._ff.beep(700, 0.15, 'sine');
+          if (Math.floor(fish.size/20) > Math.floor(prevSize/20)) window._ff.playGrow();
+          for (let b = 0; b < 3; b++) bubbles.push({ x: fish.x+(Math.random()-0.5)*20, y: fish.y, r: 4+Math.random()*6, vy: -0.8-Math.random() });
+          // Start digesting after eating enough pieces (3–6 per meal)
+          if (fish.eatCount >= fish.eatLimit) {
+            fish.digestTimer = 10 + Math.random() * 20; // 10–30 s digest
+            fish.eatCount = 0;
+            fish.eatLimit = 3 + Math.floor(Math.random() * 4); // next meal limit
+          }
+          break; // eat at most one piece per frame
+        }
       }
     }
     if (fish.eating > 0) fish.eating -= dt;
@@ -774,6 +796,7 @@
         fishList.push({
           x: d.x, y: d.y - 20, vx: (Math.random()-0.5)*1.5, vy: -1,
           dir: 1, wobble: 0, size: 22, eating: 0, boostTimer: 0,
+          eatCount: 0, eatLimit: 3 + Math.floor(Math.random()*4), digestTimer: 0,
           fishType: sf ? sf.fishType : 0,
           paintOffCanvas: sf ? sf.paintOffCanvas : null
         });
