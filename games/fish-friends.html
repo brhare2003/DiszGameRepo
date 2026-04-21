@@ -134,6 +134,9 @@
   }
   function playPop()   { beep(700, 0.1); }
   function playChime() { [523,659,784].forEach((f,i) => setTimeout(() => beep(f,0.18), i*80)); }
+  function playPlop()  { beep(180, 0.18, 'sine'); setTimeout(() => beep(120, 0.12, 'sine'), 40); }
+  function playHatch() { [400,600,900,1300].forEach((f,i) => setTimeout(() => beep(f,0.12,'sine'), i*60)); }
+  function playGrow()  { [523,659,784,1047].forEach((f,i) => setTimeout(() => beep(f,0.14,'triangle'), i*70)); }
 
   // ── Fish shape paths ──────────────────────────────────────────────────────
   // Each fn(ctx, cx, cy, r) creates a closed canvas path
@@ -278,7 +281,7 @@
   resizeSel();
 
   // expose for later screens
-  window._ff = { SHAPES, ac, beep, playPop, playChime, fishType: () => fishType, showScreen };
+  window._ff = { SHAPES, ac, beep, playPop, playChime, playPlop, playHatch, playGrow, fishType: () => fishType, showScreen };
 })();
 
 // ── Screen 2: Paint ──────────────────────────────────────────────────────────
@@ -613,8 +616,11 @@
       if (Math.hypot(foods[i].x - fish.x, foods[i].y - fish.y) < r + 8) {
         foods.splice(i, 1);
         fish.eating = 0.4;
+        const prevSize = fish.size;
         fish.size = Math.min(fish.size + 1.5, W * 0.25);
         window._ff.beep(700, 0.15, 'sine');
+        const milestone = Math.floor(fish.size / 20) > Math.floor(prevSize / 20);
+        if (milestone) window._ff.playGrow();
         // bubble burst
         for (let b = 0; b < 3; b++) bubbles.push({ x: fish.x + (Math.random()-0.5)*20, y: fish.y, r: 4+Math.random()*6, vy: -0.8 - Math.random() });
       }
@@ -642,7 +648,7 @@
       if (d.hatchTimer <= 0) {
         decos.splice(i, 1);
         babies.push({ x: d.x, y: d.y - 20, vx: (Math.random()-0.5)*1.5, vy: -1, dir: 1, wobble: 0, size: 22 });
-        window._ff.playChime();
+        window._ff.playHatch();
         for (let b = 0; b < 6; b++) bubbles.push({ x: d.x + (Math.random()-0.5)*30, y: d.y, r: 3+Math.random()*5, vy: -1 - Math.random() });
       }
     }
@@ -676,7 +682,7 @@
       selectedDeco = null;
     } else {
       foods.push({ x: cx, y: cy, vy: 1.5 });
-      window._ff.beep(500, 0.08, 'sine');
+      window._ff.playPlop();
     }
   }
 
