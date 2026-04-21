@@ -61,6 +61,10 @@
     }
     .pal-btn.active { border-color: #fff; transform: scale(1.18); }
     .pal-btn:active { transform: scale(0.88); }
+
+    /* ── Screen 3 ── */
+    #s-tank { background: #001428; }
+    #cv-tank { display: block; touch-action: none; }
   </style>
 </head>
 <body>
@@ -86,8 +90,10 @@
     <button class="icon-btn go"  id="btn-go2">&#10003;</button>
   </div>
 </div>
-<!-- SCREEN 3: AQUARIUM (stub) -->
-<div class="screen" id="s-tank"></div>
+<!-- SCREEN 3: AQUARIUM -->
+<div class="screen" id="s-tank">
+  <canvas id="cv-tank"></canvas>
+</div>
 
 <script>
 (function () {
@@ -371,6 +377,223 @@
   window.addEventListener('resize', () => { if (document.getElementById('s-paint').classList.contains('active')) resizePaint(); });
   // initial size in case screen is already shown
   resizePaint();
+})();
+
+// ── Screen 3: Aquarium ───────────────────────────────────────────────────────
+(function () {
+  const cvT  = document.getElementById('cv-tank');
+  const ctxT = cvT.getContext('2d');
+
+  // Fish state
+  const fish = { x: 200, y: 200, vx: 1.2, vy: 0.4, size: 56, dir: 1, wobble: 0, eating: 0 };
+  const foods = [];   // { x, y, vy }
+  const bubbles = []; // { x, y, r, vy }
+
+  let W = 0, H = 0;
+
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    cvT.width = W; cvT.height = H;
+    fish.x = Math.min(fish.x, W - fish.size);
+    fish.y = Math.min(fish.y, H - fish.size);
+  }
+
+  // Draw underwater background gradient
+  function drawBg() {
+    const grd = ctxT.createLinearGradient(0, 0, 0, H);
+    grd.addColorStop(0, '#001428');
+    grd.addColorStop(1, '#003060');
+    ctxT.fillStyle = grd;
+    ctxT.fillRect(0, 0, W, H);
+
+    // Sand floor
+    ctxT.fillStyle = '#C2A46B';
+    ctxT.fillRect(0, H - 28, W, 28);
+    // Some simple seaweed
+    for (let sx = 60; sx < W; sx += 110) {
+      for (let seg = 0; seg < 5; seg++) {
+        const sy = H - 28 - seg * 22;
+        ctxT.strokeStyle = `rgba(30,180,60,${0.7 - seg * 0.1})`;
+        ctxT.lineWidth = 6;
+        ctxT.beginPath();
+        ctxT.moveTo(sx, sy + 22);
+        ctxT.quadraticCurveTo(sx + (seg % 2 === 0 ? 14 : -14), sy + 11, sx, sy);
+        ctxT.stroke();
+      }
+    }
+  }
+
+  function drawFish() {
+    const ff = window._ff;
+    const r  = fish.size * 0.5;
+    const cx = fish.x, cy = fish.y;
+
+    ctxT.save();
+    ctxT.translate(cx, cy);
+    if (fish.dir < 0) ctxT.scale(-1, 1);
+    ctxT.translate(0, Math.sin(fish.wobble) * r * 0.08);
+    ctxT.translate(-cx, -cy);
+
+    // Draw painted overlay clipped to fish shape
+    if (window._ff.paintedCanvas) {
+      const pc = window._ff.paintedCanvas;
+      const pW = pc.width, pH = pc.height;
+      // fish shape at fish position
+      ff.SHAPES[ff.fishType()](ctxT, cx, cy, r);
+      ctxT.clip();
+      // scale painted canvas to match current fish size vs original canvas size
+      const scale = (r * 2) / Math.min(pW, pH);
+      ctxT.drawImage(pc, cx - pW * scale / 2, cy - pH * scale / 2, pW * scale, pH * scale);
+      ctxT.restore();
+      ctxT.save();
+      ctxT.translate(cx, cy);
+      if (fish.dir < 0) ctxT.scale(-1, 1);
+      ctxT.translate(0, Math.sin(fish.wobble) * r * 0.08);
+      ctxT.translate(-cx, -cy);
+    }
+
+    // Outline
+    ff.SHAPES[ff.fishType()](ctxT, cx, cy, r);
+    ctxT.strokeStyle = '#7EEDF4'; ctxT.lineWidth = 2.5; ctxT.stroke();
+    if (!window._ff.paintedCanvas) {
+      ctxT.fillStyle = 'rgba(100,200,255,0.25)'; ctxT.fill();
+    }
+
+    // Eye
+    const eyeX = cx + r * (fish.dir > 0 ? -0.28 : 0.28);
+    ctxT.fillStyle = '#7EEDF4';
+    ctxT.beginPath(); ctxT.arc(eyeX, cy - r * 0.1, r * 0.1, 0, Math.PI * 2); ctxT.fill();
+    ctxT.fillStyle = '#001428';
+    ctxT.beginPath(); ctxT.arc(eyeX, cy - r * 0.1, r * 0.05, 0, Math.PI * 2); ctxT.fill();
+
+    ctxT.restore();
+  }
+
+  function drawFoods() {
+    foods.forEach(f => {
+      ctxT.fillStyle = '#FFD700';
+      ctxT.beginPath(); ctxT.arc(f.x, f.y, 5, 0, Math.PI * 2); ctxT.fill();
+    });
+  }
+
+  function drawBubbles() {
+    bubbles.forEach(b => {
+      ctxT.strokeStyle = `rgba(126,237,244,${0.4 + b.r * 0.05})`;
+      ctxT.lineWidth = 1.5;
+      ctxT.beginPath(); ctxT.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctxT.stroke();
+    });
+  }
+
+  function update(dt) {
+    fish.wobble += dt * 3;
+
+    // Seek nearest food
+    let target = null;
+    let best = 9999;
+    foods.forEach(f => {
+      const d = Math.hypot(f.x - fish.x, f.y - fish.y);
+      if (d < best) { best = d; target = f; }
+    });
+
+    if (target) {
+      const dx = target.x - fish.x, dy = target.y - fish.y;
+      const spd = 2.2;
+      fish.vx += (dx / best * spd - fish.vx) * 0.06;
+      fish.vy += (dy / best * spd - fish.vy) * 0.06;
+    } else {
+      // Wander
+      fish.vx += (Math.random() - 0.5) * 0.4;
+      fish.vy += (Math.random() - 0.5) * 0.2;
+      fish.vx *= 0.98; fish.vy *= 0.98;
+      const spd = Math.hypot(fish.vx, fish.vy);
+      if (spd > 1.5) { fish.vx = fish.vx / spd * 1.5; fish.vy = fish.vy / spd * 1.5; }
+    }
+
+    if (fish.vx > 0.2) fish.dir = 1;
+    else if (fish.vx < -0.2) fish.dir = -1;
+
+    fish.x += fish.vx; fish.y += fish.vy;
+
+    // Bounds
+    const r = fish.size * 0.5;
+    if (fish.x < r) { fish.x = r; fish.vx = Math.abs(fish.vx); }
+    if (fish.x > W - r) { fish.x = W - r; fish.vx = -Math.abs(fish.vx); }
+    if (fish.y < r + 40) { fish.y = r + 40; fish.vy = Math.abs(fish.vy); }
+    if (fish.y > H - 28 - r) { fish.y = H - 28 - r; fish.vy = -Math.abs(fish.vy); }
+
+    // Eat food
+    for (let i = foods.length - 1; i >= 0; i--) {
+      foods[i].y += foods[i].vy;
+      if (foods[i].y > H - 28) { foods.splice(i, 1); continue; }
+      if (Math.hypot(foods[i].x - fish.x, foods[i].y - fish.y) < r + 8) {
+        foods.splice(i, 1);
+        fish.eating = 0.4;
+        fish.size = Math.min(fish.size + 1.5, W * 0.25);
+        window._ff.beep(700, 0.15, 'sine');
+        // bubble burst
+        for (let b = 0; b < 3; b++) bubbles.push({ x: fish.x + (Math.random()-0.5)*20, y: fish.y, r: 4+Math.random()*6, vy: -0.8 - Math.random() });
+      }
+    }
+
+    // Update bubbles
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+      bubbles[i].y += bubbles[i].vy;
+      bubbles[i].x += (Math.random() - 0.5) * 0.6;
+      if (bubbles[i].y < 0) bubbles.splice(i, 1);
+    }
+
+    // Spawn random bubble occasionally
+    if (Math.random() < 0.015) {
+      bubbles.push({ x: Math.random() * W, y: H - 30, r: 3 + Math.random() * 8, vy: -0.6 - Math.random() * 0.6 });
+    }
+
+    if (fish.eating > 0) fish.eating -= dt;
+  }
+
+  let last = 0;
+  function loop(ts) {
+    const dt = Math.min((ts - last) / 1000, 0.05);
+    last = ts;
+    if (!document.getElementById('s-tank').classList.contains('active')) { requestAnimationFrame(loop); return; }
+    ctxT.clearRect(0, 0, W, H);
+    drawBg();
+    drawFoods();
+    drawBubbles();
+    drawFish();
+    requestAnimationFrame(loop);
+    update(dt);
+  }
+
+  // Drop food on tap/click
+  cvT.addEventListener('click', e => {
+    const rect = cvT.getBoundingClientRect();
+    foods.push({ x: e.clientX - rect.left, y: e.clientY - rect.top, vy: 1.5 });
+    window._ff.beep(500, 0.08, 'sine');
+  });
+  cvT.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const rect = cvT.getBoundingClientRect();
+    for (const t of e.changedTouches) {
+      foods.push({ x: t.clientX - rect.left, y: t.clientY - rect.top, vy: 1.5 });
+    }
+    window._ff.beep(500, 0.08, 'sine');
+  }, { passive: false });
+
+  // Hook into showScreen to reset fish on each visit
+  const origShow = window._ff.showScreen;
+  window._ff.showScreen = function(id) {
+    origShow(id);
+    if (id === 's-tank') {
+      resize();
+      fish.x = W * 0.5; fish.y = H * 0.45;
+      fish.vx = 1.2; fish.vy = 0.3; fish.size = 56;
+      foods.length = 0; bubbles.length = 0;
+    }
+  };
+
+  window.addEventListener('resize', () => { if (document.getElementById('s-tank').classList.contains('active')) resize(); });
+  resize();
+  requestAnimationFrame(loop);
 })();
 </script>
 </body>
