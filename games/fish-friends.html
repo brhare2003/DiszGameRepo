@@ -48,6 +48,19 @@
     .icon-btn.go   { background: #22cc66; }
     .icon-btn.nav  { background: rgba(255,255,255,0.15); color: #fff; font-size: 2rem; }
     .btn-row { display: flex; gap: 28px; align-items: center; margin-top: 22px; }
+
+    /* ── Screen 2 ── */
+    #s-paint { background: radial-gradient(ellipse at 50% 60%, #002a4a 0%, #000c1a 100%); }
+    #palette {
+      display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+      max-width: 360px; margin-top: 14px;
+    }
+    .pal-btn {
+      width: 44px; height: 44px; border-radius: 50%; border: 3px solid transparent;
+      cursor: pointer; touch-action: manipulation; transition: transform 0.1s;
+    }
+    .pal-btn.active { border-color: #fff; transform: scale(1.18); }
+    .pal-btn:active { transform: scale(0.88); }
   </style>
 </head>
 <body>
@@ -64,8 +77,15 @@
   </div>
 </div>
 
-<!-- SCREEN 2: PAINT (stub) -->
-<div class="screen" id="s-paint"></div>
+<!-- SCREEN 2: PAINT -->
+<div class="screen" id="s-paint">
+  <canvas id="cv-paint"></canvas>
+  <div id="palette"></div>
+  <div class="btn-row">
+    <button class="icon-btn nav" id="btn-back2">&#8592;</button>
+    <button class="icon-btn go"  id="btn-go2">&#10003;</button>
+  </div>
+</div>
 <!-- SCREEN 3: AQUARIUM (stub) -->
 <div class="screen" id="s-tank"></div>
 
@@ -231,6 +251,126 @@
 
   // expose for later screens
   window._ff = { SHAPES, ac, beep, playPop, playChime, fishType: () => fishType, showScreen };
+})();
+
+// ── Screen 2: Paint ──────────────────────────────────────────────────────────
+(function () {
+  const PALETTE = [
+    '#FF4D4D','#FF9A3C','#FFE24D','#7ED957','#4DC8FF',
+    '#A04DFF','#FF79C6','#FFFFFF','#8B4513','#3333AA'
+  ];
+  let paintColor = PALETTE[0];
+
+  const cvP  = document.getElementById('cv-paint');
+  const ctxP = cvP.getContext('2d');
+  // off-screen overlay that holds paint strokes
+  const off  = document.createElement('canvas');
+  const offC = off.getContext('2d');
+
+  function resizePaint() {
+    const sz = Math.min(window.innerWidth * 0.86, window.innerHeight * 0.52, 360);
+    cvP.width  = sz; cvP.height = Math.round(sz * 0.68);
+    off.width  = cvP.width; off.height = cvP.height;
+    renderPaint();
+  }
+
+  function renderPaint() {
+    const W = cvP.width, H = cvP.height;
+    const r = Math.min(W, H) * 0.4;
+    const ff = window._ff;
+
+    ctxP.clearRect(0, 0, W, H);
+
+    // Clip to fish shape, draw overlay
+    ctxP.save();
+    ff.SHAPES[ff.fishType()](ctxP, W/2, H/2, r);
+    ctxP.clip();
+    ctxP.drawImage(off, 0, 0);
+    ctxP.restore();
+
+    // Fish outline on top
+    ff.SHAPES[ff.fishType()](ctxP, W/2, H/2, r);
+    ctxP.strokeStyle = '#7EEDF4'; ctxP.lineWidth = 3; ctxP.stroke();
+
+    // Eye
+    ctxP.fillStyle = '#7EEDF4';
+    ctxP.beginPath(); ctxP.arc(W/2-r*.28, H/2-r*.1, r*.07, 0, Math.PI*2); ctxP.fill();
+  }
+
+  // Build palette buttons
+  const pal = document.getElementById('palette');
+  PALETTE.forEach((col, i) => {
+    const b = document.createElement('button');
+    b.className = 'pal-btn' + (i === 0 ? ' active' : '');
+    b.style.background = col;
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.pal-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      paintColor = col;
+      window._ff.playPop();
+    });
+    pal.appendChild(b);
+  });
+
+  function getPos(e) {
+    const rect = cvP.getBoundingClientRect();
+    const scaleX = cvP.width  / rect.width;
+    const scaleY = cvP.height / rect.height;
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
+  }
+
+  let painting = false;
+  function startPaint(e) {
+    e.preventDefault(); painting = true;
+    const p = getPos(e);
+    offC.beginPath(); offC.moveTo(p.x, p.y);
+    window._ff.beep(440 + Math.random()*200, 0.05);
+  }
+  function movePaint(e) {
+    if (!painting) return; e.preventDefault();
+    const p = getPos(e);
+    offC.lineTo(p.x, p.y);
+    offC.strokeStyle = paintColor; offC.lineWidth = 22;
+    offC.lineCap = 'round'; offC.lineJoin = 'round';
+    offC.stroke();
+    offC.beginPath(); offC.moveTo(p.x, p.y);
+    renderPaint();
+  }
+  function endPaint() { painting = false; }
+
+  cvP.addEventListener('mousedown',  startPaint);
+  cvP.addEventListener('mousemove',  movePaint);
+  cvP.addEventListener('mouseup',    endPaint);
+  cvP.addEventListener('touchstart', startPaint, {passive:false});
+  cvP.addEventListener('touchmove',  movePaint,  {passive:false});
+  cvP.addEventListener('touchend',   endPaint,   {passive:true});
+
+  document.getElementById('btn-back2').addEventListener('click', () => {
+    window._ff.playPop(); window._ff.showScreen('s-select');
+  });
+  document.getElementById('btn-go2').addEventListener('click', () => {
+    window._ff.playChime();
+    // pass painted canvas to tank screen
+    window._ff.paintedCanvas = off;
+    window._ff.showScreen('s-tank');
+  });
+
+  // Reset overlay when entering paint screen
+  const origShow = window._ff.showScreen;
+  window._ff.showScreen = function(id) {
+    if (id === 's-paint') {
+      off.width  = cvP.width  || 1;
+      off.height = cvP.height || 1;
+      offC.clearRect(0, 0, off.width, off.height);
+    }
+    origShow(id);
+    if (id === 's-paint') { resizePaint(); renderPaint(); }
+  };
+
+  window.addEventListener('resize', () => { if (document.getElementById('s-paint').classList.contains('active')) resizePaint(); });
+  // initial size in case screen is already shown
+  resizePaint();
 })();
 </script>
 </body>
