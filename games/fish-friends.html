@@ -292,7 +292,7 @@
   resizeSel();
 
   // expose for later screens
-  window._ff = { SHAPES, ac, beep, playPop, playChime, playPlop, playHatch, playGrow, fishType: () => fishType, showScreen };
+  window._ff = { SHAPES, ac, beep, playPop, playChime, playPlop, playHatch, playGrow, fishType: () => fishType, showScreen, savedFish: [] };
 })();
 
 // ── Screen 2: Paint ──────────────────────────────────────────────────────────
@@ -393,8 +393,11 @@
   });
   document.getElementById('btn-go2').addEventListener('click', () => {
     window._ff.playChime();
-    // pass painted canvas to tank screen
-    window._ff.paintedCanvas = off;
+    const saved = document.createElement('canvas');
+    saved.width = off.width; saved.height = off.height;
+    saved.getContext('2d').drawImage(off, 0, 0);
+    window._ff.savedFish.push({ fishType: window._ff.fishType(), paintOffCanvas: saved });
+    window._ff.paintedCanvas = saved;
     window._ff.showScreen('s-tank');
   });
 
@@ -420,12 +423,10 @@
   const cvT  = document.getElementById('cv-tank');
   const ctxT = cvT.getContext('2d');
 
-  // Fish state
-  const fish = { x: 200, y: 200, vx: 1.2, vy: 0.4, size: 56, dir: 1, wobble: 0, eating: 0, boostTimer: 0 };
+  const fishList   = [];  // all hatched fish
   const foods      = [];  // { x, y, vy }
   const bubbles    = [];  // { x, y, r, vy }
   const decos      = [];  // { type, x, y, hatchTimer? }
-  const babies     = [];  // { x, y, vx, vy, dir, wobble, size }
   let selectedDeco = null;
   let activeTool   = 'food';
   let dragDeco = null, dragActive = false, pDownX = 0, pDownY = 0;
@@ -465,8 +466,6 @@
   function resize() {
     W = window.innerWidth; H = window.innerHeight;
     cvT.width = W; cvT.height = H;
-    fish.x = Math.min(fish.x, W - fish.size);
-    fish.y = Math.min(fish.y, H - fish.size);
   }
 
   function drawBg() {
@@ -477,10 +476,12 @@
     ctxT.fillRect(0, 0, W, H);
   }
 
-  function drawFish() {
+  function drawOneFish(fish) {
     const ff = window._ff;
     const r  = fish.size * 0.5;
     const cx = fish.x, cy = fish.y;
+    const shapeIdx = fish.fishType != null ? fish.fishType : ff.fishType();
+    const paintSrc = fish.paintOffCanvas || null;
 
     ctxT.save();
     ctxT.translate(cx, cy);
@@ -488,14 +489,12 @@
     ctxT.translate(0, Math.sin(fish.wobble) * r * 0.08);
     ctxT.translate(-cx, -cy);
 
-    // Draw painted overlay clipped to fish shape
-    if (window._ff.paintedCanvas) {
-      const pc = window._ff.paintedCanvas;
-      const pW = pc.width, pH = pc.height;
-      ff.SHAPES[ff.fishType()](ctxT, cx, cy, r);
+    if (paintSrc) {
+      const pW = paintSrc.width, pH = paintSrc.height;
+      ff.SHAPES[shapeIdx](ctxT, cx, cy, r);
       ctxT.clip();
       const scale = (r * 2) / Math.min(pW, pH);
-      ctxT.drawImage(pc, cx - pW * scale / 2, cy - pH * scale / 2, pW * scale, pH * scale);
+      ctxT.drawImage(paintSrc, cx - pW*scale/2, cy - pH*scale/2, pW*scale, pH*scale);
       ctxT.restore();
       ctxT.save();
       ctxT.translate(cx, cy);
@@ -504,22 +503,19 @@
       ctxT.translate(-cx, -cy);
     }
 
-    // Outline
-    ff.SHAPES[ff.fishType()](ctxT, cx, cy, r);
+    ff.SHAPES[shapeIdx](ctxT, cx, cy, r);
     ctxT.strokeStyle = '#7EEDF4'; ctxT.lineWidth = 2.5; ctxT.stroke();
-    if (!window._ff.paintedCanvas) {
-      ctxT.fillStyle = 'rgba(100,200,255,0.25)'; ctxT.fill();
-    }
+    if (!paintSrc) { ctxT.fillStyle = 'rgba(100,200,255,0.25)'; ctxT.fill(); }
 
-    // Eye
     const eyeX = cx - r * 0.28;
     ctxT.fillStyle = '#7EEDF4';
-    ctxT.beginPath(); ctxT.arc(eyeX, cy - r * 0.1, r * 0.1, 0, Math.PI * 2); ctxT.fill();
+    ctxT.beginPath(); ctxT.arc(eyeX, cy - r*0.1, r*0.1, 0, Math.PI*2); ctxT.fill();
     ctxT.fillStyle = '#001428';
-    ctxT.beginPath(); ctxT.arc(eyeX, cy - r * 0.1, r * 0.05, 0, Math.PI * 2); ctxT.fill();
-
+    ctxT.beginPath(); ctxT.arc(eyeX, cy - r*0.1, r*0.05, 0, Math.PI*2); ctxT.fill();
     ctxT.restore();
   }
+
+  function drawFish() { fishList.forEach(drawOneFish); }
 
   const DECO_EMOJI = { seaweed:'🌿', shell:'🐚', rock:'🪨', star:'⭐' };
   function drawDecos() {
@@ -575,96 +571,54 @@
     });
   }
 
-  function drawBabies() {
-    const ff = window._ff;
-    babies.forEach(b => {
-      const r = b.size * 0.5;
-      ctxT.save();
-      ctxT.translate(b.x, b.y);
-      if (b.dir > 0) ctxT.scale(-1, 1);
-      ctxT.translate(0, Math.sin(b.wobble) * r * 0.1);
-      ctxT.translate(-b.x, -b.y);
-      ff.SHAPES[ff.fishType()](ctxT, b.x, b.y, r);
-      ctxT.fillStyle = 'rgba(200,240,255,0.35)'; ctxT.fill();
-      ctxT.strokeStyle = '#7EEDF4'; ctxT.lineWidth = 1.5; ctxT.stroke();
-      ctxT.fillStyle = '#7EEDF4';
-      ctxT.beginPath(); ctxT.arc(b.x - r * 0.28, b.y - r * 0.1, r * 0.12, 0, Math.PI * 2); ctxT.fill();
-      ctxT.restore();
-    });
-  }
-
-  function updateBabies(dt) {
-    babies.forEach(b => {
-      b.wobble += dt * 3.5;
-      b.vx += (Math.random() - 0.5) * 0.3;
-      b.vy += (Math.random() - 0.5) * 0.15;
-      b.vx *= 0.97; b.vy *= 0.97;
-      const spd = Math.hypot(b.vx, b.vy);
-      if (spd > 1.8) { b.vx = b.vx / spd * 1.8; b.vy = b.vy / spd * 1.8; }
-      if (b.vx > 0.1) b.dir = 1; else if (b.vx < -0.1) b.dir = -1;
-      b.x += b.vx; b.y += b.vy;
-      const r = b.size * 0.5;
-      if (b.x < r) { b.x = r; b.vx = Math.abs(b.vx); }
-      if (b.x > W - r) { b.x = W - r; b.vx = -Math.abs(b.vx); }
-      if (b.y < r + 40) { b.y = r + 40; b.vy = Math.abs(b.vy); }
-      if (b.y > H - 10 - r) { b.y = H - 10 - r; b.vy = -Math.abs(b.vy); }
-    });
-  }
-
-  function update(dt) {
+  function updateOneFish(fish, dt) {
     fish.wobble += dt * 3;
-
-    // Seek nearest food
-    let target = null;
-    let best = 9999;
+    let target = null, best = 9999;
     foods.forEach(f => {
       const d = Math.hypot(f.x - fish.x, f.y - fish.y);
       if (d < best) { best = d; target = f; }
     });
-
     if (target) {
       const dx = target.x - fish.x, dy = target.y - fish.y;
-      const spd = 2.2;
-      fish.vx += (dx / best * spd - fish.vx) * 0.06;
-      fish.vy += (dy / best * spd - fish.vy) * 0.06;
+      fish.vx += (dx / best * 2.2 - fish.vx) * 0.06;
+      fish.vy += (dy / best * 2.2 - fish.vy) * 0.06;
     } else {
-      // Wander
       fish.vx += (Math.random() - 0.5) * 0.4;
       fish.vy += (Math.random() - 0.5) * 0.2;
       fish.vx *= 0.98; fish.vy *= 0.98;
       const spd = Math.hypot(fish.vx, fish.vy);
-      if (spd > 1.5) { fish.vx = fish.vx / spd * 1.5; fish.vy = fish.vy / spd * 1.5; }
+      if (spd > 1.5) { fish.vx = fish.vx/spd*1.5; fish.vy = fish.vy/spd*1.5; }
     }
-
-    if (fish.vx > 0.2) fish.dir = 1;
-    else if (fish.vx < -0.2) fish.dir = -1;
-
+    if (fish.vx > 0.2) fish.dir = 1; else if (fish.vx < -0.2) fish.dir = -1;
     if (fish.boostTimer > 0) { fish.boostTimer -= dt; fish.vx *= 2.5; fish.vy *= 2.5; }
-
     fish.x += fish.vx; fish.y += fish.vy;
-
-    // Bounds
     const r = fish.size * 0.5;
     if (fish.x < r) { fish.x = r; fish.vx = Math.abs(fish.vx); }
     if (fish.x > W - r) { fish.x = W - r; fish.vx = -Math.abs(fish.vx); }
-    if (fish.y < r + 40) { fish.y = r + 40; fish.vy = Math.abs(fish.vy); }
+    if (fish.y < r + 56) { fish.y = r + 56; fish.vy = Math.abs(fish.vy); }
     if (fish.y > H - 10 - r) { fish.y = H - 10 - r; fish.vy = -Math.abs(fish.vy); }
-
     // Eat food
     for (let i = foods.length - 1; i >= 0; i--) {
-      foods[i].y += foods[i].vy;
-      if (foods[i].y > H - 10) { foods.splice(i, 1); continue; }
       if (Math.hypot(foods[i].x - fish.x, foods[i].y - fish.y) < r + 8) {
-        foods.splice(i, 1);
-        fish.eating = 0.4;
         const prevSize = fish.size;
         fish.size = Math.min(fish.size + 1.5, W * 0.25);
+        foods.splice(i, 1);
+        fish.eating = 0.4;
         window._ff.beep(700, 0.15, 'sine');
-        const milestone = Math.floor(fish.size / 20) > Math.floor(prevSize / 20);
-        if (milestone) window._ff.playGrow();
-        // bubble burst
-        for (let b = 0; b < 3; b++) bubbles.push({ x: fish.x + (Math.random()-0.5)*20, y: fish.y, r: 4+Math.random()*6, vy: -0.8 - Math.random() });
+        if (Math.floor(fish.size/20) > Math.floor(prevSize/20)) window._ff.playGrow();
+        for (let b = 0; b < 3; b++) bubbles.push({ x: fish.x+(Math.random()-0.5)*20, y: fish.y, r: 4+Math.random()*6, vy: -0.8-Math.random() });
       }
+    }
+    if (fish.eating > 0) fish.eating -= dt;
+  }
+
+  function update(dt) {
+    fishList.forEach(f => updateOneFish(f, dt));
+
+    // Advance food gravity
+    for (let i = foods.length - 1; i >= 0; i--) {
+      foods[i].y += foods[i].vy;
+      if (foods[i].y > H - 10) foods.splice(i, 1);
     }
 
     // Update bubbles
@@ -673,13 +627,9 @@
       bubbles[i].x += (Math.random() - 0.5) * 0.6;
       if (bubbles[i].y < 0) bubbles.splice(i, 1);
     }
-
-    // Spawn random bubble occasionally
     if (Math.random() < 0.015) {
-      bubbles.push({ x: Math.random() * W, y: H - 30, r: 3 + Math.random() * 8, vy: -0.6 - Math.random() * 0.6 });
+      bubbles.push({ x: Math.random()*W, y: H-30, r: 3+Math.random()*8, vy: -0.6-Math.random()*0.6 });
     }
-
-    if (fish.eating > 0) fish.eating -= dt;
 
     // Egg hatching
     for (let i = decos.length - 1; i >= 0; i--) {
@@ -688,13 +638,17 @@
       d.hatchTimer -= dt;
       if (d.hatchTimer <= 0) {
         decos.splice(i, 1);
-        babies.push({ x: d.x, y: d.y - 20, vx: (Math.random()-0.5)*1.5, vy: -1, dir: 1, wobble: 0, size: 22 });
+        const sf = window._ff.savedFish[d.fishIndex != null ? d.fishIndex : window._ff.savedFish.length-1];
+        fishList.push({
+          x: d.x, y: d.y - 20, vx: (Math.random()-0.5)*1.5, vy: -1,
+          dir: 1, wobble: 0, size: 22, eating: 0, boostTimer: 0,
+          fishType: sf ? sf.fishType : 0,
+          paintOffCanvas: sf ? sf.paintOffCanvas : null
+        });
         window._ff.playHatch();
-        for (let b = 0; b < 6; b++) bubbles.push({ x: d.x + (Math.random()-0.5)*30, y: d.y, r: 3+Math.random()*5, vy: -1 - Math.random() });
+        for (let b = 0; b < 6; b++) bubbles.push({ x: d.x+(Math.random()-0.5)*30, y: d.y, r: 3+Math.random()*5, vy: -1-Math.random() });
       }
     }
-
-    updateBabies(dt);
   }
 
   let last = 0;
@@ -707,7 +661,6 @@
     drawDecos();
     drawFoods();
     drawBubbles();
-    drawBabies();
     drawFish();
     requestAnimationFrame(loop);
     update(dt);
@@ -715,8 +668,19 @@
 
   function handleTap(cx, cy) {
     if (selectedDeco) {
+      if (selectedDeco === 'egg' && window._ff.savedFish.length === 0) {
+        const btn = document.getElementById('btn-add-fish');
+        btn.style.boxShadow = '0 0 0 3px #FF4D4D';
+        setTimeout(() => { btn.style.boxShadow = ''; }, 900);
+        document.querySelectorAll('[data-deco]').forEach(b => b.classList.remove('selected'));
+        selectedDeco = null;
+        return;
+      }
       const d = { type: selectedDeco, x: cx, y: cy };
-      if (selectedDeco === 'egg')  d.hatchTimer = 5 + Math.random() * 5;
+      if (selectedDeco === 'egg') {
+        d.hatchTimer = 5 + Math.random() * 5;
+        d.fishIndex  = window._ff.savedFish.length - 1;
+      }
       if (selectedDeco === 'kelp') d.hitH = 168;
       decos.push(d);
       window._ff.playChime();
@@ -732,7 +696,7 @@
       window._ff.playPop();
     } else if (activeTool === 'poke') {
       let best = 60, nearest = null;
-      [fish].forEach(f => {
+      fishList.forEach(f => {
         const d = Math.hypot(f.x-cx, f.y-cy);
         if (d < best) { best = d; nearest = f; }
       });
@@ -775,9 +739,8 @@
     origShow(id);
     if (id === 's-tank') {
       resize();
-      fish.x = W * 0.5; fish.y = H * 0.45;
-      fish.vx = 1.2; fish.vy = 0.3; fish.size = 56;
-      foods.length = 0; bubbles.length = 0; decos.length = 0; babies.length = 0;
+      fishList.length = 0;
+      foods.length = 0; bubbles.length = 0; decos.length = 0;
     }
   };
 
