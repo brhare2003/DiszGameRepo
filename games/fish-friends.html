@@ -196,21 +196,20 @@
       ctx.quadraticCurveTo(cx+r*.48, cy+r*.10, cx+r*.62, cy+r*.24);          // lower tail tip
       ctx.closePath();
     },
-    // 3: Betta — slender tapered body + dorsal fin ridge + large half-moon fan tail
+    // 3: Needlefish — long torpedo body, small swept-back dorsal + anal fins, forked tail
     function(ctx, cx, cy, r) {
       ctx.beginPath();
-      ctx.moveTo(cx+r*.30, cy);                                               // tail center
-      ctx.bezierCurveTo(cx+r*.56, cy-r*.28, cx+r*.90, cy-r*.90, cx+r*.94, cy-r*.54); // upper fan
-      ctx.bezierCurveTo(cx+r*.94, cy-r*.22, cx+r*.66, cy-r*.08, cx+r*.56, cy-r*.04);
-      ctx.quadraticCurveTo(cx+r*.28, cy-r*.20, cx+r*.08, cy-r*.40);          // body-dorsal slope
-      ctx.quadraticCurveTo(cx-r*.06, cy-r*.46, cx-r*.22, cy-r*.40);          // dorsal fin peak
-      ctx.quadraticCurveTo(cx-r*.42, cy-r*.26, cx-r*.62, cy-r*.10);          // dorsal trailing
-      ctx.quadraticCurveTo(cx-r*.66, cy, cx-r*.62, cy+r*.10);                // nose
-      ctx.quadraticCurveTo(cx-r*.42, cy+r*.26, cx-r*.18, cy+r*.32);          // body bottom
-      ctx.quadraticCurveTo(cx-r*.02, cy+r*.40, cx+r*.14, cy+r*.36);          // anal fin
-      ctx.quadraticCurveTo(cx+r*.28, cy+r*.24, cx+r*.56, cy+r*.04);
-      ctx.bezierCurveTo(cx+r*.66, cy+r*.08, cx+r*.94, cy+r*.22, cx+r*.94, cy+r*.54); // lower fan
-      ctx.bezierCurveTo(cx+r*.90, cy+r*.90, cx+r*.56, cy+r*.28, cx+r*.30, cy);
+      ctx.moveTo(cx+r*.54, cy);                                               // tail fork center
+      ctx.lineTo(cx+r*.90, cy-r*.28);                                         // upper tail tip
+      ctx.quadraticCurveTo(cx+r*.68, cy-r*.06, cx+r*.44, cy-r*.12);          // upper tail root
+      ctx.quadraticCurveTo(cx+r*.24, cy-r*.22, cx+r*.12, cy-r*.22);          // dorsal fin peak
+      ctx.quadraticCurveTo(cx+r*.02, cy-r*.20, cx-r*.16, cy-r*.18);          // dorsal fin return
+      ctx.quadraticCurveTo(cx-r*.52, cy-r*.13, cx-r*.82, cy-r*.05);          // long body top
+      ctx.quadraticCurveTo(cx-r*.88, cy, cx-r*.82, cy+r*.05);                // pointed nose
+      ctx.quadraticCurveTo(cx-r*.52, cy+r*.13, cx-r*.16, cy+r*.18);          // long body bottom
+      ctx.quadraticCurveTo(cx+r*.02, cy+r*.20, cx+r*.12, cy+r*.22);          // anal fin peak
+      ctx.quadraticCurveTo(cx+r*.24, cy+r*.22, cx+r*.44, cy+r*.12);          // anal fin return
+      ctx.quadraticCurveTo(cx+r*.68, cy+r*.06, cx+r*.90, cy+r*.28);          // lower tail tip
       ctx.closePath();
     },
     // 4: Fantail Goldfish — plump round body + dorsal fin + double butterfly tail
@@ -232,7 +231,7 @@
       ctx.closePath();
     },
   ];
-  const LABELS = ['CICHLID','ANGEL','PUFFER','BETTA','GOLDFISH'];
+  const LABELS = ['CICHLID','ANGEL','PUFFER','NEEDLE','GOLDFISH'];
 
   // ── Internal markings only — all guaranteed inside the body silhouette ────
   const DETAILS = [
@@ -281,21 +280,20 @@
       });
       ctx.restore();
     },
-    // 3: Betta — gill arc, pectoral ellipse, fan tail rays (within tail fan)
+    // 3: Needlefish — gill arc, pectoral ellipse, prominent lateral line
     function(ctx, cx, cy, r) {
       ctx.save();
-      ctx.strokeStyle = 'rgba(126,237,244,0.75)'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(cx-r*.34, cy, r*.22, -1.0, 1.0); ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(cx-r*.22, cy+r*.07, r*.10, r*.05, 0.4, 0, Math.PI*2); ctx.stroke();
-      const ox=cx+r*.30, oy=cy;
-      ctx.strokeStyle='rgba(126,237,244,0.28)'; ctx.lineWidth=1;
-      for (let i=0; i<=8; i++) {
-        const a = -Math.PI*.72 + (i/8)*Math.PI*1.44;
-        ctx.beginPath();
-        ctx.moveTo(ox+Math.cos(a)*r*.06, oy+Math.sin(a)*r*.06);
-        ctx.lineTo(ox+Math.cos(a)*r*.62, oy+Math.sin(a)*r*.62);
-        ctx.stroke();
-      }
+      ctx.strokeStyle = 'rgba(126,237,244,0.75)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+      // Gill arc (small, placed at head-body join)
+      ctx.beginPath(); ctx.arc(cx-r*.52, cy, r*.14, -0.85, 0.85); ctx.stroke();
+      // Pectoral fin ellipse
+      ctx.beginPath(); ctx.ellipse(cx-r*.44, cy+r*.08, r*.09, r*.045, 0.2, 0, Math.PI*2); ctx.stroke();
+      // Lateral line — the defining mark of a streamlined fish
+      ctx.strokeStyle = 'rgba(126,237,244,0.32)'; ctx.lineWidth = r*.055;
+      ctx.beginPath();
+      ctx.moveTo(cx-r*.44, cy-r*.02);
+      ctx.quadraticCurveTo(cx+r*.06, cy-r*.04, cx+r*.46, cy-r*.02);
+      ctx.stroke();
       ctx.restore();
     },
     // 4: Goldfish — gill arc, pectoral ellipse, scale arcs, tail rays inside butterfly
