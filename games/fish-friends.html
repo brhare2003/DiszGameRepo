@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Fish Friends</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #001428; touch-action: none;
+      user-select: none; -webkit-user-select: none;
+      overscroll-behavior: none;
+    }
+    #home-btn {
+      position: fixed; top: 12px; left: 12px; z-index: 500;
+      color: #2B2140; text-decoration: none; font-size: 0.88rem; font-weight: 700;
+      background: rgba(255,246,228,0.92); border: 2px solid #2B2140;
+      padding: 6px 14px; border-radius: 20px; letter-spacing: 1px;
+    }
+    .screen {
+      position: fixed; inset: 0;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .screen.active { display: flex; }
+
+    /* ── Screen 1 ── */
+    #s-select {
+      background: radial-gradient(ellipse at 50% 60%, #002a4a 0%, #000c1a 100%);
+    }
+    #s-select h2 {
+      font-family: 'Segoe UI', sans-serif;
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      color: #7EEDF4; letter-spacing: 3px; margin-bottom: 16px;
+      text-shadow: 0 0 20px rgba(126,237,244,0.5);
+    }
+    canvas { display: block; touch-action: none; }
+
+    /* ── Icon buttons ── */
+    .icon-btn {
+      width: 68px; height: 68px; border-radius: 50%; border: none;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 1.9rem; box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      transition: transform 0.1s; touch-action: manipulation;
+    }
+    .icon-btn:active { transform: scale(0.88); }
+    .icon-btn.go   { background: #22cc66; }
+    .icon-btn.nav  { background: rgba(255,255,255,0.15); color: #fff; font-size: 2rem; }
+    .btn-row { display: flex; gap: 28px; align-items: center; margin-top: 22px; }
+  </style>
+</head>
+<body>
+<a href="../index.html" id="home-btn">&#8592; Home</a>
+
+<!-- SCREEN 1: PICK YOUR FISH -->
+<div class="screen active" id="s-select">
+  <h2>🐠 PICK YOUR FISH!</h2>
+  <canvas id="cv-sel"></canvas>
+  <div class="btn-row">
+    <button class="icon-btn nav" id="btn-prev">&#9664;</button>
+    <button class="icon-btn go"  id="btn-go1">&#10003;</button>
+    <button class="icon-btn nav" id="btn-next">&#9654;</button>
+  </div>
+</div>
+
+<!-- SCREEN 2: PAINT (stub) -->
+<div class="screen" id="s-paint"></div>
+<!-- SCREEN 3: AQUARIUM (stub) -->
+<div class="screen" id="s-tank"></div>
+
+<script>
+(function () {
+  // ── Audio ────────────────────────────────────────────────────────────────
+  let _ac = null;
+  function ac() { if (!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+  function beep(f, d, t2) {
+    try {
+      const a = ac(), t = a.currentTime;
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = t2||'sine'; o.connect(g); g.connect(a.destination);
+      o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t+d);
+      o.start(t); o.stop(t+d);
+    } catch(e) {}
+  }
+  function playPop()   { beep(700, 0.1); }
+  function playChime() { [523,659,784].forEach((f,i) => setTimeout(() => beep(f,0.18), i*80)); }
+
+  // ── Fish shape paths ──────────────────────────────────────────────────────
+  // Each fn(ctx, cx, cy, r) creates a closed canvas path
+  const SHAPES = [
+    // 0: Classic
+    function(ctx, cx, cy, r) {
+      ctx.beginPath();
+      ctx.moveTo(cx+r*.55, cy);
+      ctx.lineTo(cx+r*.85, cy-r*.48);
+      ctx.quadraticCurveTo(cx+r*.55, cy-r*.26, cx+r*.1, cy-r*.36);
+      ctx.quadraticCurveTo(cx-r*.35, cy-r*.22, cx-r*.64, cy);
+      ctx.quadraticCurveTo(cx-r*.35, cy+r*.22, cx+r*.1, cy+r*.36);
+      ctx.quadraticCurveTo(cx+r*.55, cy+r*.26, cx+r*.85, cy+r*.48);
+      ctx.closePath();
+    },
+    // 1: Angel (tall)
+    function(ctx, cx, cy, r) {
+      ctx.beginPath();
+      ctx.moveTo(cx+r*.44, cy);
+      ctx.lineTo(cx+r*.66, cy-r*.3);
+      ctx.quadraticCurveTo(cx+r*.38, cy-r*.25, cx, cy-r*.72);
+      ctx.quadraticCurveTo(cx-r*.4,  cy-r*.25, cx-r*.6, cy);
+      ctx.quadraticCurveTo(cx-r*.4,  cy+r*.25, cx, cy+r*.72);
+      ctx.quadraticCurveTo(cx+r*.38, cy+r*.25, cx+r*.66, cy+r*.3);
+      ctx.closePath();
+    },
+    // 2: Puffer (round)
+    function(ctx, cx, cy, r) {
+      ctx.beginPath();
+      ctx.moveTo(cx+r*.42, cy);
+      ctx.lineTo(cx+r*.64, cy-r*.28);
+      ctx.quadraticCurveTo(cx+r*.48, cy-r*.16, cx+r*.1, cy-r*.52);
+      ctx.quadraticCurveTo(cx-r*.28, cy-r*.5,  cx-r*.58, cy-r*.1);
+      ctx.quadraticCurveTo(cx-r*.62, cy,        cx-r*.58, cy+r*.1);
+      ctx.quadraticCurveTo(cx-r*.28, cy+r*.5,  cx+r*.1, cy+r*.52);
+      ctx.quadraticCurveTo(cx+r*.48, cy+r*.16, cx+r*.64, cy+r*.28);
+      ctx.closePath();
+    },
+    // 3: Sword (long, asymmetric tail)
+    function(ctx, cx, cy, r) {
+      ctx.beginPath();
+      ctx.moveTo(cx+r*.7, cy);
+      ctx.lineTo(cx+r*.92, cy-r*.26);
+      ctx.quadraticCurveTo(cx+r*.68, cy-r*.13, cx+r*.1, cy-r*.2);
+      ctx.quadraticCurveTo(cx-r*.44, cy-r*.12, cx-r*.86, cy);
+      ctx.quadraticCurveTo(cx-r*.44, cy+r*.12, cx+r*.1, cy+r*.2);
+      ctx.quadraticCurveTo(cx+r*.5,  cy+r*.18, cx+r*.95, cy+r*.7);
+      ctx.lineTo(cx+r*.7, cy+r*.02);
+      ctx.closePath();
+    },
+    // 4: Chubby (wide)
+    function(ctx, cx, cy, r) {
+      ctx.beginPath();
+      ctx.moveTo(cx+r*.5, cy);
+      ctx.lineTo(cx+r*.78, cy-r*.58);
+      ctx.quadraticCurveTo(cx+r*.45, cy-r*.32, cx, cy-r*.52);
+      ctx.quadraticCurveTo(cx-r*.52, cy-r*.32, cx-r*.74, cy);
+      ctx.quadraticCurveTo(cx-r*.52, cy+r*.32, cx, cy+r*.52);
+      ctx.quadraticCurveTo(cx+r*.45, cy+r*.32, cx+r*.78, cy+r*.58);
+      ctx.closePath();
+    },
+  ];
+  const LABELS = ['CLASSIC','ANGEL','PUFFER','SWORD','CHUBBY'];
+
+  // ── Shared state ──────────────────────────────────────────────────────────
+  let fishType = 0;
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ── Screen 1: Select ─────────────────────────────────────────────────────
+  const cvSel  = document.getElementById('cv-sel');
+  const ctxSel = cvSel.getContext('2d');
+
+  function resizeSel() {
+    const sz = Math.min(window.innerWidth * 0.86, window.innerHeight * 0.52, 360);
+    cvSel.width = sz; cvSel.height = Math.round(sz * 0.68);
+    drawSelect();
+  }
+
+  function drawSelect() {
+    const W = cvSel.width, H = cvSel.height;
+    ctxSel.clearRect(0, 0, W, H);
+    const r = Math.min(W, H) * 0.4;
+
+    // Glow
+    const grd = ctxSel.createRadialGradient(W/2,H/2,r*.1,W/2,H/2,r*1.3);
+    grd.addColorStop(0,'rgba(100,220,255,0.15)');
+    grd.addColorStop(1,'rgba(100,220,255,0)');
+    ctxSel.fillStyle = grd; ctxSel.fillRect(0,0,W,H);
+
+    // Fish body
+    SHAPES[fishType](ctxSel, W/2, H/2, r);
+    ctxSel.fillStyle = 'rgba(150,215,255,0.18)'; ctxSel.fill();
+    ctxSel.strokeStyle = '#7EEDF4'; ctxSel.lineWidth = 3; ctxSel.stroke();
+
+    // Eye
+    ctxSel.fillStyle = '#7EEDF4';
+    ctxSel.beginPath(); ctxSel.arc(W/2-r*.28, H/2-r*.1, r*.07, 0, Math.PI*2); ctxSel.fill();
+
+    // Pagination dots
+    for (let i = 0; i < SHAPES.length; i++) {
+      const active = i === fishType;
+      ctxSel.beginPath();
+      ctxSel.arc(W/2 + (i-2)*22, H-10, active?7:5, 0, Math.PI*2);
+      ctxSel.fillStyle = active ? '#7EEDF4' : 'rgba(126,237,244,0.3)';
+      ctxSel.fill();
+    }
+  }
+
+  document.getElementById('btn-prev').addEventListener('click', () => {
+    fishType = (fishType - 1 + SHAPES.length) % SHAPES.length;
+    playPop(); drawSelect();
+  });
+  document.getElementById('btn-next').addEventListener('click', () => {
+    fishType = (fishType + 1) % SHAPES.length;
+    playPop(); drawSelect();
+  });
+  document.getElementById('btn-go1').addEventListener('click', () => {
+    playChime();
+    showScreen('s-paint'); // paint screen added next
+  });
+
+  // Swipe on canvas
+  let swipeX = null;
+  cvSel.addEventListener('touchstart', e => { swipeX = e.touches[0].clientX; }, {passive:true});
+  cvSel.addEventListener('touchend', e => {
+    if (swipeX === null) return;
+    const dx = e.changedTouches[0].clientX - swipeX;
+    if (Math.abs(dx) > 38) {
+      fishType = dx < 0
+        ? (fishType+1) % SHAPES.length
+        : (fishType-1+SHAPES.length) % SHAPES.length;
+      playPop(); drawSelect();
+    }
+    swipeX = null;
+  }, {passive:true});
+
+  window.addEventListener('resize', resizeSel);
+  resizeSel();
+
+  // expose for later screens
+  window._ff = { SHAPES, ac, beep, playPop, playChime, fishType: () => fishType, showScreen };
+})();
+</script>
+</body>
+</html>
