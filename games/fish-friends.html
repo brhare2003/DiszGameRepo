@@ -124,7 +124,6 @@
     <button class="deco-pick" data-deco="egg"     title="Egg">&#9711;</button>
     <span class="bar-divider"></span>
     <button class="deco-pick" id="btn-add-fish"  title="New fish">&#43;</button>
-    <button class="deco-pick" id="btn-back3"     title="Back">&#8592;</button>
   </div>
 </div>
 
@@ -376,7 +375,7 @@
   });
   document.getElementById('btn-go1').addEventListener('click', () => {
     playChime();
-    showScreen('s-paint'); // paint screen added next
+    window._ff.showScreen('s-paint'); // use wrapped version so Screen 2 clears off-canvas
   });
 
   // Swipe on canvas
@@ -560,10 +559,6 @@
       btn.classList.add('selected');
       window._ff.playPop();
     });
-  });
-
-  document.getElementById('btn-back3').addEventListener('click', () => {
-    window._ff.playPop(); window._ff.showScreen('s-select');
   });
 
   document.getElementById('btn-add-fish').addEventListener('click', () => {
@@ -845,14 +840,18 @@
     dragDeco = null; dragActive = false;
   });
 
-  // Hook into showScreen to reset fish on each visit
+  // Only clear the tank on the very first entry; preserve state when adding more fish
+  let tankReady = false;
   const origShow = window._ff.showScreen;
   window._ff.showScreen = function(id) {
     origShow(id);
     if (id === 's-tank') {
       resize();
-      fishList.length = 0;
-      foods.length = 0; bubbles.length = 0; decos.length = 0;
+      if (!tankReady) {
+        fishList.length = 0;
+        foods.length = 0; bubbles.length = 0; decos.length = 0;
+        tankReady = true;
+      }
     }
   };
 
