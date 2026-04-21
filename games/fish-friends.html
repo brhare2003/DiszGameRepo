@@ -410,7 +410,8 @@
   const fish = { x: 200, y: 200, vx: 1.2, vy: 0.4, size: 56, dir: 1, wobble: 0, eating: 0 };
   const foods      = [];  // { x, y, vy }
   const bubbles    = [];  // { x, y, r, vy }
-  const decos      = [];  // { type, x, y }
+  const decos      = [];  // { type, x, y, hatchTimer? }
+  const babies     = [];  // { x, y, vx, vy, dir, wobble, size }
   let   selectedDeco = null;
 
   // Deco bar
@@ -532,6 +533,42 @@
     });
   }
 
+  function drawBabies() {
+    const ff = window._ff;
+    babies.forEach(b => {
+      const r = b.size * 0.5;
+      ctxT.save();
+      ctxT.translate(b.x, b.y);
+      if (b.dir < 0) ctxT.scale(-1, 1);
+      ctxT.translate(0, Math.sin(b.wobble) * r * 0.1);
+      ctxT.translate(-b.x, -b.y);
+      ff.SHAPES[ff.fishType()](ctxT, b.x, b.y, r);
+      ctxT.fillStyle = 'rgba(200,240,255,0.35)'; ctxT.fill();
+      ctxT.strokeStyle = '#7EEDF4'; ctxT.lineWidth = 1.5; ctxT.stroke();
+      ctxT.fillStyle = '#7EEDF4';
+      ctxT.beginPath(); ctxT.arc(b.x + r * (b.dir > 0 ? -0.28 : 0.28), b.y - r * 0.1, r * 0.12, 0, Math.PI * 2); ctxT.fill();
+      ctxT.restore();
+    });
+  }
+
+  function updateBabies(dt) {
+    babies.forEach(b => {
+      b.wobble += dt * 3.5;
+      b.vx += (Math.random() - 0.5) * 0.3;
+      b.vy += (Math.random() - 0.5) * 0.15;
+      b.vx *= 0.97; b.vy *= 0.97;
+      const spd = Math.hypot(b.vx, b.vy);
+      if (spd > 1.8) { b.vx = b.vx / spd * 1.8; b.vy = b.vy / spd * 1.8; }
+      if (b.vx > 0.1) b.dir = 1; else if (b.vx < -0.1) b.dir = -1;
+      b.x += b.vx; b.y += b.vy;
+      const r = b.size * 0.5;
+      if (b.x < r) { b.x = r; b.vx = Math.abs(b.vx); }
+      if (b.x > W - r) { b.x = W - r; b.vx = -Math.abs(b.vx); }
+      if (b.y < r + 40) { b.y = r + 40; b.vy = Math.abs(b.vy); }
+      if (b.y > H - 28 - r) { b.y = H - 28 - r; b.vy = -Math.abs(b.vy); }
+    });
+  }
+
   function update(dt) {
     fish.wobble += dt * 3;
 
@@ -596,6 +633,21 @@
     }
 
     if (fish.eating > 0) fish.eating -= dt;
+
+    // Egg hatching
+    for (let i = decos.length - 1; i >= 0; i--) {
+      const d = decos[i];
+      if (d.type !== 'egg' || d.hatchTimer == null) continue;
+      d.hatchTimer -= dt;
+      if (d.hatchTimer <= 0) {
+        decos.splice(i, 1);
+        babies.push({ x: d.x, y: d.y - 20, vx: (Math.random()-0.5)*1.5, vy: -1, dir: 1, wobble: 0, size: 22 });
+        window._ff.playChime();
+        for (let b = 0; b < 6; b++) bubbles.push({ x: d.x + (Math.random()-0.5)*30, y: d.y, r: 3+Math.random()*5, vy: -1 - Math.random() });
+      }
+    }
+
+    updateBabies(dt);
   }
 
   let last = 0;
@@ -608,6 +660,7 @@
     drawDecos();
     drawFoods();
     drawBubbles();
+    drawBabies();
     drawFish();
     requestAnimationFrame(loop);
     update(dt);
@@ -615,7 +668,9 @@
 
   function handleTap(cx, cy) {
     if (selectedDeco) {
-      decos.push({ type: selectedDeco, x: cx, y: cy });
+      const d = { type: selectedDeco, x: cx, y: cy };
+      if (selectedDeco === 'egg') d.hatchTimer = 5 + Math.random() * 5;
+      decos.push(d);
       window._ff.playChime();
       document.querySelectorAll('.deco-pick').forEach(b => b.classList.remove('selected'));
       selectedDeco = null;
@@ -643,7 +698,7 @@
       resize();
       fish.x = W * 0.5; fish.y = H * 0.45;
       fish.vx = 1.2; fish.vy = 0.3; fish.size = 56;
-      foods.length = 0; bubbles.length = 0;
+      foods.length = 0; bubbles.length = 0; decos.length = 0; babies.length = 0;
     }
   };
 
