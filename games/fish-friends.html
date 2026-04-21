@@ -65,6 +65,20 @@
     /* ── Screen 3 ── */
     #s-tank { background: #001428; }
     #cv-tank { display: block; touch-action: none; }
+    #deco-bar {
+      position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 10px; align-items: center;
+      background: rgba(0,20,40,0.75); border-radius: 30px; padding: 8px 14px;
+      z-index: 100;
+    }
+    .deco-pick {
+      width: 48px; height: 48px; border-radius: 50%; border: 2px solid rgba(126,237,244,0.4);
+      background: rgba(0,40,80,0.7); font-size: 1.6rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      touch-action: manipulation; transition: transform 0.1s;
+    }
+    .deco-pick.selected { border-color: #7EEDF4; transform: scale(1.15); }
+    .deco-pick:active { transform: scale(0.88); }
   </style>
 </head>
 <body>
@@ -93,6 +107,14 @@
 <!-- SCREEN 3: AQUARIUM -->
 <div class="screen" id="s-tank">
   <canvas id="cv-tank"></canvas>
+  <div id="deco-bar">
+    <button class="deco-pick" data-deco="seaweed">🌿</button>
+    <button class="deco-pick" data-deco="shell">🐚</button>
+    <button class="deco-pick" data-deco="rock">🪨</button>
+    <button class="deco-pick" data-deco="star">⭐</button>
+    <button class="deco-pick" data-deco="egg">🥚</button>
+    <button class="icon-btn nav" id="btn-back3" style="width:44px;height:44px;font-size:1.2rem;">&#8592;</button>
+  </div>
 </div>
 
 <script>
@@ -386,8 +408,25 @@
 
   // Fish state
   const fish = { x: 200, y: 200, vx: 1.2, vy: 0.4, size: 56, dir: 1, wobble: 0, eating: 0 };
-  const foods = [];   // { x, y, vy }
-  const bubbles = []; // { x, y, r, vy }
+  const foods      = [];  // { x, y, vy }
+  const bubbles    = [];  // { x, y, r, vy }
+  const decos      = [];  // { type, x, y }
+  let   selectedDeco = null;
+
+  // Deco bar
+  document.querySelectorAll('.deco-pick').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.deco-pick').forEach(b => b.classList.remove('selected'));
+      if (selectedDeco === btn.dataset.deco) { selectedDeco = null; return; }
+      selectedDeco = btn.dataset.deco;
+      btn.classList.add('selected');
+      window._ff.playPop();
+    });
+  });
+
+  document.getElementById('btn-back3').addEventListener('click', () => {
+    window._ff.playPop(); window._ff.showScreen('s-paint');
+  });
 
   let W = 0, H = 0;
 
@@ -467,6 +506,15 @@
     ctxT.beginPath(); ctxT.arc(eyeX, cy - r * 0.1, r * 0.05, 0, Math.PI * 2); ctxT.fill();
 
     ctxT.restore();
+  }
+
+  const DECO_EMOJI = { seaweed:'🌿', shell:'🐚', rock:'🪨', star:'⭐', egg:'🥚' };
+  function drawDecos() {
+    ctxT.font = '28px serif';
+    ctxT.textAlign = 'center'; ctxT.textBaseline = 'bottom';
+    decos.forEach(d => {
+      ctxT.fillText(DECO_EMOJI[d.type] || '?', d.x, d.y);
+    });
   }
 
   function drawFoods() {
@@ -557,6 +605,7 @@
     if (!document.getElementById('s-tank').classList.contains('active')) { requestAnimationFrame(loop); return; }
     ctxT.clearRect(0, 0, W, H);
     drawBg();
+    drawDecos();
     drawFoods();
     drawBubbles();
     drawFish();
@@ -564,19 +613,26 @@
     update(dt);
   }
 
-  // Drop food on tap/click
+  function handleTap(cx, cy) {
+    if (selectedDeco) {
+      decos.push({ type: selectedDeco, x: cx, y: cy });
+      window._ff.playChime();
+      document.querySelectorAll('.deco-pick').forEach(b => b.classList.remove('selected'));
+      selectedDeco = null;
+    } else {
+      foods.push({ x: cx, y: cy, vy: 1.5 });
+      window._ff.beep(500, 0.08, 'sine');
+    }
+  }
+
   cvT.addEventListener('click', e => {
     const rect = cvT.getBoundingClientRect();
-    foods.push({ x: e.clientX - rect.left, y: e.clientY - rect.top, vy: 1.5 });
-    window._ff.beep(500, 0.08, 'sine');
+    handleTap(e.clientX - rect.left, e.clientY - rect.top);
   });
   cvT.addEventListener('touchstart', e => {
     e.preventDefault();
     const rect = cvT.getBoundingClientRect();
-    for (const t of e.changedTouches) {
-      foods.push({ x: t.clientX - rect.left, y: t.clientY - rect.top, vy: 1.5 });
-    }
-    window._ff.beep(500, 0.08, 'sine');
+    for (const t of e.changedTouches) handleTap(t.clientX - rect.left, t.clientY - rect.top);
   }, { passive: false });
 
   // Hook into showScreen to reset fish on each visit
