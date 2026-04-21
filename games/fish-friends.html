@@ -112,7 +112,7 @@
     <button class="deco-pick" data-deco="shell">🐚</button>
     <button class="deco-pick" data-deco="rock">🪨</button>
     <button class="deco-pick" data-deco="star">⭐</button>
-    <button class="deco-pick" data-deco="egg">🥚</button>
+    <button class="deco-pick" data-deco="egg" title="Egg">&#9711;</button>
     <button class="icon-btn nav" id="btn-back3" style="width:44px;height:44px;font-size:1.2rem;">&#8592;</button>
   </div>
 </div>
@@ -175,16 +175,16 @@
       ctx.quadraticCurveTo(cx+r*.48, cy+r*.16, cx+r*.64, cy+r*.28);
       ctx.closePath();
     },
-    // 3: Sword (long, asymmetric tail)
+    // 3: Betta (forked swallow tail)
     function(ctx, cx, cy, r) {
       ctx.beginPath();
-      ctx.moveTo(cx+r*.7, cy);
-      ctx.lineTo(cx+r*.92, cy-r*.26);
-      ctx.quadraticCurveTo(cx+r*.68, cy-r*.13, cx+r*.1, cy-r*.2);
-      ctx.quadraticCurveTo(cx-r*.44, cy-r*.12, cx-r*.86, cy);
-      ctx.quadraticCurveTo(cx-r*.44, cy+r*.12, cx+r*.1, cy+r*.2);
-      ctx.quadraticCurveTo(cx+r*.5,  cy+r*.18, cx+r*.95, cy+r*.7);
-      ctx.lineTo(cx+r*.7, cy+r*.02);
+      ctx.moveTo(cx+r*.55, cy);
+      ctx.lineTo(cx+r*.92, cy-r*.52);
+      ctx.quadraticCurveTo(cx+r*.70, cy-r*.22, cx+r*.12, cy-r*.30);
+      ctx.quadraticCurveTo(cx-r*.20, cy-r*.28, cx-r*.62, cy-r*.08);
+      ctx.quadraticCurveTo(cx-r*.72, cy,        cx-r*.62, cy+r*.08);
+      ctx.quadraticCurveTo(cx-r*.20, cy+r*.28, cx+r*.12, cy+r*.30);
+      ctx.quadraticCurveTo(cx+r*.70, cy+r*.22, cx+r*.92, cy+r*.52);
       ctx.closePath();
     },
     // 4: Chubby (wide)
@@ -199,7 +199,7 @@
       ctx.closePath();
     },
   ];
-  const LABELS = ['CLASSIC','ANGEL','PUFFER','SWORD','CHUBBY'];
+  const LABELS = ['CLASSIC','ANGEL','PUFFER','BETTA','CHUBBY'];
 
   // ── Shared state ──────────────────────────────────────────────────────────
   let fishType = 0;
@@ -441,29 +441,12 @@
     fish.y = Math.min(fish.y, H - fish.size);
   }
 
-  // Draw underwater background gradient
   function drawBg() {
     const grd = ctxT.createLinearGradient(0, 0, 0, H);
     grd.addColorStop(0, '#001428');
     grd.addColorStop(1, '#003060');
     ctxT.fillStyle = grd;
     ctxT.fillRect(0, 0, W, H);
-
-    // Sand floor
-    ctxT.fillStyle = '#C2A46B';
-    ctxT.fillRect(0, H - 28, W, 28);
-    // Some simple seaweed
-    for (let sx = 60; sx < W; sx += 110) {
-      for (let seg = 0; seg < 5; seg++) {
-        const sy = H - 28 - seg * 22;
-        ctxT.strokeStyle = `rgba(30,180,60,${0.7 - seg * 0.1})`;
-        ctxT.lineWidth = 6;
-        ctxT.beginPath();
-        ctxT.moveTo(sx, sy + 22);
-        ctxT.quadraticCurveTo(sx + (seg % 2 === 0 ? 14 : -14), sy + 11, sx, sy);
-        ctxT.stroke();
-      }
-    }
   }
 
   function drawFish() {
@@ -473,7 +456,7 @@
 
     ctxT.save();
     ctxT.translate(cx, cy);
-    if (fish.dir < 0) ctxT.scale(-1, 1);
+    if (fish.dir > 0) ctxT.scale(-1, 1);
     ctxT.translate(0, Math.sin(fish.wobble) * r * 0.08);
     ctxT.translate(-cx, -cy);
 
@@ -481,16 +464,14 @@
     if (window._ff.paintedCanvas) {
       const pc = window._ff.paintedCanvas;
       const pW = pc.width, pH = pc.height;
-      // fish shape at fish position
       ff.SHAPES[ff.fishType()](ctxT, cx, cy, r);
       ctxT.clip();
-      // scale painted canvas to match current fish size vs original canvas size
       const scale = (r * 2) / Math.min(pW, pH);
       ctxT.drawImage(pc, cx - pW * scale / 2, cy - pH * scale / 2, pW * scale, pH * scale);
       ctxT.restore();
       ctxT.save();
       ctxT.translate(cx, cy);
-      if (fish.dir < 0) ctxT.scale(-1, 1);
+      if (fish.dir > 0) ctxT.scale(-1, 1);
       ctxT.translate(0, Math.sin(fish.wobble) * r * 0.08);
       ctxT.translate(-cx, -cy);
     }
@@ -503,7 +484,7 @@
     }
 
     // Eye
-    const eyeX = cx + r * (fish.dir > 0 ? -0.28 : 0.28);
+    const eyeX = cx - r * 0.28;
     ctxT.fillStyle = '#7EEDF4';
     ctxT.beginPath(); ctxT.arc(eyeX, cy - r * 0.1, r * 0.1, 0, Math.PI * 2); ctxT.fill();
     ctxT.fillStyle = '#001428';
@@ -512,11 +493,41 @@
     ctxT.restore();
   }
 
-  const DECO_EMOJI = { seaweed:'🌿', shell:'🐚', rock:'🪨', star:'⭐', egg:'🥚' };
+  const DECO_EMOJI = { seaweed:'🌿', shell:'🐚', rock:'🪨', star:'⭐' };
   function drawDecos() {
     ctxT.font = '28px serif';
     ctxT.textAlign = 'center'; ctxT.textBaseline = 'bottom';
     decos.forEach(d => {
+      if (d.type === 'egg') {
+        const eg = ctxT.createRadialGradient(d.x-3, d.y-4, 2, d.x, d.y, 11);
+        eg.addColorStop(0, 'rgba(255,255,255,0.95)');
+        eg.addColorStop(0.5, 'rgba(220,200,160,0.8)');
+        eg.addColorStop(1,   'rgba(180,140,80,0.3)');
+        ctxT.beginPath(); ctxT.arc(d.x, d.y, 11, 0, Math.PI*2);
+        ctxT.fillStyle = eg; ctxT.fill();
+        ctxT.strokeStyle = 'rgba(180,140,80,0.5)'; ctxT.lineWidth = 1.2; ctxT.stroke();
+        return;
+      }
+      if (d.type === 'sand') {
+        const sg = ctxT.createRadialGradient(d.x, d.y, 0, d.x, d.y, 52);
+        sg.addColorStop(0, 'rgba(194,164,107,0.85)');
+        sg.addColorStop(1, 'rgba(194,164,107,0)');
+        ctxT.fillStyle = sg;
+        ctxT.beginPath(); ctxT.ellipse(d.x, d.y, 52, 18, 0, 0, Math.PI*2); ctxT.fill();
+        return;
+      }
+      if (d.type === 'kelp') {
+        let bx = d.x, by = d.y;
+        for (let s = 0; s < 6; s++) {
+          const ty = by - 28;
+          ctxT.strokeStyle = `rgba(20,160,50,${0.85 - s*0.1})`;
+          ctxT.lineWidth = 7 - s*0.7; ctxT.lineCap = 'round';
+          ctxT.beginPath(); ctxT.moveTo(bx, by);
+          ctxT.quadraticCurveTo(bx + (s%2===0 ? 18:-18), (by+ty)/2, bx, ty);
+          ctxT.stroke(); by = ty;
+        }
+        return;
+      }
       ctxT.fillText(DECO_EMOJI[d.type] || '?', d.x, d.y);
     });
   }
@@ -542,14 +553,14 @@
       const r = b.size * 0.5;
       ctxT.save();
       ctxT.translate(b.x, b.y);
-      if (b.dir < 0) ctxT.scale(-1, 1);
+      if (b.dir > 0) ctxT.scale(-1, 1);
       ctxT.translate(0, Math.sin(b.wobble) * r * 0.1);
       ctxT.translate(-b.x, -b.y);
       ff.SHAPES[ff.fishType()](ctxT, b.x, b.y, r);
       ctxT.fillStyle = 'rgba(200,240,255,0.35)'; ctxT.fill();
       ctxT.strokeStyle = '#7EEDF4'; ctxT.lineWidth = 1.5; ctxT.stroke();
       ctxT.fillStyle = '#7EEDF4';
-      ctxT.beginPath(); ctxT.arc(b.x + r * (b.dir > 0 ? -0.28 : 0.28), b.y - r * 0.1, r * 0.12, 0, Math.PI * 2); ctxT.fill();
+      ctxT.beginPath(); ctxT.arc(b.x - r * 0.28, b.y - r * 0.1, r * 0.12, 0, Math.PI * 2); ctxT.fill();
       ctxT.restore();
     });
   }
@@ -568,7 +579,7 @@
       if (b.x < r) { b.x = r; b.vx = Math.abs(b.vx); }
       if (b.x > W - r) { b.x = W - r; b.vx = -Math.abs(b.vx); }
       if (b.y < r + 40) { b.y = r + 40; b.vy = Math.abs(b.vy); }
-      if (b.y > H - 28 - r) { b.y = H - 28 - r; b.vy = -Math.abs(b.vy); }
+      if (b.y > H - 10 - r) { b.y = H - 10 - r; b.vy = -Math.abs(b.vy); }
     });
   }
 
@@ -607,12 +618,12 @@
     if (fish.x < r) { fish.x = r; fish.vx = Math.abs(fish.vx); }
     if (fish.x > W - r) { fish.x = W - r; fish.vx = -Math.abs(fish.vx); }
     if (fish.y < r + 40) { fish.y = r + 40; fish.vy = Math.abs(fish.vy); }
-    if (fish.y > H - 28 - r) { fish.y = H - 28 - r; fish.vy = -Math.abs(fish.vy); }
+    if (fish.y > H - 10 - r) { fish.y = H - 10 - r; fish.vy = -Math.abs(fish.vy); }
 
     // Eat food
     for (let i = foods.length - 1; i >= 0; i--) {
       foods[i].y += foods[i].vy;
-      if (foods[i].y > H - 28) { foods.splice(i, 1); continue; }
+      if (foods[i].y > H - 10) { foods.splice(i, 1); continue; }
       if (Math.hypot(foods[i].x - fish.x, foods[i].y - fish.y) < r + 8) {
         foods.splice(i, 1);
         fish.eating = 0.4;
