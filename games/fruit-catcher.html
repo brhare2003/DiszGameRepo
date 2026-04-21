@@ -292,6 +292,43 @@
 
     // ── Game ─────────────────────────────────────────────────────────────────
     (function () {
+      // Audio
+      let _ac = null;
+      function getAC() { if (!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+      function playSound(type) {
+        try {
+          const a = getAC(), t = a.currentTime;
+          const o = a.createOscillator(), g = a.createGain();
+          o.connect(g); g.connect(a.destination);
+          if (type === 'catch') {
+            o.frequency.setValueAtTime(700, t); o.frequency.exponentialRampToValueAtTime(1100, t+0.1);
+            g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.15);
+            o.start(t); o.stop(t+0.15);
+          } else if (type === 'miss') {
+            o.type = 'sawtooth';
+            o.frequency.setValueAtTime(250, t); o.frequency.exponentialRampToValueAtTime(100, t+0.22);
+            g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.25);
+            o.start(t); o.stop(t+0.25);
+          } else if (type === 'gameover') {
+            [440,370,300,220].forEach((f,i)=>{
+              const o2=a.createOscillator(), g2=a.createGain();
+              o2.connect(g2); g2.connect(a.destination);
+              o2.frequency.setValueAtTime(f, t+i*0.14);
+              g2.gain.setValueAtTime(0.18, t+i*0.14); g2.gain.exponentialRampToValueAtTime(0.001, t+i*0.14+0.18);
+              o2.start(t+i*0.14); o2.stop(t+i*0.14+0.18);
+            }); return;
+          } else if (type === 'levelup') {
+            [523,784,1047].forEach((f,i)=>{
+              const o2=a.createOscillator(), g2=a.createGain();
+              o2.connect(g2); g2.connect(a.destination);
+              o2.frequency.setValueAtTime(f, t+i*0.1);
+              g2.gain.setValueAtTime(0.16, t+i*0.1); g2.gain.exponentialRampToValueAtTime(0.001, t+i*0.1+0.18);
+              o2.start(t+i*0.1); o2.stop(t+i*0.1+0.18);
+            }); return;
+          }
+        } catch(e) {}
+      }
+
       const canvas = document.getElementById('game-canvas');
       const ctx    = canvas.getContext('2d');
 
@@ -577,6 +614,7 @@
         // Level up every ~10 s worth of dt-frames
         if (state === 'playing' && frameCount % 600 === 0) {
           level++;
+          playSound('levelup');
           spawnRate = Math.max(30, spawnRate - 7);
         }
 
@@ -615,6 +653,7 @@
               f.state = 'caught';
               f.anim  = 0;
               score  += f.type.pts;
+              playSound('catch');
               popups.push({ x: f.x, y: f.y - 10, text: `+${f.type.pts}`, life: 1 });
               updateHUD();
             }
@@ -626,6 +665,7 @@
               if (!lostThisFrame && state === 'playing') {
                 lostThisFrame = true;
                 lives--;
+                playSound(lives <= 0 ? 'gameover' : 'miss');
                 updateHUD();
                 if (lives <= 0) {
                   state = 'ending';

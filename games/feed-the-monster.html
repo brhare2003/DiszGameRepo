@@ -305,6 +305,44 @@
 })();
 
 // ── Game constants ────────────────────────────────────────────────────────────
+// ── Audio ─────────────────────────────────────────────────────────────────────
+var _ac = null;
+function getAC() { if (!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+function playSound(type) {
+  try {
+    var a = getAC(), t = a.currentTime;
+    if (type === 'correct') {
+      [523,784,1047].forEach(function(f,i){
+        var o=a.createOscillator(), g=a.createGain();
+        o.connect(g); g.connect(a.destination);
+        o.frequency.setValueAtTime(f, t+i*0.09);
+        g.gain.setValueAtTime(0.18, t+i*0.09); g.gain.exponentialRampToValueAtTime(0.001, t+i*0.09+0.18);
+        o.start(t+i*0.09); o.stop(t+i*0.09+0.18);
+      });
+    } else if (type === 'wrong') {
+      var o=a.createOscillator(), g=a.createGain();
+      o.type='sawtooth'; o.connect(g); g.connect(a.destination);
+      o.frequency.setValueAtTime(240, t); o.frequency.exponentialRampToValueAtTime(110, t+0.22);
+      g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.25);
+      o.start(t); o.stop(t+0.25);
+    } else if (type === 'gameover') {
+      [440,370,300,220].forEach(function(f,i){
+        var o=a.createOscillator(), g=a.createGain();
+        o.connect(g); g.connect(a.destination);
+        o.frequency.setValueAtTime(f, t+i*0.14);
+        g.gain.setValueAtTime(0.18, t+i*0.14); g.gain.exponentialRampToValueAtTime(0.001, t+i*0.14+0.18);
+        o.start(t+i*0.14); o.stop(t+i*0.14+0.18);
+      });
+    } else if (type === 'timeout') {
+      var o=a.createOscillator(), g=a.createGain();
+      o.type='triangle'; o.connect(g); g.connect(a.destination);
+      o.frequency.setValueAtTime(350, t); o.frequency.exponentialRampToValueAtTime(180, t+0.3);
+      g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.35);
+      o.start(t); o.stop(t+0.35);
+    }
+  } catch(e) {}
+}
+
 var COLORS = [
   { name: 'RED',    hex: '#ff3355', bg: '#ff335533', emoji: '🍎' },
   { name: 'BLUE',   hex: '#3399ff', bg: '#3399ff33', emoji: '🫐' },
@@ -557,10 +595,12 @@ function handleFeed(colorIdx) {
   if (colorIdx === targetIdx) {
     score += 10;
     updateHUD();
+    playSound('correct');
     showFeedback('+10', '#33ff99');
     drawMonster(COLORS[targetIdx].hex, false, 'happy');
     setTimeout(nextRound, 500);
   } else {
+    playSound('wrong');
     showFeedback('WRONG!', '#ff3355');
     drawMonster(COLORS[targetIdx].hex, true, 'sad');
     setTimeout(function() {
@@ -635,6 +675,7 @@ function startGame() {
 
 function gameOver() {
   gameActive = false;
+  playSound('gameover');
   clearInterval(gameTimerId);
   ghost.style.display = 'none';
   document.getElementById('final-score').textContent = score;
