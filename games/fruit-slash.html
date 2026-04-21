@@ -346,13 +346,23 @@ function updateUI() {
 function spawnFruit() {
   const d    = DIFFS[difficulty];
   const isBomb = Math.random() < 0.12;
-  const x   = W * (0.12 + Math.random() * 0.76);
-  const baseVy = -(H * 0.022 + Math.random() * H * 0.012);
-  const vy  = baseVy * d.vyMult;
-  const vx  = (Math.random() - 0.5) * 5.5 * d.vyMult;
-  const spin = (Math.random() - 0.5) * 0.12;
   const type = isBomb ? null : FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
   const size = isBomb ? 30 : type.size;
+
+  const baseVy = -(H * 0.022 + Math.random() * H * 0.012);
+  const vy  = baseVy * d.vyMult;
+
+  // Total frames in the air (dt≈1 at 60 fps)
+  const tFlight = (-2 * vy) / d.gravity;
+
+  // Pick entry x and landing x independently — both within screen margins.
+  // vx is derived so the fruit always lands back at the bottom.
+  const margin = size + 24;
+  const x    = margin + Math.random() * (W - margin * 2);
+  const xEnd = margin + Math.random() * (W - margin * 2);
+  const vx   = (xEnd - x) / tFlight;
+
+  const spin = (Math.random() - 0.5) * 0.12;
 
   fruits.push({ x, y: H + size, vx, vy, spin, angle: 0, size, type, isBomb,
                 sliced: false, dead: false, halfL: null, halfR: null });
