@@ -651,10 +651,20 @@ function initStickerScreen() {
 function stickerPos(e) {
   const rect = sv.getBoundingClientRect();
   const src = e.touches ? e.touches[0] : e;
-  return {
-    x:(src.clientX-rect.left)*(sv.width/rect.width),
-    y:(src.clientY-rect.top)*(sv.height/rect.height)
-  };
+  const W = sv.width, H = sv.height;
+  // Convert screen coords → sv canvas coords
+  const xd = (src.clientX - rect.left) * (W / rect.width);
+  const yd = (src.clientY - rect.top)  * (H / rect.height);
+  // renderPreview uses drawCar(ctx, W/2, H/2, W*0.8, H*0.75, ...)
+  const cw = W * 0.8, ch = H * 0.75;
+  const bx = W / 2 - cw / 2;
+  const by = H / 2 - ch / 2;
+  let yOrg, yH;
+  if      (carType === 'hotrod')  { yOrg = by + ch*0.12; yH = ch*0.86; }
+  else if (carType === 'monster') { yOrg = by - ch*0.08; yH = ch*0.82; }
+  else                            { yOrg = by;            yH = ch;      }
+  // Inverse-transform to overlayCV coordinates (same logic as garPos)
+  return { x: (xd - bx) * W / cw, y: (yd - yOrg) * H / yH };
 }
 
 sv.addEventListener('pointerdown', e => {
