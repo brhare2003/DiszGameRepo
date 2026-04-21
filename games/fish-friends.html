@@ -535,27 +535,30 @@
   const foods      = [];  // { x, y, vy }
   const bubbles    = [];  // { x, y, r, vy }
   const decos      = [];  // { type, x, y, hatchTimer? }
-  let selectedDeco = null;
-  let activeTool   = 'food';
+  let selectedDeco   = null;
+  let lastPlacedDeco = null; // the most recently placed deco of the selected type
+  let activeTool     = 'food';
   let dragDeco = null, dragActive = false, pDownX = 0, pDownY = 0;
 
-  // Tool buttons
+  // Tool buttons — deselect any deco selection
   document.querySelectorAll('[data-tool]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('[data-tool],[data-deco]').forEach(b => b.classList.remove('selected'));
       activeTool = btn.dataset.tool;
-      selectedDeco = null;
+      selectedDeco = null; lastPlacedDeco = null;
       btn.classList.add('selected');
       window._ff.playPop();
     });
   });
 
-  // Deco buttons
+  // Deco buttons — toggle: first click selects, second click same icon deselects
   document.querySelectorAll('[data-deco]').forEach(btn => {
     btn.addEventListener('click', () => {
+      const isSame = selectedDeco === btn.dataset.deco;
       document.querySelectorAll('[data-tool],[data-deco]').forEach(b => b.classList.remove('selected'));
-      if (selectedDeco === btn.dataset.deco) { selectedDeco = null; return; }
+      if (isSame) { selectedDeco = null; lastPlacedDeco = null; return; }
       selectedDeco = btn.dataset.deco;
+      lastPlacedDeco = null; // fresh selection — next tap places a new item
       btn.classList.add('selected');
       window._ff.playPop();
     });
@@ -626,9 +629,8 @@
 
   const DECO_EMOJI = { seaweed:'🌿', shell:'🐚', rock:'🪨', star:'⭐' };
   function drawDecos() {
-    ctxT.font = '28px serif';
-    ctxT.textAlign = 'center'; ctxT.textBaseline = 'bottom';
     decos.forEach(d => {
+      ctxT.save();
       if (d.type === 'egg') {
         const eg = ctxT.createRadialGradient(d.x-3, d.y-4, 2, d.x, d.y, 11);
         eg.addColorStop(0, 'rgba(255,255,255,0.95)');
@@ -637,29 +639,30 @@
         ctxT.beginPath(); ctxT.arc(d.x, d.y, 11, 0, Math.PI*2);
         ctxT.fillStyle = eg; ctxT.fill();
         ctxT.strokeStyle = 'rgba(180,140,80,0.5)'; ctxT.lineWidth = 1.2; ctxT.stroke();
-        return;
-      }
-      if (d.type === 'sand') {
+      } else if (d.type === 'sand') {
         const sg = ctxT.createRadialGradient(d.x, d.y, 0, d.x, d.y, 52);
         sg.addColorStop(0, 'rgba(194,164,107,0.85)');
         sg.addColorStop(1, 'rgba(194,164,107,0)');
         ctxT.fillStyle = sg;
         ctxT.beginPath(); ctxT.ellipse(d.x, d.y, 52, 18, 0, 0, Math.PI*2); ctxT.fill();
-        return;
-      }
-      if (d.type === 'kelp') {
+      } else if (d.type === 'kelp') {
         let bx = d.x, by = d.y;
+        ctxT.lineCap = 'round';
         for (let s = 0; s < 6; s++) {
           const ty = by - 28;
           ctxT.strokeStyle = `rgba(20,160,50,${0.85 - s*0.1})`;
-          ctxT.lineWidth = 7 - s*0.7; ctxT.lineCap = 'round';
+          ctxT.lineWidth = 7 - s*0.7;
           ctxT.beginPath(); ctxT.moveTo(bx, by);
           ctxT.quadraticCurveTo(bx + (s%2===0 ? 18:-18), (by+ty)/2, bx, ty);
           ctxT.stroke(); by = ty;
         }
-        return;
+      } else {
+        ctxT.font = '26px serif';
+        ctxT.textAlign = 'center'; ctxT.textBaseline = 'bottom';
+        ctxT.fillStyle = '#ffffff'; // ensures emoji render on all platforms
+        ctxT.fillText(DECO_EMOJI[d.type] || '?', d.x, d.y);
       }
-      ctxT.fillText(DECO_EMOJI[d.type] || '?', d.x, d.y);
+      ctxT.restore();
     });
   }
 
@@ -719,8 +722,30 @@
     if (fish.eating > 0) fish.eating -= dt;
   }
 
+  function updateDecos(dt) {
+    decos.forEach(d => {
+      if (d.type === 'egg') {
+        // Gentle random drift — eggs float in the water column
+        d.vx = ((d.vx || 0) + (Math.random()-0.5)*0.25) * 0.97;
+        d.vy_drift = ((d.vy_drift || 0) + (Math.random()-0.5)*0.15) * 0.97;
+        d.x += d.vx; d.y += d.vy_drift;
+        if (d.x < 14) { d.x = 14; d.vx = Math.abs(d.vx); }
+        if (d.x > W-14) { d.x = W-14; d.vx = -Math.abs(d.vx); }
+        if (d.y < 40) { d.y = 40; d.vy_drift = Math.abs(d.vy_drift); }
+        if (d.y > H-40) { d.y = H-40; d.vy_drift = -Math.abs(d.vy_drift); }
+        return;
+      }
+      if (d.settled || d === dragDeco) return; // don't fall while being dragged
+      d.vy = (d.vy || 0) + 280 * dt;
+      d.y  += d.vy * dt;
+      const floor = d.type === 'sand' ? H - 28 : H - 10;
+      if (d.y >= floor) { d.y = floor; d.vy = 0; d.settled = true; }
+    });
+  }
+
   function update(dt) {
     fishList.forEach(f => updateOneFish(f, dt));
+    updateDecos(dt);
 
     // Advance food gravity
     for (let i = foods.length - 1; i >= 0; i--) {
@@ -779,21 +804,27 @@
         const btn = document.getElementById('btn-add-fish');
         btn.style.boxShadow = '0 0 0 3px #FF4D4D';
         setTimeout(() => { btn.style.boxShadow = ''; }, 900);
-        document.querySelectorAll('[data-deco]').forEach(b => b.classList.remove('selected'));
-        selectedDeco = null;
         return;
       }
-      const d = { type: selectedDeco, x: cx, y: cy };
-      if (selectedDeco === 'egg') {
-        d.hatchTimer = 5 + Math.random() * 5;
-        d.fishIndex  = window._ff.savedFish.length - 1;
+      if (lastPlacedDeco && lastPlacedDeco.type === selectedDeco) {
+        // Move the already-placed item to the new tap position
+        lastPlacedDeco.x = cx; lastPlacedDeco.y = cy;
+        if (selectedDeco !== 'egg') lastPlacedDeco.settled = false; // re-trigger fall
+        window._ff.playPop();
+      } else {
+        // Place a brand-new item
+        const d = { type: selectedDeco, x: cx, y: cy, vy: 0, settled: false };
+        if (selectedDeco === 'egg') {
+          d.hatchTimer = 5 + Math.random() * 5;
+          d.fishIndex  = window._ff.savedFish.length - 1;
+          d.vx = 0; d.vy_drift = 0; d.settled = true; // eggs float, not fall
+        }
+        if (selectedDeco === 'kelp') d.hitH = 168;
+        decos.push(d);
+        lastPlacedDeco = d;
+        window._ff.playChime();
       }
-      if (selectedDeco === 'kelp') d.hitH = 168;
-      decos.push(d);
-      window._ff.playChime();
-      document.querySelectorAll('[data-deco]').forEach(b => b.classList.remove('selected'));
-      selectedDeco = null;
-      return;
+      return; // keep selectedDeco active for repositioning
     }
     if (activeTool === 'food') {
       foods.push({ x: cx, y: cy, vy: 1.5 });
@@ -836,7 +867,11 @@
 
   cvT.addEventListener('pointerup', e => {
     const rect = cvT.getBoundingClientRect();
-    if (!dragActive) handleTap(e.clientX - rect.left, e.clientY - rect.top);
+    if (!dragActive) {
+      handleTap(e.clientX - rect.left, e.clientY - rect.top);
+    } else if (dragDeco && dragDeco.type !== 'egg') {
+      dragDeco.settled = false; // re-fall after manual drag-and-drop
+    }
     dragDeco = null; dragActive = false;
   });
 
