@@ -536,16 +536,17 @@
   const bubbles    = [];  // { x, y, r, vy }
   const decos      = [];  // { type, x, y, hatchTimer? }
   let selectedDeco   = null;
-  let lastPlacedDeco = null; // the most recently placed deco of the selected type
+  let lastPlacedDeco = null;
   let activeTool     = 'food';
   let dragDeco = null, dragActive = false, pDownX = 0, pDownY = 0;
+  let sandPainting   = false;  // true while finger/mouse is down with sand selected
 
   // Tool buttons — deselect any deco selection
   document.querySelectorAll('[data-tool]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('[data-tool],[data-deco]').forEach(b => b.classList.remove('selected'));
       activeTool = btn.dataset.tool;
-      selectedDeco = null; lastPlacedDeco = null;
+      selectedDeco = null; lastPlacedDeco = null; sandPainting = false;
       btn.classList.add('selected');
       window._ff.playPop();
     });
@@ -569,10 +570,25 @@
   });
 
   let W = 0, H = 0;
+  let sandHeights = null; // Float32Array: height in px of sand stack at each x column
 
   function resize() {
     W = window.innerWidth; H = window.innerHeight;
     cvT.width = W; cvT.height = H;
+    // Grow/shrink sandHeights, preserving existing values
+    const prev = sandHeights;
+    sandHeights = new Float32Array(W);
+    if (prev) sandHeights.set(prev.subarray(0, Math.min(W, prev.length)));
+  }
+
+  function pourSand(px, py) {
+    const r = 22; // brush radius in pixels
+    const x0 = Math.max(0, Math.floor(px - r));
+    const x1 = Math.min(W - 1, Math.ceil(px + r));
+    for (let x = x0; x <= x1; x++) {
+      const amt = (r - Math.abs(x - px)) * 0.55; // linear falloff
+      sandHeights[x] = Math.min(sandHeights[x] + amt, H * 0.78);
+    }
   }
 
   function drawBg() {
@@ -639,12 +655,6 @@
         ctxT.beginPath(); ctxT.arc(d.x, d.y, 11, 0, Math.PI*2);
         ctxT.fillStyle = eg; ctxT.fill();
         ctxT.strokeStyle = 'rgba(180,140,80,0.5)'; ctxT.lineWidth = 1.2; ctxT.stroke();
-      } else if (d.type === 'sand') {
-        const sg = ctxT.createRadialGradient(d.x, d.y, 0, d.x, d.y, 52);
-        sg.addColorStop(0, 'rgba(194,164,107,0.85)');
-        sg.addColorStop(1, 'rgba(194,164,107,0)');
-        ctxT.fillStyle = sg;
-        ctxT.beginPath(); ctxT.ellipse(d.x, d.y, 52, 18, 0, 0, Math.PI*2); ctxT.fill();
       } else if (d.type === 'kelp') {
         let bx = d.x, by = d.y;
         ctxT.lineCap = 'round';
@@ -664,6 +674,55 @@
       }
       ctxT.restore();
     });
+  }
+
+  function drawSand() {
+    if (!sandHeights) return;
+    const base = H - 10; // y-coordinate of the tank floor
+    const grad = ctxT.createLinearGradient(0, base - 120, 0, base);
+    grad.addColorStop(0, 'rgba(210,185,130,0.70)');
+    grad.addColorStop(0.45, 'rgba(194,164,107,0.88)');
+    grad.addColorStop(1,   'rgba(160,128,70,1)');
+    ctxT.fillStyle = grad;
+    ctxT.beginPath();
+    ctxT.moveTo(0, base);
+    ctxT.lineTo(0, base - sandHeights[0]);
+    for (let x = 1; x < W; x++) ctxT.lineTo(x, base - sandHeights[x]);
+    ctxT.lineTo(W, base);
+    ctxT.closePath();
+    ctxT.fill();
+  }
+
+  // Returns the y at which an object's "bottom" should rest (lowest = highest on screen)
+  function getFloorY(x, excludeDeco) {
+    const sx = Math.max(0, Math.min(W - 1, Math.round(x)));
+    let floor = sandHeights ? H - 10 - sandHeights[sx] : H - 10;
+    for (const d of decos) {
+      if (d === excludeDeco || !d.settled || d.type === 'egg') continue;
+      if (Math.abs(d.x - x) < 22) { // within stacking range
+        const top = d.y - getObjHeight(d.type);
+        if (top < floor) floor = top;
+      }
+    }
+    return floor;
+  }
+  function getObjHeight(type) {
+    return { shell:18, rock:20, star:16, seaweed:22, kelp:0 }[type] ?? 16;
+  }
+
+  function updateSand() {
+    if (!sandHeights) return;
+    // Cellular automata: gently equalize adjacent columns so piles slope naturally
+    for (let x = 0; x < W - 1; x++) {
+      const diff = sandHeights[x] - sandHeights[x + 1];
+      if (diff > 1.5) {
+        const t = (diff - 1.5) * 0.12;
+        sandHeights[x] -= t; sandHeights[x + 1] += t;
+      } else if (diff < -1.5) {
+        const t = (-diff - 1.5) * 0.12;
+        sandHeights[x] += t; sandHeights[x + 1] -= t;
+      }
+    }
   }
 
   function drawFoods() {
@@ -760,7 +819,7 @@
       if (d.settled || d === dragDeco) return; // don't fall while being dragged
       d.vy = (d.vy || 0) + 280 * dt;
       d.y  += d.vy * dt;
-      const floor = d.type === 'sand' ? H - 28 : H - 10;
+      const floor = getFloorY(d.x, d);
       if (d.y >= floor) { d.y = floor; d.vy = 0; d.settled = true; }
     });
   }
@@ -768,6 +827,7 @@
   function update(dt) {
     fishList.forEach(f => updateOneFish(f, dt));
     updateDecos(dt);
+    updateSand();
 
     // Advance food gravity
     for (let i = foods.length - 1; i >= 0; i--) {
@@ -813,6 +873,7 @@
     if (!document.getElementById('s-tank').classList.contains('active')) { requestAnimationFrame(loop); return; }
     ctxT.clearRect(0, 0, W, H);
     drawBg();
+    drawSand();
     drawDecos();
     drawFoods();
     drawBubbles();
@@ -822,6 +883,7 @@
   }
 
   function handleTap(cx, cy) {
+    if (selectedDeco === 'sand') return; // sand is painted via drag, not single tap
     if (selectedDeco) {
       if (selectedDeco === 'egg' && window._ff.savedFish.length === 0) {
         const btn = document.getElementById('btn-add-fish');
@@ -869,6 +931,7 @@
     e.preventDefault(); cvT.setPointerCapture(e.pointerId);
     const rect = cvT.getBoundingClientRect();
     const px = e.clientX - rect.left, py = e.clientY - rect.top;
+    if (selectedDeco === 'sand') { sandPainting = true; pourSand(px, py); return; }
     pDownX = px; pDownY = py; dragActive = false; dragDeco = null;
     let best = 40, found = null;
     decos.forEach(d => {
@@ -881,14 +944,16 @@
   }, { passive: false });
 
   cvT.addEventListener('pointermove', e => {
-    if (!dragDeco) return;
     const rect = cvT.getBoundingClientRect();
     const px = e.clientX - rect.left, py = e.clientY - rect.top;
+    if (sandPainting) { pourSand(px, py); return; }
+    if (!dragDeco) return;
     if (Math.hypot(px - pDownX, py - pDownY) > 8) dragActive = true;
     if (dragActive) { dragDeco.x = px; dragDeco.y = py; }
   });
 
   cvT.addEventListener('pointerup', e => {
+    if (sandPainting) { sandPainting = false; return; }
     const rect = cvT.getBoundingClientRect();
     if (!dragActive) {
       handleTap(e.clientX - rect.left, e.clientY - rect.top);
@@ -908,6 +973,7 @@
       if (!tankReady) {
         fishList.length = 0;
         foods.length = 0; bubbles.length = 0; decos.length = 0;
+        if (sandHeights) sandHeights.fill(0);
         tankReady = true;
       }
     }
