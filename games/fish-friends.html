@@ -149,68 +149,239 @@
   function playHatch() { [400,600,900,1300].forEach((f,i) => setTimeout(() => beep(f,0.12,'sine'), i*60)); }
   function playGrow()  { [523,659,784,1047].forEach((f,i) => setTimeout(() => beep(f,0.14,'triangle'), i*70)); }
 
-  // ── Fish shape paths ──────────────────────────────────────────────────────
-  // Each fn(ctx, cx, cy, r) creates a closed canvas path
+  // ── Fish shape paths (body silhouette, nose faces LEFT) ──────────────────
   const SHAPES = [
-    // 0: Classic
+    // 0: Cichlid / Tropical — clean oval body, symmetric forked tail
     function(ctx, cx, cy, r) {
       ctx.beginPath();
-      ctx.moveTo(cx+r*.55, cy);
-      ctx.lineTo(cx+r*.85, cy-r*.48);
-      ctx.quadraticCurveTo(cx+r*.55, cy-r*.26, cx+r*.1, cy-r*.36);
-      ctx.quadraticCurveTo(cx-r*.35, cy-r*.22, cx-r*.64, cy);
-      ctx.quadraticCurveTo(cx-r*.35, cy+r*.22, cx+r*.1, cy+r*.36);
-      ctx.quadraticCurveTo(cx+r*.55, cy+r*.26, cx+r*.85, cy+r*.48);
+      ctx.moveTo(cx+r*.52, cy);
+      ctx.lineTo(cx+r*.88, cy-r*.52);
+      ctx.quadraticCurveTo(cx+r*.64, cy-r*.16, cx+r*.26, cy-r*.38);
+      ctx.quadraticCurveTo(cx-r*.04, cy-r*.48, cx-r*.38, cy-r*.32);
+      ctx.quadraticCurveTo(cx-r*.62, cy-r*.13, cx-r*.68, cy);
+      ctx.quadraticCurveTo(cx-r*.62, cy+r*.13, cx-r*.38, cy+r*.32);
+      ctx.quadraticCurveTo(cx-r*.04, cy+r*.48, cx+r*.26, cy+r*.38);
+      ctx.quadraticCurveTo(cx+r*.64, cy+r*.16, cx+r*.88, cy+r*.52);
       ctx.closePath();
     },
-    // 1: Angel (tall)
+    // 1: Angelfish — tall diamond with long trailing top & bottom fins
     function(ctx, cx, cy, r) {
       ctx.beginPath();
-      ctx.moveTo(cx+r*.44, cy);
-      ctx.lineTo(cx+r*.66, cy-r*.3);
-      ctx.quadraticCurveTo(cx+r*.38, cy-r*.25, cx, cy-r*.72);
-      ctx.quadraticCurveTo(cx-r*.4,  cy-r*.25, cx-r*.6, cy);
-      ctx.quadraticCurveTo(cx-r*.4,  cy+r*.25, cx, cy+r*.72);
-      ctx.quadraticCurveTo(cx+r*.38, cy+r*.25, cx+r*.66, cy+r*.3);
+      ctx.moveTo(cx+r*.38, cy);
+      ctx.lineTo(cx+r*.58, cy-r*.20);
+      ctx.quadraticCurveTo(cx+r*.40, cy-r*.10, cx+r*.20, cy-r*.36);
+      ctx.quadraticCurveTo(cx+r*.12, cy-r*.58, cx,       cy-r*.90);
+      ctx.quadraticCurveTo(cx-r*.08, cy-r*.68, cx-r*.22, cy-r*.50);
+      ctx.quadraticCurveTo(cx-r*.42, cy-r*.26, cx-r*.58, cy);
+      ctx.quadraticCurveTo(cx-r*.42, cy+r*.26, cx-r*.22, cy+r*.50);
+      ctx.quadraticCurveTo(cx-r*.08, cy+r*.68, cx,       cy+r*.90);
+      ctx.quadraticCurveTo(cx+r*.12, cy+r*.58, cx+r*.20, cy+r*.36);
+      ctx.quadraticCurveTo(cx+r*.40, cy+r*.10, cx+r*.58, cy+r*.20);
       ctx.closePath();
     },
-    // 2: Puffer (round)
+    // 2: Pufferfish — nearly circular body, tiny tail
     function(ctx, cx, cy, r) {
       ctx.beginPath();
-      ctx.moveTo(cx+r*.42, cy);
-      ctx.lineTo(cx+r*.64, cy-r*.28);
-      ctx.quadraticCurveTo(cx+r*.48, cy-r*.16, cx+r*.1, cy-r*.52);
-      ctx.quadraticCurveTo(cx-r*.28, cy-r*.5,  cx-r*.58, cy-r*.1);
-      ctx.quadraticCurveTo(cx-r*.62, cy,        cx-r*.58, cy+r*.1);
-      ctx.quadraticCurveTo(cx-r*.28, cy+r*.5,  cx+r*.1, cy+r*.52);
-      ctx.quadraticCurveTo(cx+r*.48, cy+r*.16, cx+r*.64, cy+r*.28);
+      ctx.moveTo(cx+r*.36, cy);
+      ctx.lineTo(cx+r*.60, cy-r*.20);
+      ctx.quadraticCurveTo(cx+r*.46, cy-r*.10, cx+r*.24, cy-r*.40);
+      ctx.bezierCurveTo(cx+r*.06, cy-r*.62, cx-r*.28, cy-r*.66, cx-r*.56, cy-r*.42);
+      ctx.bezierCurveTo(cx-r*.74, cy-r*.22, cx-r*.74, cy+r*.22, cx-r*.56, cy+r*.42);
+      ctx.bezierCurveTo(cx-r*.28, cy+r*.66, cx+r*.06, cy+r*.62, cx+r*.24, cy+r*.40);
+      ctx.quadraticCurveTo(cx+r*.46, cy+r*.10, cx+r*.60, cy+r*.20);
       ctx.closePath();
     },
-    // 3: Betta (forked swallow tail)
+    // 3: Betta — slender body, huge half-moon fan tail
     function(ctx, cx, cy, r) {
       ctx.beginPath();
-      ctx.moveTo(cx+r*.55, cy);
-      ctx.lineTo(cx+r*.92, cy-r*.52);
-      ctx.quadraticCurveTo(cx+r*.70, cy-r*.22, cx+r*.12, cy-r*.30);
-      ctx.quadraticCurveTo(cx-r*.20, cy-r*.28, cx-r*.62, cy-r*.08);
-      ctx.quadraticCurveTo(cx-r*.72, cy,        cx-r*.62, cy+r*.08);
-      ctx.quadraticCurveTo(cx-r*.20, cy+r*.28, cx+r*.12, cy+r*.30);
-      ctx.quadraticCurveTo(cx+r*.70, cy+r*.22, cx+r*.92, cy+r*.52);
+      ctx.moveTo(cx+r*.28, cy-r*.12);
+      ctx.bezierCurveTo(cx+r*.45, cy-r*.30, cx+r*.82, cy-r*.82, cx+r*.96, cy-r*.52);
+      ctx.bezierCurveTo(cx+r*1.0,  cy-r*.24, cx+r*.62, cy-r*.06, cx+r*.28, cy);
+      ctx.bezierCurveTo(cx+r*.62,  cy+r*.06, cx+r*1.0, cy+r*.24, cx+r*.96, cy+r*.52);
+      ctx.bezierCurveTo(cx+r*.82,  cy+r*.82, cx+r*.45, cy+r*.30, cx+r*.28, cy+r*.12);
+      ctx.quadraticCurveTo(cx-r*.02, cy+r*.24, cx-r*.38, cy+r*.18);
+      ctx.quadraticCurveTo(cx-r*.62, cy+r*.08, cx-r*.62, cy);
+      ctx.quadraticCurveTo(cx-r*.62, cy-r*.08, cx-r*.38, cy-r*.18);
+      ctx.quadraticCurveTo(cx-r*.02, cy-r*.24, cx+r*.28, cy-r*.12);
       ctx.closePath();
     },
-    // 4: Chubby (wide)
+    // 4: Fantail Goldfish — round body, double butterfly tail
     function(ctx, cx, cy, r) {
       ctx.beginPath();
-      ctx.moveTo(cx+r*.5, cy);
-      ctx.lineTo(cx+r*.78, cy-r*.58);
-      ctx.quadraticCurveTo(cx+r*.45, cy-r*.32, cx, cy-r*.52);
-      ctx.quadraticCurveTo(cx-r*.52, cy-r*.32, cx-r*.74, cy);
-      ctx.quadraticCurveTo(cx-r*.52, cy+r*.32, cx, cy+r*.52);
-      ctx.quadraticCurveTo(cx+r*.45, cy+r*.32, cx+r*.78, cy+r*.58);
+      ctx.moveTo(cx-r*.72, cy);
+      ctx.bezierCurveTo(cx-r*.62, cy-r*.30, cx-r*.12, cy-r*.56, cx+r*.20, cy-r*.50);
+      ctx.quadraticCurveTo(cx+r*.40, cy-r*.44, cx+r*.48, cy-r*.24);
+      ctx.bezierCurveTo(cx+r*.58, cy-r*.16, cx+r*.80, cy-r*.18, cx+r*.86, cy-r*.50);
+      ctx.bezierCurveTo(cx+r*.92, cy-r*.76, cx+r*.74, cy-r*.90, cx+r*.58, cy-r*.80);
+      ctx.quadraticCurveTo(cx+r*.48, cy-r*.62, cx+r*.50, cy-r*.30);
+      ctx.quadraticCurveTo(cx+r*.46, cy-r*.12, cx+r*.50, cy+r*.30);
+      ctx.quadraticCurveTo(cx+r*.48, cy+r*.62, cx+r*.58, cy+r*.80);
+      ctx.bezierCurveTo(cx+r*.74, cy+r*.90, cx+r*.92, cy+r*.76, cx+r*.86, cy+r*.50);
+      ctx.bezierCurveTo(cx+r*.80, cy+r*.18, cx+r*.58, cy+r*.16, cx+r*.48, cy+r*.24);
+      ctx.quadraticCurveTo(cx+r*.40, cy+r*.44, cx+r*.20, cy+r*.50);
+      ctx.bezierCurveTo(cx-r*.12, cy+r*.56, cx-r*.62, cy+r*.30, cx-r*.72, cy);
       ctx.closePath();
     },
   ];
-  const LABELS = ['CLASSIC','ANGEL','PUFFER','BETTA','CHUBBY'];
+  const LABELS = ['CICHLID','ANGEL','PUFFER','BETTA','GOLDFISH'];
+
+  // ── Detail overlays (fins, gill, stripes) drawn on top of body ────────────
+  const DETAILS = [
+    // 0: Cichlid — dorsal fin, anal fin, pectoral fin, gill arc, lateral stripe
+    function(ctx, cx, cy, r) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(126,237,244,0.85)'; ctx.fillStyle = 'rgba(60,180,230,0.18)';
+      ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      // Dorsal fin
+      ctx.beginPath();
+      ctx.moveTo(cx+r*.20, cy-r*.36); ctx.lineTo(cx+r*.04, cy-r*.78);
+      ctx.lineTo(cx-r*.20, cy-r*.72); ctx.lineTo(cx-r*.36, cy-r*.30);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Anal fin
+      ctx.beginPath();
+      ctx.moveTo(cx-r*.08, cy+r*.38); ctx.lineTo(cx-r*.14, cy+r*.68);
+      ctx.lineTo(cx-r*.36, cy+r*.56); ctx.lineTo(cx-r*.34, cy+r*.30);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Pectoral fin
+      ctx.beginPath();
+      ctx.ellipse(cx-r*.18, cy+r*.10, r*.14, r*.07, 0.35, 0, Math.PI*2);
+      ctx.fill(); ctx.stroke();
+      // Gill arc
+      ctx.beginPath(); ctx.arc(cx-r*.30, cy, r*.30, -1.15, 1.15); ctx.stroke();
+      // Lateral stripe
+      ctx.strokeStyle = 'rgba(126,237,244,0.22)'; ctx.lineWidth = r*.09;
+      ctx.beginPath();
+      ctx.moveTo(cx-r*.30, cy-r*.02);
+      ctx.quadraticCurveTo(cx+r*.06, cy-r*.06, cx+r*.44, cy-r*.04);
+      ctx.stroke();
+      ctx.restore();
+    },
+    // 1: Angelfish — gill, pectoral fin, 3 vertical bars, fin rays
+    function(ctx, cx, cy, r) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(126,237,244,0.85)'; ctx.fillStyle = 'rgba(60,180,230,0.18)';
+      ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      // Gill arc
+      ctx.beginPath(); ctx.arc(cx-r*.28, cy, r*.26, -1.1, 1.1); ctx.stroke();
+      // Pectoral fin
+      ctx.beginPath();
+      ctx.ellipse(cx-r*.16, cy+r*.10, r*.12, r*.06, 0.3, 0, Math.PI*2);
+      ctx.fill(); ctx.stroke();
+      // 3 vertical bars
+      [[-r*.10,0.42],[-r*.30,0.38],[-r*.46,0.28]].forEach(([dx,h]) => {
+        ctx.strokeStyle = 'rgba(126,237,244,0.20)'; ctx.lineWidth = r*.08;
+        ctx.beginPath(); ctx.moveTo(cx+dx, cy-r*h); ctx.lineTo(cx+dx, cy+r*h); ctx.stroke();
+      });
+      // Fin rays top
+      ctx.strokeStyle = 'rgba(126,237,244,0.28)'; ctx.lineWidth = 1;
+      for (let i=0;i<4;i++) { const t=i/3;
+        ctx.beginPath();
+        ctx.moveTo(cx+r*(.18-t*.14), cy-r*(.36+t*.40));
+        ctx.lineTo(cx+r*(.04-t*.10), cy-r*(.72+t*.14)); ctx.stroke(); }
+      // Fin rays bottom
+      for (let i=0;i<4;i++) { const t=i/3;
+        ctx.beginPath();
+        ctx.moveTo(cx+r*(.18-t*.14), cy+r*(.36+t*.40));
+        ctx.lineTo(cx+r*(.04-t*.10), cy+r*(.72+t*.14)); ctx.stroke(); }
+      ctx.restore();
+    },
+    // 2: Pufferfish — spines, small dorsal, gill, belly dots
+    function(ctx, cx, cy, r) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(126,237,244,0.85)'; ctx.fillStyle = 'rgba(60,180,230,0.18)';
+      ctx.lineCap = 'round';
+      // Top spines
+      for (let i=0;i<7;i++) {
+        const t=i/6, bx=cx+r*(.22-t*.60), by=cy-r*(.44+Math.sin(t*Math.PI)*.14);
+        ctx.lineWidth = 1.2; ctx.beginPath();
+        ctx.moveTo(bx-r*.035, by); ctx.lineTo(bx, by-r*.14); ctx.lineTo(bx+r*.035, by);
+        ctx.stroke();
+      }
+      // Dorsal bump
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(cx+r*.10, cy-r*.40); ctx.lineTo(cx+r*.02, cy-r*.62);
+      ctx.lineTo(cx-r*.12, cy-r*.46); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Gill
+      ctx.beginPath(); ctx.arc(cx-r*.28, cy, r*.26, -1.0, 1.0); ctx.stroke();
+      // Belly dots
+      ctx.fillStyle = 'rgba(126,237,244,0.28)';
+      [[cx-r*.22,cy+r*.24],[cx+r*.02,cy+r*.34],[cx+r*.20,cy+r*.26]].forEach(([bx,by]) => {
+        ctx.beginPath(); ctx.arc(bx,by,r*.05,0,Math.PI*2); ctx.fill();
+      });
+      ctx.restore();
+    },
+    // 3: Betta — dorsal fin, anal fin, gill, pectoral fin, tail fan rays
+    function(ctx, cx, cy, r) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(126,237,244,0.85)'; ctx.fillStyle = 'rgba(60,180,230,0.18)';
+      ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      // Dorsal fin
+      ctx.beginPath();
+      ctx.moveTo(cx+r*.22, cy-r*.12);
+      ctx.bezierCurveTo(cx+r*.12, cy-r*.36, cx-r*.08, cy-r*.42, cx-r*.36, cy-r*.24);
+      ctx.quadraticCurveTo(cx-r*.24, cy-r*.18, cx+r*.22, cy-r*.12);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Anal fin
+      ctx.beginPath();
+      ctx.moveTo(cx+r*.22, cy+r*.12);
+      ctx.bezierCurveTo(cx+r*.10, cy+r*.36, cx-r*.08, cy+r*.42, cx-r*.36, cy+r*.24);
+      ctx.quadraticCurveTo(cx-r*.24, cy+r*.18, cx+r*.22, cy+r*.12);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Gill arc
+      ctx.beginPath(); ctx.arc(cx-r*.34, cy, r*.24, -1.1, 1.1); ctx.stroke();
+      // Pectoral fin
+      ctx.beginPath();
+      ctx.moveTo(cx-r*.24, cy-r*.04);
+      ctx.bezierCurveTo(cx-r*.14, cy+r*.22, cx+r*.02, cy+r*.30, cx-r*.04, cy+r*.14);
+      ctx.bezierCurveTo(cx-r*.12, cy+r*.04, cx-r*.22, cy+r*.04, cx-r*.24, cy-r*.04);
+      ctx.fill(); ctx.stroke();
+      // Fan tail rays
+      const ox=cx+r*.28, oy=cy;
+      ctx.strokeStyle='rgba(126,237,244,0.25)'; ctx.lineWidth=1;
+      for (let i=0;i<=8;i++) {
+        const a=-Math.PI*.82+(i/8)*Math.PI*1.64;
+        ctx.beginPath();
+        ctx.moveTo(ox+Math.cos(a)*r*.06, oy+Math.sin(a)*r*.06);
+        ctx.lineTo(ox+Math.cos(a)*r*.90, oy+Math.sin(a)*r*.90);
+        ctx.stroke();
+      }
+      ctx.restore();
+    },
+    // 4: Goldfish — dorsal fin, gill, pectoral fin, tail rays, scale arcs
+    function(ctx, cx, cy, r) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(126,237,244,0.85)'; ctx.fillStyle = 'rgba(60,180,230,0.18)';
+      ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      // Dorsal fin (rounded, tall)
+      ctx.beginPath();
+      ctx.moveTo(cx+r*.14, cy-r*.44);
+      ctx.bezierCurveTo(cx+r*.04, cy-r*.76, cx-r*.20, cy-r*.74, cx-r*.34, cy-r*.48);
+      ctx.quadraticCurveTo(cx-r*.28, cy-r*.42, cx+r*.14, cy-r*.44);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Gill arc
+      ctx.beginPath(); ctx.arc(cx-r*.36, cy, r*.28, -1.15, 1.15); ctx.stroke();
+      // Pectoral fin (flowing)
+      ctx.beginPath();
+      ctx.moveTo(cx-r*.24, cy-r*.06);
+      ctx.bezierCurveTo(cx-r*.10, cy+r*.28, cx+r*.08, cy+r*.36, cx, cy+r*.20);
+      ctx.bezierCurveTo(cx-r*.08, cy+r*.08, cx-r*.22, cy+r*.08, cx-r*.24, cy-r*.06);
+      ctx.fill(); ctx.stroke();
+      // Tail fin rays
+      const tx=cx+r*.48;
+      ctx.strokeStyle='rgba(126,237,244,0.25)'; ctx.lineWidth=1;
+      [[cx+r*.62,cy-r*.38],[cx+r*.78,cy-r*.56],[cx+r*.84,cy-r*.78],
+       [cx+r*.62,cy+r*.38],[cx+r*.78,cy+r*.56],[cx+r*.84,cy+r*.78]].forEach(([ex,ey]) => {
+        ctx.beginPath(); ctx.moveTo(tx,cy); ctx.lineTo(ex,ey); ctx.stroke();
+      });
+      // Scale arc hints
+      ctx.strokeStyle='rgba(126,237,244,0.18)'; ctx.lineWidth=1;
+      [[-r*.30,r*.28],[-r*.08,r*.36],[r*.12,r*.30]].forEach(([dx,rad]) => {
+        ctx.beginPath(); ctx.arc(cx+dx,cy,rad,-Math.PI*.65,Math.PI*.65); ctx.stroke();
+      });
+      ctx.restore();
+    },
+  ];
 
   // ── Shared state ──────────────────────────────────────────────────────────
   let fishType = 0;
@@ -245,6 +416,9 @@
     SHAPES[fishType](ctxSel, W/2, H/2, r);
     ctxSel.fillStyle = 'rgba(150,215,255,0.18)'; ctxSel.fill();
     ctxSel.strokeStyle = '#7EEDF4'; ctxSel.lineWidth = 3; ctxSel.stroke();
+
+    // Detail fins/gills/markings
+    DETAILS[fishType](ctxSel, W/2, H/2, r);
 
     // Eye
     ctxSel.fillStyle = '#7EEDF4';
@@ -292,7 +466,7 @@
   resizeSel();
 
   // expose for later screens
-  window._ff = { SHAPES, ac, beep, playPop, playChime, playPlop, playHatch, playGrow, fishType: () => fishType, showScreen, savedFish: [] };
+  window._ff = { SHAPES, DETAILS, ac, beep, playPop, playChime, playPlop, playHatch, playGrow, fishType: () => fishType, showScreen, savedFish: [] };
 })();
 
 // ── Screen 2: Paint ──────────────────────────────────────────────────────────
@@ -333,6 +507,9 @@
     // Fish outline on top
     ff.SHAPES[ff.fishType()](ctxP, W/2, H/2, r);
     ctxP.strokeStyle = '#7EEDF4'; ctxP.lineWidth = 3; ctxP.stroke();
+
+    // Detail fins/gills/markings
+    ff.DETAILS[ff.fishType()](ctxP, W/2, H/2, r);
 
     // Eye
     ctxP.fillStyle = '#7EEDF4';
@@ -506,6 +683,9 @@
     ff.SHAPES[shapeIdx](ctxT, cx, cy, r);
     ctxT.strokeStyle = '#7EEDF4'; ctxT.lineWidth = 2.5; ctxT.stroke();
     if (!paintSrc) { ctxT.fillStyle = 'rgba(100,200,255,0.25)'; ctxT.fill(); }
+
+    // Detail fins/gills/markings
+    ff.DETAILS[shapeIdx](ctxT, cx, cy, r);
 
     const eyeX = cx - r * 0.28;
     ctxT.fillStyle = '#7EEDF4';
