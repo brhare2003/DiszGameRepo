@@ -89,6 +89,7 @@
 
     // Enemies
     let enemies = [], enemySpawnTimer = 0, enemySpawnInterval = 180;
+    let lasers = [];
 
     // Power-ups
     let magnetActive = false, magnetTimer = 0;
@@ -351,14 +352,36 @@
       enemies = enemies.filter(e => {
         e.y += e.vy * speedMult;
         e.x += e.vx;
-        // Bounce off walls
-        if (e.x < e.w*0.5)       { e.x=e.w*0.5;       e.vx=Math.abs(e.vx); }
-        if (e.x > W-e.w*0.5)     { e.x=W-e.w*0.5;     e.vx=-Math.abs(e.vx); }
+        if (e.x < e.w*0.5)   { e.x=e.w*0.5;   e.vx=Math.abs(e.vx); }
+        if (e.x > W-e.w*0.5) { e.x=W-e.w*0.5; e.vx=-Math.abs(e.vx); }
+        // Shoot laser at 50+ points
+        if (score >= 50 && e.y > 0) {
+          e.shootTimer -= speedMult;
+          if (e.shootTimer <= 0) {
+            e.shootTimer = Math.floor(Math.random()*80)+60;
+            lasers.push({ x:e.x, y:e.y+e.h*0.7, vy:5+Math.random()*2, life:1 });
+            playSound('whoosh');
+          }
+        }
         return e.y < H+e.h;
       });
+      // Move lasers
+      lasers = lasers.filter(l => { l.y+=l.vy; return l.y < H+20; });
     }
 
     function drawEnemies() {
+      // Draw lasers
+      lasers.forEach(l => {
+        ctx.save();
+        ctx.shadowColor='#ff0000'; ctx.shadowBlur=10;
+        const grad=ctx.createLinearGradient(l.x,l.y-16,l.x,l.y+4);
+        grad.addColorStop(0,'rgba(255,0,80,0)');
+        grad.addColorStop(0.4,'#ff2244');
+        grad.addColorStop(1,'#ffaacc');
+        ctx.fillStyle=grad;
+        ctx.beginPath(); ctx.roundRect(l.x-3,l.y-16,6,20,3); ctx.fill();
+        ctx.restore();
+      });
       enemies.forEach(e => drawEnemy(e.x, e.y, e.w, e.h));
     }
 
@@ -371,9 +394,24 @@
           addFloat(e.x, e.y-22, lives>0?'💥 -1 ❤️':'💀 GAME OVER','#ff4444');
           rocketSpinV += (Math.random()>0.5?1:-1)*0.3;
           spawnConfetti(e.x, e.y, 10);
-          e.y = H+100; // remove by pushing off screen
+          e.y = H+100;
           if (lives<=0) { state='gameover'; if(score>hiScore){hiScore=score;localStorage.setItem('rocketHi',hiScore);} }
         }
+      });
+      // Laser hits player
+      const rw=Math.min(W*0.08,48);
+      lasers = lasers.filter(l => {
+        const dx=rocketX-l.x, dy=rocketY-l.y;
+        if (Math.sqrt(dx*dx+dy*dy) < rw*0.6) {
+          lives--;
+          playSound('cloud');
+          addFloat(l.x, l.y-22, lives>0?'🔴 -1 ❤️':'💀 GAME OVER','#ff4444');
+          rocketSpinV += (Math.random()>0.5?1:-1)*0.25;
+          spawnConfetti(l.x, l.y, 6);
+          if (lives<=0) { state='gameover'; if(score>hiScore){hiScore=score;localStorage.setItem('rocketHi',hiScore);} }
+          return false;
+        }
+        return true;
       });
     }
 
@@ -599,7 +637,7 @@
     function startGame() {
       initAudio();
       score=0; frame=0; lastMilestone=0; lives=5;
-      items=[]; floats=[]; confetti=[]; trailParticles=[]; enemies=[];
+      items=[]; floats=[]; confetti=[]; trailParticles=[]; enemies=[]; lasers=[];
       magnetActive=false; rainbowActive=false; partyActive=false;
       spawnTimer=0; spawnInterval=80; enemySpawnTimer=0; enemySpawnInterval=180;
       rocketSpin=0; rocketSpinV=0;
