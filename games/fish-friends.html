@@ -581,7 +581,7 @@
   const decos      = [];  // { type, x, y, hatchTimer? }
   let selectedDeco   = null;
   let activeTool     = 'food';
-  let dragDeco = null, dragActive = false, pDownX = 0, pDownY = 0;
+  let dragDeco = null, dragActive = false, pDownX = 0, pDownY = 0, pDownTime = 0;
   let sandPainting   = false;  // true while finger/mouse is down with sand selected
   let sandPointerX   = 0, sandPointerY = 0; // last pointer position while painting sand
   const sandParticles = [];   // { x, y, vx, vy, r, col }
@@ -1092,7 +1092,7 @@
     const rect = cvT.getBoundingClientRect();
     const px = e.clientX - rect.left, py = e.clientY - rect.top;
     if (selectedDeco === 'sand') { sandPainting = true; sandPointerX = px; sandPointerY = py; return; }
-    pDownX = px; pDownY = py; dragActive = false; dragDeco = null;
+    pDownX = px; pDownY = py; pDownTime = performance.now(); dragActive = false; dragDeco = null;
     let best = 40, found = null;
     decos.forEach(d => {
       const dist = d.type === 'kelp'
@@ -1108,7 +1108,7 @@
     const px = e.clientX - rect.left, py = e.clientY - rect.top;
     if (sandPainting) { sandPointerX = px; sandPointerY = py; return; }
     if (!dragDeco) return;
-    if (Math.hypot(px - pDownX, py - pDownY) > 8) dragActive = true;
+    if (Math.hypot(px - pDownX, py - pDownY) > 8 && performance.now() - pDownTime > 160) dragActive = true;
     if (dragActive) { dragDeco.x = px; dragDeco.y = py; }
   });
 
