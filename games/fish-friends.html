@@ -582,11 +582,12 @@
   }
 
   function pourSand(px, py) {
-    const r = 22; // brush radius in pixels
+    const r = 55; // wide brush so sand fans out naturally
     const x0 = Math.max(0, Math.floor(px - r));
     const x1 = Math.min(W - 1, Math.ceil(px + r));
     for (let x = x0; x <= x1; x++) {
-      const amt = (r - Math.abs(x - px)) * 0.55; // linear falloff
+      const t = (x - px) / r;
+      const amt = Math.exp(-t * t * 3.5) * 3.5; // Gaussian falloff — no spikes
       sandHeights[x] = Math.min(sandHeights[x] + amt, H * 0.78);
     }
   }
@@ -648,13 +649,13 @@
     decos.forEach(d => {
       ctxT.save();
       if (d.type === 'egg') {
-        const eg = ctxT.createRadialGradient(d.x-3, d.y-4, 2, d.x, d.y, 11);
+        const eg = ctxT.createRadialGradient(d.x-2, d.y-3, 1, d.x, d.y, 7);
         eg.addColorStop(0, 'rgba(255,255,255,0.95)');
         eg.addColorStop(0.5, 'rgba(220,200,160,0.8)');
         eg.addColorStop(1,   'rgba(180,140,80,0.3)');
-        ctxT.beginPath(); ctxT.arc(d.x, d.y, 11, 0, Math.PI*2);
+        ctxT.beginPath(); ctxT.arc(d.x, d.y, 7, 0, Math.PI*2);
         ctxT.fillStyle = eg; ctxT.fill();
-        ctxT.strokeStyle = 'rgba(180,140,80,0.5)'; ctxT.lineWidth = 1.2; ctxT.stroke();
+        ctxT.strokeStyle = 'rgba(180,140,80,0.5)'; ctxT.lineWidth = 1; ctxT.stroke();
       } else if (d.type === 'kelp') {
         let bx = d.x, by = d.y;
         ctxT.lineCap = 'round';
@@ -712,15 +713,17 @@
 
   function updateSand() {
     if (!sandHeights) return;
-    // Cellular automata: gently equalize adjacent columns so piles slope naturally
-    for (let x = 0; x < W - 1; x++) {
-      const diff = sandHeights[x] - sandHeights[x + 1];
-      if (diff > 1.5) {
-        const t = (diff - 1.5) * 0.12;
-        sandHeights[x] -= t; sandHeights[x + 1] += t;
-      } else if (diff < -1.5) {
-        const t = (-diff - 1.5) * 0.12;
-        sandHeights[x] += t; sandHeights[x + 1] -= t;
+    // Cellular automata: equalize adjacent columns — run twice per frame for speed
+    for (let pass = 0; pass < 2; pass++) {
+      for (let x = 0; x < W - 1; x++) {
+        const diff = sandHeights[x] - sandHeights[x + 1];
+        if (diff > 1.0) {
+          const t = (diff - 1.0) * 0.22;
+          sandHeights[x] -= t; sandHeights[x + 1] += t;
+        } else if (diff < -1.0) {
+          const t = (-diff - 1.0) * 0.22;
+          sandHeights[x] += t; sandHeights[x + 1] -= t;
+        }
       }
     }
   }
@@ -857,7 +860,7 @@
         const sf = window._ff.savedFish[d.fishIndex != null ? d.fishIndex : window._ff.savedFish.length-1];
         fishList.push({
           x: d.x, y: d.y - 20, vx: (Math.random()-0.5)*1.5, vy: -1,
-          dir: 1, wobble: 0, size: 22, eating: 0, boostTimer: 0,
+          dir: 1, wobble: 0, size: 34, eating: 0, boostTimer: 0,
           eatCount: 0, eatLimit: 3 + Math.floor(Math.random()*4), digestTimer: 0,
           fishType: sf ? sf.fishType : 0,
           paintOffCanvas: sf ? sf.paintOffCanvas : null
