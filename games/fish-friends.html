@@ -584,6 +584,7 @@
   let activeTool     = 'food';
   let dragDeco = null, dragActive = false, pDownX = 0, pDownY = 0;
   let sandPainting   = false;  // true while finger/mouse is down with sand selected
+  let sandPointerX   = 0, sandPointerY = 0; // last pointer position while painting sand
   const sandParticles = [];   // { x, y, vx, vy, r, col }
 
   // Tool buttons — deselect any deco selection
@@ -628,28 +629,26 @@
 
   const SAND_COLS = ['#C2A46B','#D4B87A','#BFA05E','#E0C88A','#A88040'];
   function spawnSandBurst(px, py) {
-    const count = 14 + Math.floor(Math.random() * 10);
+    const count = 4 + Math.floor(Math.random() * 4);
     for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const spd   = 1.2 + Math.random() * 3.8;
       sandParticles.push({
-        x: px + (Math.random() - 0.5) * 12,
+        x: px + (Math.random() - 0.5) * 16,
         y: py,
-        vx: Math.cos(angle) * spd,
-        vy: Math.sin(angle) * spd - 2.5, // upward bias so they arc
-        r: 1.5 + Math.random() * 2.5,
+        vx: (Math.random() - 0.5) * 1.6,
+        vy: 0.4 + Math.random() * 1.4, // downward only
+        r: 1.2 + Math.random() * 2.0,
         col: SAND_COLS[Math.floor(Math.random() * SAND_COLS.length)],
       });
     }
   }
 
   function pourSand(px, py) {
-    const r = 55; // wide brush so sand fans out naturally
+    const r = 40;
     const x0 = Math.max(0, Math.floor(px - r));
     const x1 = Math.min(W - 1, Math.ceil(px + r));
     for (let x = x0; x <= x1; x++) {
       const t = (x - px) / r;
-      const amt = Math.exp(-t * t * 3.5) * 3.5; // Gaussian falloff — no spikes
+      const amt = Math.exp(-t * t * 3.5) * 1.2; // per-frame amount (called each frame)
       sandHeights[x] = Math.min(sandHeights[x] + amt, H * 0.78);
     }
     spawnSandBurst(px, py);
@@ -956,6 +955,7 @@
   function update(dt) {
     fishList.forEach(f => updateOneFish(f, dt));
     updateDecos(dt);
+    if (sandPainting && sandHeights) pourSand(sandPointerX, sandPointerY);
     updateSand();
     updateSandParticles();
 
@@ -1101,7 +1101,7 @@
     e.preventDefault(); cvT.setPointerCapture(e.pointerId);
     const rect = cvT.getBoundingClientRect();
     const px = e.clientX - rect.left, py = e.clientY - rect.top;
-    if (selectedDeco === 'sand') { sandPainting = true; pourSand(px, py); return; }
+    if (selectedDeco === 'sand') { sandPainting = true; sandPointerX = px; sandPointerY = py; return; }
     pDownX = px; pDownY = py; dragActive = false; dragDeco = null;
     let best = 40, found = null;
     decos.forEach(d => {
@@ -1116,7 +1116,7 @@
   cvT.addEventListener('pointermove', e => {
     const rect = cvT.getBoundingClientRect();
     const px = e.clientX - rect.left, py = e.clientY - rect.top;
-    if (sandPainting) { pourSand(px, py); return; }
+    if (sandPainting) { sandPointerX = px; sandPointerY = py; return; }
     if (!dragDeco) return;
     if (Math.hypot(px - pDownX, py - pDownY) > 8) dragActive = true;
     if (dragActive) { dragDeco.x = px; dragDeco.y = py; }
