@@ -1093,14 +1093,16 @@
     const px = e.clientX - rect.left, py = e.clientY - rect.top;
     if (selectedDeco === 'sand') { sandPainting = true; sandPointerX = px; sandPointerY = py; return; }
     pDownX = px; pDownY = py; pDownTime = performance.now(); dragActive = false; dragDeco = null;
-    let best = 40, found = null;
-    decos.forEach(d => {
-      const dist = d.type === 'kelp'
-        ? Math.hypot(d.x - px, Math.max(0, py - (d.y - (d.hitH||168))))
-        : Math.hypot(d.x - px, d.y - py);
-      if (dist < best) { best = dist; found = d; }
-    });
-    dragDeco = found;
+    if (activeTool === 'poke' && !selectedDeco) {
+      let best = 40, found = null;
+      decos.forEach(d => {
+        const dist = d.type === 'kelp'
+          ? Math.hypot(d.x - px, Math.max(0, py - (d.y - (d.hitH||168))))
+          : Math.hypot(d.x - px, d.y - py);
+        if (dist < best) { best = dist; found = d; }
+      });
+      dragDeco = found;
+    }
   }, { passive: false });
 
   cvT.addEventListener('pointermove', e => {
