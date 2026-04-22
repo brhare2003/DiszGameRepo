@@ -668,9 +668,11 @@
         }
       } else {
         ctxT.font = '26px serif';
-        ctxT.textAlign = 'center'; ctxT.textBaseline = 'bottom';
-        ctxT.fillStyle = '#ffffff'; // ensures emoji render on all platforms
-        ctxT.fillText(DECO_EMOJI[d.type] || '?', d.x, d.y);
+        ctxT.textAlign = 'center'; ctxT.textBaseline = 'middle';
+        ctxT.fillStyle = '#ffffff';
+        ctxT.translate(d.x, d.y - 13); // centre of emoji (~half font size above bottom)
+        ctxT.rotate(d.angle || 0);
+        ctxT.fillText(DECO_EMOJI[d.type] || '?', 0, 0);
       }
       ctxT.restore();
     });
@@ -903,6 +905,8 @@
       } else {
         // Place a brand-new item
         const d = { type: selectedDeco, x: cx, y: cy, vy: 0, settled: false };
+        if (['shell','rock','star'].includes(selectedDeco))
+          d.angle = Math.random() * Math.PI * 2;
         if (selectedDeco === 'egg') {
           d.hatchTimer = 5 + Math.random() * 5;
           d.fishIndex  = window._ff.savedFish.length - 1;
