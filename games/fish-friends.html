@@ -825,7 +825,8 @@
 
   function drawFoods() {
     foods.forEach(f => {
-      ctxT.fillStyle = '#FFD700';
+      const alpha = f.settled ? Math.max(0, 1 - (f.settleTimer - 3.5) / 1.5) : 1;
+      ctxT.fillStyle = `rgba(255,215,0,${alpha})`;
       ctxT.beginPath(); ctxT.arc(f.x, f.y, 5, 0, Math.PI * 2); ctxT.fill();
     });
   }
@@ -961,8 +962,22 @@
 
     // Advance food gravity
     for (let i = foods.length - 1; i >= 0; i--) {
-      foods[i].y += foods[i].vy;
-      if (foods[i].y > H - 10) foods.splice(i, 1);
+      const f = foods[i];
+      if (f.settled) {
+        f.settleTimer += dt;
+        if (f.settleTimer > 5) foods.splice(i, 1);
+        continue;
+      }
+      f.vy = Math.min(f.vy + 0.5 * dt, 1.4); // gentle gravity, cap speed
+      f.y += f.vy;
+      const sx = Math.max(0, Math.min(W - 1, Math.round(f.x)));
+      const floor = (sandHeights ? H - 10 - sandHeights[sx] : H - 10) - 5;
+      if (f.y >= floor) {
+        f.y = floor;
+        f.vy = 0;
+        f.settled = true;
+        f.settleTimer = 0;
+      }
     }
 
     // Update bubbles
@@ -1057,7 +1072,7 @@
       return; // keep selectedDeco active for repositioning
     }
     if (activeTool === 'food') {
-      foods.push({ x: cx, y: cy, vy: 1.5 });
+      foods.push({ x: cx, y: cy, vy: 0.4, settled: false, settleTimer: 0 });
       window._ff.playPlop();
     } else if (activeTool === 'bubble') {
       bubbles.push({ x: cx, y: cy, r: 6 + Math.random()*6, vy: -0.7 - Math.random()*0.5 });
