@@ -776,7 +776,9 @@
     if (fish.x < r) { fish.x = r; fish.vx = Math.abs(fish.vx); }
     if (fish.x > W - r) { fish.x = W - r; fish.vx = -Math.abs(fish.vx); }
     if (fish.y < r + 56) { fish.y = r + 56; fish.vy = Math.abs(fish.vy); }
-    if (fish.y > H - 10 - r) { fish.y = H - 10 - r; fish.vy = -Math.abs(fish.vy); }
+    const sx = Math.max(0, Math.min((sandHeights ? sandHeights.length : 1) - 1, Math.round(fish.x)));
+    const sandTop = sandHeights ? H - 10 - sandHeights[sx] : H - 10;
+    if (fish.y > sandTop - r) { fish.y = sandTop - r; fish.vy = -Math.abs(fish.vy); }
 
     // Eat food (only when hungry)
     if (hungry) {
@@ -923,7 +925,18 @@
         const d = Math.hypot(f.x-cx, f.y-cy);
         if (d < best) { best = d; nearest = f; }
       });
-      if (nearest) { nearest.boostTimer = 2.5; window._ff.beep(900, 0.12, 'sine'); }
+      // Also check bubbles — poke pops the nearest one
+      for (let i = bubbles.length - 1; i >= 0; i--) {
+        const db = Math.hypot(bubbles[i].x - cx, bubbles[i].y - cy);
+        if (db < bubbles[i].r + 22) { bubbles.splice(i, 1); window._ff.playPop(); break; }
+      }
+      if (nearest) {
+        nearest.boostTimer = 2.5;
+        nearest.digestTimer = 0;  // poke makes fish hungry again
+        nearest.eatCount = 0;
+        nearest.eatLimit = Math.max((nearest.eatLimit || 3), 5); // can eat a bigger meal
+        window._ff.beep(900, 0.12, 'sine');
+      }
     }
   }
 
