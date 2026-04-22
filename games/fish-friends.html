@@ -61,6 +61,17 @@
     }
     .pal-btn.active { border-color: #fff; transform: scale(1.18); }
     .pal-btn:active { transform: scale(0.88); }
+    #outline-row {
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+      align-items: center; max-width: 360px; margin-top: 10px;
+    }
+    #outline-label { color: rgba(126,237,244,0.65); font-size: 0.72rem; letter-spacing: 0.08em; margin-right: 2px; }
+    .out-btn {
+      width: 28px; height: 28px; border-radius: 50%; border: 3px solid transparent;
+      cursor: pointer; touch-action: manipulation; transition: transform 0.1s;
+    }
+    .out-btn.active { border-color: #fff; transform: scale(1.18); }
+    .out-btn:active { transform: scale(0.88); }
 
     /* ── Screen 3 ── */
     #s-tank { background: #001428; }
@@ -102,6 +113,7 @@
 <div class="screen" id="s-paint">
   <canvas id="cv-paint"></canvas>
   <div id="palette"></div>
+  <div id="outline-row"><span id="outline-label">OUTLINE</span></div>
   <div class="btn-row">
     <button class="icon-btn nav" id="btn-back2">&#8592;</button>
     <button class="icon-btn go"  id="btn-go2">&#10003;</button>
@@ -405,7 +417,9 @@
     '#FF4D4D','#FF9A3C','#FFE24D','#7ED957','#4DC8FF',
     '#A04DFF','#FF79C6','#FFFFFF','#8B4513','#3333AA'
   ];
-  let paintColor = PALETTE[0];
+  const OUTLINE_PALETTE = ['#7EEDF4','#FFFFFF','#000000','#FFD700','#FF4D4D','#7ED957','#A04DFF','#FF9A3C','#FF79C6','#8B4513'];
+  let paintColor   = PALETTE[0];
+  let outlineColor = OUTLINE_PALETTE[0];
 
   const cvP  = document.getElementById('cv-paint');
   const ctxP = cvP.getContext('2d');
@@ -436,13 +450,13 @@
 
     // Fish outline on top
     ff.SHAPES[ff.fishType()](ctxP, W/2, H/2, r);
-    ctxP.strokeStyle = '#7EEDF4'; ctxP.lineWidth = 3; ctxP.stroke();
+    ctxP.strokeStyle = outlineColor; ctxP.lineWidth = 3; ctxP.stroke();
 
     // Detail fins/gills/markings
     ff.DETAILS[ff.fishType()](ctxP, W/2, H/2, r);
 
     // Eye
-    ctxP.fillStyle = '#7EEDF4';
+    ctxP.fillStyle = outlineColor;
     ctxP.beginPath(); ctxP.arc(W/2-r*.28, H/2-r*.1, r*.07, 0, Math.PI*2); ctxP.fill();
   }
 
@@ -459,6 +473,22 @@
       window._ff.playPop();
     });
     pal.appendChild(b);
+  });
+
+  // Build outline color buttons
+  const outRow = document.getElementById('outline-row');
+  OUTLINE_PALETTE.forEach((col, i) => {
+    const b = document.createElement('button');
+    b.className = 'out-btn' + (i === 0 ? ' active' : '');
+    b.style.background = col;
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.out-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      outlineColor = col;
+      renderPaint();
+      window._ff.playPop();
+    });
+    outRow.appendChild(b);
   });
 
   function getPos(e) {
@@ -503,7 +533,7 @@
     const saved = document.createElement('canvas');
     saved.width = off.width; saved.height = off.height;
     saved.getContext('2d').drawImage(off, 0, 0);
-    window._ff.savedFish.push({ fishType: window._ff.fishType(), paintOffCanvas: saved });
+    window._ff.savedFish.push({ fishType: window._ff.fishType(), paintOffCanvas: saved, outlineColor });
     window._ff.paintedCanvas = saved;
     window._ff.showScreen('s-tank');
   });
@@ -515,6 +545,8 @@
       off.width  = cvP.width  || 1;
       off.height = cvP.height || 1;
       offC.clearRect(0, 0, off.width, off.height);
+      outlineColor = OUTLINE_PALETTE[0];
+      document.querySelectorAll('.out-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
     }
     origShow(id);
     if (id === 's-paint') { resizePaint(); renderPaint(); }
@@ -628,14 +660,14 @@
     }
 
     ff.SHAPES[shapeIdx](ctxT, cx, cy, r);
-    ctxT.strokeStyle = '#7EEDF4'; ctxT.lineWidth = 2.5; ctxT.stroke();
+    ctxT.strokeStyle = fish.outlineColor || '#7EEDF4'; ctxT.lineWidth = 2.5; ctxT.stroke();
     if (!paintSrc) { ctxT.fillStyle = 'rgba(100,200,255,0.25)'; ctxT.fill(); }
 
     // Detail fins/gills/markings
     ff.DETAILS[shapeIdx](ctxT, cx, cy, r);
 
     const eyeX = cx - r * 0.28;
-    ctxT.fillStyle = '#7EEDF4';
+    ctxT.fillStyle = fish.outlineColor || '#7EEDF4';
     ctxT.beginPath(); ctxT.arc(eyeX, cy - r*0.1, r*0.1, 0, Math.PI*2); ctxT.fill();
     ctxT.fillStyle = '#001428';
     ctxT.beginPath(); ctxT.arc(eyeX, cy - r*0.1, r*0.05, 0, Math.PI*2); ctxT.fill();
@@ -900,7 +932,8 @@
           dir: 1, wobble: 0, size: 34, eating: 0, boostTimer: 0,
           eatCount: 0, eatLimit: 3 + Math.floor(Math.random()*4), digestTimer: 0,
           fishType: sf ? sf.fishType : 0,
-          paintOffCanvas: sf ? sf.paintOffCanvas : null
+          paintOffCanvas: sf ? sf.paintOffCanvas : null,
+          outlineColor: sf ? sf.outlineColor : '#7EEDF4'
         });
         window._ff.playHatch();
         for (let b = 0; b < 6; b++) bubbles.push({ x: d.x+(Math.random()-0.5)*30, y: d.y, r: 3+Math.random()*5, vy: -1-Math.random() });
