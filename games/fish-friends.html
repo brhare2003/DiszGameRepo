@@ -533,6 +533,7 @@
   const fishList   = [];  // all hatched fish
   const foods      = [];  // { x, y, vy }
   const bubbles    = [];  // { x, y, r, vy }
+  const pops       = [];  // { x, y, r, age, maxAge } — pop burst animations
   const decos      = [];  // { type, x, y, hatchTimer? }
   let selectedDeco   = null;
   let lastPlacedDeco = null;
@@ -744,6 +745,32 @@
     });
   }
 
+  function spawnPop(x, y, r) {
+    pops.push({ x, y, r: Math.max(r, 5), age: 0, maxAge: 0.32 });
+  }
+
+  function drawPops() {
+    pops.forEach(p => {
+      const t = p.age / p.maxAge;          // 0 → 1
+      const alpha = (1 - t) * 0.9;
+      const ring = p.r * (1 + t * 1.8);   // ring expands outward
+      ctxT.save();
+      ctxT.strokeStyle = `rgba(180,240,255,${alpha})`;
+      ctxT.lineWidth = Math.max(0.5, 2 * (1 - t));
+      ctxT.beginPath(); ctxT.arc(p.x, p.y, ring, 0, Math.PI * 2); ctxT.stroke();
+      // 6 short radiating sparkle lines
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        const r1 = ring * 0.65, r2 = ring * 1.15;
+        ctxT.beginPath();
+        ctxT.moveTo(p.x + Math.cos(a) * r1, p.y + Math.sin(a) * r1);
+        ctxT.lineTo(p.x + Math.cos(a) * r2, p.y + Math.sin(a) * r2);
+        ctxT.stroke();
+      }
+      ctxT.restore();
+    });
+  }
+
   function updateOneFish(fish, dt) {
     fish.wobble += dt * 3;
 
@@ -847,6 +874,12 @@
       bubbles[i].x += (Math.random() - 0.5) * 0.6;
       if (bubbles[i].y < 0) bubbles.splice(i, 1);
     }
+
+    // Update pop animations
+    for (let i = pops.length - 1; i >= 0; i--) {
+      pops[i].age += dt;
+      if (pops[i].age >= pops[i].maxAge) pops.splice(i, 1);
+    }
     if (Math.random() < 0.015) {
       bubbles.push({ x: Math.random()*W, y: H-30, r: 3+Math.random()*8, vy: -0.6-Math.random()*0.6 });
     }
@@ -883,6 +916,7 @@
     drawDecos();
     drawFoods();
     drawBubbles();
+    drawPops();
     drawFish();
     requestAnimationFrame(loop);
     update(dt);
@@ -934,7 +968,7 @@
       // Also check bubbles — poke pops the nearest one
       for (let i = bubbles.length - 1; i >= 0; i--) {
         const db = Math.hypot(bubbles[i].x - cx, bubbles[i].y - cy);
-        if (db < bubbles[i].r + 22) { bubbles.splice(i, 1); window._ff.playPop(); break; }
+        if (db < bubbles[i].r + 22) { spawnPop(bubbles[i].x, bubbles[i].y, bubbles[i].r); bubbles.splice(i, 1); window._ff.playPop(); break; }
       }
       if (nearest) {
         nearest.boostTimer = 2.5;
@@ -991,7 +1025,7 @@
       resize();
       if (!tankReady) {
         fishList.length = 0;
-        foods.length = 0; bubbles.length = 0; decos.length = 0;
+        foods.length = 0; bubbles.length = 0; decos.length = 0; pops.length = 0;
         if (sandHeights) sandHeights.fill(0);
         tankReady = true;
       }
