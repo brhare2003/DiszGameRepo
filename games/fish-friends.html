@@ -747,7 +747,7 @@
     if (fish.digestTimer > 0) fish.digestTimer -= dt;
 
     // Slow passive growth (time-based, regardless of food)
-    fish.size = Math.min(fish.size + 0.003 * dt, W * 0.25);
+    fish.size = Math.min(fish.size + 0.009 * dt, W * 0.25);
 
     // Seek food only when not digesting; still swim normally while digesting
     const hungry = fish.digestTimer <= 0;
@@ -784,7 +784,7 @@
         if (Math.hypot(foods[i].x - fish.x, foods[i].y - fish.y) < r + 8) {
           fish.eatCount = (fish.eatCount || 0) + 1;
           const prevSize = fish.size;
-          fish.size = Math.min(fish.size + 0.8, W * 0.25);
+          fish.size = Math.min(fish.size + 2.4, W * 0.25);
           foods.splice(i, 1);
           fish.eating = 0.4;
           window._ff.beep(700, 0.15, 'sine');
