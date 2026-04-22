@@ -61,17 +61,17 @@
     }
     .pal-btn.active { border-color: #fff; transform: scale(1.18); }
     .pal-btn:active { transform: scale(0.88); }
-    #outline-row {
+    .swatch-row {
       display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
       align-items: center; max-width: 360px; margin-top: 10px;
     }
-    #outline-label { color: rgba(126,237,244,0.65); font-size: 0.72rem; letter-spacing: 0.08em; margin-right: 2px; }
-    .out-btn {
+    .swatch-label { color: rgba(126,237,244,0.65); font-size: 0.72rem; letter-spacing: 0.08em; margin-right: 2px; }
+    .swatch-btn {
       width: 28px; height: 28px; border-radius: 50%; border: 3px solid transparent;
       cursor: pointer; touch-action: manipulation; transition: transform 0.1s;
     }
-    .out-btn.active { border-color: #fff; transform: scale(1.18); }
-    .out-btn:active { transform: scale(0.88); }
+    .swatch-btn.active { border-color: #fff; transform: scale(1.18); }
+    .swatch-btn:active { transform: scale(0.88); }
 
     /* ── Screen 3 ── */
     #s-tank { background: #001428; }
@@ -113,7 +113,8 @@
 <div class="screen" id="s-paint">
   <canvas id="cv-paint"></canvas>
   <div id="palette"></div>
-  <div id="outline-row"><span id="outline-label">OUTLINE</span></div>
+  <div class="swatch-row" id="lines-row"><span class="swatch-label">LINES</span></div>
+  <div class="swatch-row" id="eye-row"><span class="swatch-label">EYE</span></div>
   <div class="btn-row">
     <button class="icon-btn nav" id="btn-back2">&#8592;</button>
     <button class="icon-btn go"  id="btn-go2">&#10003;</button>
@@ -244,26 +245,32 @@
   const LABELS = ['CICHLID','ANGEL','PUFFER','NEEDLE','GOLDFISH'];
 
   // ── Internal markings only — all guaranteed inside the body silhouette ────
+  function toRgba(hex, a) {
+    const h = hex.replace('#','');
+    return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;
+  }
   const DETAILS = [
     // 0: Cichlid — gill arc, lateral line, pectoral ellipse
-    function(ctx, cx, cy, r) {
+    function(ctx, cx, cy, r, dc) {
+      dc = dc || '#7EEDF4';
       ctx.save();
-      ctx.strokeStyle = 'rgba(126,237,244,0.75)'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      ctx.strokeStyle = toRgba(dc,0.75); ctx.lineWidth = 1.8; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.arc(cx-r*.30, cy, r*.28, -1.05, 1.05); ctx.stroke();
       ctx.beginPath(); ctx.ellipse(cx-r*.18, cy+r*.08, r*.11, r*.055, 0.3, 0, Math.PI*2); ctx.stroke();
-      ctx.strokeStyle = 'rgba(126,237,244,0.22)'; ctx.lineWidth = r*.07;
+      ctx.strokeStyle = toRgba(dc,0.22); ctx.lineWidth = r*.07;
       ctx.beginPath();
       ctx.moveTo(cx-r*.24, cy); ctx.quadraticCurveTo(cx+r*.08, cy-r*.04, cx+r*.36, cy-r*.02);
       ctx.stroke();
       ctx.restore();
     },
     // 1: Angelfish — gill arc, pectoral ellipse, fin rays (stay inside wings), body bar
-    function(ctx, cx, cy, r) {
+    function(ctx, cx, cy, r, dc) {
+      dc = dc || '#7EEDF4';
       ctx.save();
-      ctx.strokeStyle = 'rgba(126,237,244,0.75)'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      ctx.strokeStyle = toRgba(dc,0.75); ctx.lineWidth = 1.8; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.arc(cx-r*.26, cy, r*.24, -1.05, 1.05); ctx.stroke();
       ctx.beginPath(); ctx.ellipse(cx-r*.14, cy+r*.08, r*.10, r*.05, 0.3, 0, Math.PI*2); ctx.stroke();
-      ctx.strokeStyle = 'rgba(126,237,244,0.25)'; ctx.lineWidth = 1;
+      ctx.strokeStyle = toRgba(dc,0.25); ctx.lineWidth = 1;
       for (let i=0; i<3; i++) {
         const t=i/2;
         ctx.beginPath(); ctx.moveTo(cx+r*(.16-t*.16), cy-r*(.28+t*.24));
@@ -271,35 +278,34 @@
         ctx.beginPath(); ctx.moveTo(cx+r*(.16-t*.16), cy+r*(.28+t*.24));
         ctx.lineTo(cx+r*(.04-t*.10), cy+r*(.56+t*.12)); ctx.stroke();
       }
-      ctx.strokeStyle = 'rgba(126,237,244,0.18)'; ctx.lineWidth = r*.08;
+      ctx.strokeStyle = toRgba(dc,0.18); ctx.lineWidth = r*.08;
       ctx.beginPath(); ctx.moveTo(cx-r*.14, cy-r*.22); ctx.lineTo(cx-r*.14, cy+r*.22); ctx.stroke();
       ctx.restore();
     },
     // 2: Pufferfish — gill arc, concentric inflation arcs, belly spots
-    function(ctx, cx, cy, r) {
+    function(ctx, cx, cy, r, dc) {
+      dc = dc || '#7EEDF4';
       ctx.save();
-      ctx.strokeStyle = 'rgba(126,237,244,0.75)'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      ctx.strokeStyle = toRgba(dc,0.75); ctx.lineWidth = 1.8; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.arc(cx-r*.28, cy, r*.26, -1.0, 1.0); ctx.stroke();
-      ctx.strokeStyle = 'rgba(126,237,244,0.20)'; ctx.lineWidth = 1.2;
+      ctx.strokeStyle = toRgba(dc,0.20); ctx.lineWidth = 1.2;
       [r*.16, r*.28, r*.38].forEach(rad => {
         ctx.beginPath(); ctx.arc(cx-r*.14, cy, rad, -Math.PI*.60, Math.PI*.60); ctx.stroke();
       });
-      ctx.fillStyle = 'rgba(126,237,244,0.28)';
+      ctx.fillStyle = toRgba(dc,0.28);
       [[cx-r*.18, cy+r*.20], [cx+r*.02, cy+r*.28], [cx+r*.16, cy+r*.20]].forEach(([bx,by]) => {
         ctx.beginPath(); ctx.arc(bx, by, r*.04, 0, Math.PI*2); ctx.fill();
       });
       ctx.restore();
     },
     // 3: Needlefish — gill arc, pectoral ellipse, prominent lateral line
-    function(ctx, cx, cy, r) {
+    function(ctx, cx, cy, r, dc) {
+      dc = dc || '#7EEDF4';
       ctx.save();
-      ctx.strokeStyle = 'rgba(126,237,244,0.75)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
-      // Gill arc (small, placed at head-body join)
+      ctx.strokeStyle = toRgba(dc,0.75); ctx.lineWidth = 1.5; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.arc(cx-r*.52, cy, r*.14, -0.85, 0.85); ctx.stroke();
-      // Pectoral fin ellipse
       ctx.beginPath(); ctx.ellipse(cx-r*.44, cy+r*.08, r*.09, r*.045, 0.2, 0, Math.PI*2); ctx.stroke();
-      // Lateral line — the defining mark of a streamlined fish
-      ctx.strokeStyle = 'rgba(126,237,244,0.32)'; ctx.lineWidth = r*.055;
+      ctx.strokeStyle = toRgba(dc,0.32); ctx.lineWidth = r*.055;
       ctx.beginPath();
       ctx.moveTo(cx-r*.44, cy-r*.02);
       ctx.quadraticCurveTo(cx+r*.06, cy-r*.04, cx+r*.46, cy-r*.02);
@@ -307,17 +313,18 @@
       ctx.restore();
     },
     // 4: Goldfish — gill arc, pectoral ellipse, scale arcs, tail rays inside butterfly
-    function(ctx, cx, cy, r) {
+    function(ctx, cx, cy, r, dc) {
+      dc = dc || '#7EEDF4';
       ctx.save();
-      ctx.strokeStyle = 'rgba(126,237,244,0.75)'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      ctx.strokeStyle = toRgba(dc,0.75); ctx.lineWidth = 1.8; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.arc(cx-r*.34, cy, r*.28, -1.1, 1.1); ctx.stroke();
       ctx.beginPath(); ctx.ellipse(cx-r*.22, cy+r*.06, r*.12, r*.06, 0.3, 0, Math.PI*2); ctx.stroke();
-      ctx.strokeStyle='rgba(126,237,244,0.18)'; ctx.lineWidth=1;
+      ctx.strokeStyle = toRgba(dc,0.18); ctx.lineWidth=1;
       [[-r*.28, r*.22], [-r*.10, r*.28], [r*.08, r*.22]].forEach(([dx,rad]) => {
         ctx.beginPath(); ctx.arc(cx+dx, cy, rad, -Math.PI*.55, Math.PI*.55); ctx.stroke();
       });
       const tx=cx+r*.42;
-      ctx.strokeStyle='rgba(126,237,244,0.25)';
+      ctx.strokeStyle = toRgba(dc,0.25);
       [[cx+r*.62,cy-r*.38],[cx+r*.70,cy-r*.58],[cx+r*.62,cy+r*.38],[cx+r*.70,cy+r*.58]].forEach(([ex,ey]) => {
         ctx.beginPath(); ctx.moveTo(tx,cy); ctx.lineTo(ex,ey); ctx.stroke();
       });
@@ -417,9 +424,11 @@
     '#FF4D4D','#FF9A3C','#FFE24D','#7ED957','#4DC8FF',
     '#A04DFF','#FF79C6','#FFFFFF','#8B4513','#3333AA'
   ];
-  const OUTLINE_PALETTE = ['#7EEDF4','#FFFFFF','#000000','#FFD700','#FF4D4D','#7ED957','#A04DFF','#FF9A3C','#FF79C6','#8B4513'];
-  let paintColor   = PALETTE[0];
-  let outlineColor = OUTLINE_PALETTE[0];
+  const LINE_PALETTE = ['#7EEDF4','#FFFFFF','#000000','#FFD700','#FF4D4D','#7ED957','#A04DFF','#FF9A3C','#FF79C6','#8B4513'];
+  const EYE_PALETTE  = ['#7EEDF4','#FFFFFF','#FFD700','#FF4D4D','#FF9A3C','#7ED957','#FF79C6','#A04DFF','#000000','#8B4513'];
+  let paintColor  = PALETTE[0];
+  let linesColor  = LINE_PALETTE[0];
+  let eyeColor    = EYE_PALETTE[0];
 
   const cvP  = document.getElementById('cv-paint');
   const ctxP = cvP.getContext('2d');
@@ -450,13 +459,13 @@
 
     // Fish outline on top
     ff.SHAPES[ff.fishType()](ctxP, W/2, H/2, r);
-    ctxP.strokeStyle = outlineColor; ctxP.lineWidth = 3; ctxP.stroke();
+    ctxP.strokeStyle = linesColor; ctxP.lineWidth = 3; ctxP.stroke();
 
     // Detail fins/gills/markings
-    ff.DETAILS[ff.fishType()](ctxP, W/2, H/2, r);
+    ff.DETAILS[ff.fishType()](ctxP, W/2, H/2, r, linesColor);
 
     // Eye
-    ctxP.fillStyle = outlineColor;
+    ctxP.fillStyle = eyeColor;
     ctxP.beginPath(); ctxP.arc(W/2-r*.28, H/2-r*.1, r*.07, 0, Math.PI*2); ctxP.fill();
   }
 
@@ -475,21 +484,24 @@
     pal.appendChild(b);
   });
 
-  // Build outline color buttons
-  const outRow = document.getElementById('outline-row');
-  OUTLINE_PALETTE.forEach((col, i) => {
-    const b = document.createElement('button');
-    b.className = 'out-btn' + (i === 0 ? ' active' : '');
-    b.style.background = col;
-    b.addEventListener('click', () => {
-      document.querySelectorAll('.out-btn').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      outlineColor = col;
-      renderPaint();
-      window._ff.playPop();
+  function buildSwatchRow(id, palette, onPick) {
+    const row = document.getElementById(id);
+    palette.forEach((col, i) => {
+      const b = document.createElement('button');
+      b.className = 'swatch-btn' + (i === 0 ? ' active' : '');
+      b.style.background = col;
+      b.addEventListener('click', () => {
+        row.querySelectorAll('.swatch-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        onPick(col);
+        renderPaint();
+        window._ff.playPop();
+      });
+      row.appendChild(b);
     });
-    outRow.appendChild(b);
-  });
+  }
+  buildSwatchRow('lines-row', LINE_PALETTE, col => { linesColor = col; });
+  buildSwatchRow('eye-row',   EYE_PALETTE,  col => { eyeColor   = col; });
 
   function getPos(e) {
     const rect = cvP.getBoundingClientRect();
@@ -533,7 +545,7 @@
     const saved = document.createElement('canvas');
     saved.width = off.width; saved.height = off.height;
     saved.getContext('2d').drawImage(off, 0, 0);
-    window._ff.savedFish.push({ fishType: window._ff.fishType(), paintOffCanvas: saved, outlineColor });
+    window._ff.savedFish.push({ fishType: window._ff.fishType(), paintOffCanvas: saved, linesColor, eyeColor });
     window._ff.paintedCanvas = saved;
     window._ff.showScreen('s-tank');
   });
@@ -545,8 +557,9 @@
       off.width  = cvP.width  || 1;
       off.height = cvP.height || 1;
       offC.clearRect(0, 0, off.width, off.height);
-      outlineColor = OUTLINE_PALETTE[0];
-      document.querySelectorAll('.out-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+      linesColor = LINE_PALETTE[0]; eyeColor = EYE_PALETTE[0];
+      document.querySelectorAll('#lines-row .swatch-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+      document.querySelectorAll('#eye-row .swatch-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
     }
     origShow(id);
     if (id === 's-paint') { resizePaint(); renderPaint(); }
@@ -660,14 +673,14 @@
     }
 
     ff.SHAPES[shapeIdx](ctxT, cx, cy, r);
-    ctxT.strokeStyle = fish.outlineColor || '#7EEDF4'; ctxT.lineWidth = 2.5; ctxT.stroke();
+    ctxT.strokeStyle = fish.linesColor || '#7EEDF4'; ctxT.lineWidth = 2.5; ctxT.stroke();
     if (!paintSrc) { ctxT.fillStyle = 'rgba(100,200,255,0.25)'; ctxT.fill(); }
 
     // Detail fins/gills/markings
-    ff.DETAILS[shapeIdx](ctxT, cx, cy, r);
+    ff.DETAILS[shapeIdx](ctxT, cx, cy, r, fish.linesColor || '#7EEDF4');
 
     const eyeX = cx - r * 0.28;
-    ctxT.fillStyle = fish.outlineColor || '#7EEDF4';
+    ctxT.fillStyle = fish.eyeColor || '#7EEDF4';
     ctxT.beginPath(); ctxT.arc(eyeX, cy - r*0.1, r*0.1, 0, Math.PI*2); ctxT.fill();
     ctxT.fillStyle = '#001428';
     ctxT.beginPath(); ctxT.arc(eyeX, cy - r*0.1, r*0.05, 0, Math.PI*2); ctxT.fill();
@@ -916,7 +929,10 @@
       if (pops[i].age >= pops[i].maxAge) pops.splice(i, 1);
     }
     if (Math.random() < 0.015) {
-      bubbles.push({ x: Math.random()*W, y: H-30, r: 3+Math.random()*8, vy: -0.6-Math.random()*0.6 });
+      const bx = Math.random()*W;
+      const bsx = Math.max(0, Math.min(W-1, Math.round(bx)));
+      const bFloor = sandHeights ? H - 10 - sandHeights[bsx] : H - 30;
+      bubbles.push({ x: bx, y: bFloor - 4, r: 3+Math.random()*8, vy: -0.6-Math.random()*0.6 });
     }
 
     // Egg hatching
@@ -933,7 +949,8 @@
           eatCount: 0, eatLimit: 3 + Math.floor(Math.random()*4), digestTimer: 0,
           fishType: sf ? sf.fishType : 0,
           paintOffCanvas: sf ? sf.paintOffCanvas : null,
-          outlineColor: sf ? sf.outlineColor : '#7EEDF4'
+          linesColor: sf ? sf.linesColor : '#7EEDF4',
+          eyeColor:   sf ? sf.eyeColor   : '#7EEDF4'
         });
         window._ff.playHatch();
         for (let b = 0; b < 6; b++) bubbles.push({ x: d.x+(Math.random()-0.5)*30, y: d.y, r: 3+Math.random()*5, vy: -1-Math.random() });
