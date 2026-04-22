@@ -437,8 +437,8 @@
   const offC = off.getContext('2d');
 
   function resizePaint() {
-    const sz = Math.min(window.innerWidth * 0.86, window.innerHeight * 0.52, 360);
-    cvP.width  = sz; cvP.height = Math.round(sz * 0.68);
+    const sz = Math.min(window.innerWidth * 0.94, window.innerHeight * 0.60, 480);
+    cvP.width  = sz; cvP.height = Math.round(sz * 0.72);
     off.width  = cvP.width; off.height = cvP.height;
     renderPaint();
   }
@@ -710,7 +710,7 @@
       const pW = paintSrc.width, pH = paintSrc.height;
       ff.SHAPES[shapeIdx](ctxT, cx, cy, r);
       ctxT.clip();
-      const scale = (r * 2) / Math.min(pW, pH);
+      const scale = r / (Math.min(pW, pH) * 0.4);
       ctxT.drawImage(paintSrc, cx - pW*scale/2, cy - pH*scale/2, pW*scale, pH*scale);
       ctxT.restore();
       ctxT.save();
