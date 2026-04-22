@@ -115,9 +115,8 @@
     <button class="deco-pick" data-tool="bubble" id="tool-bubble" title="Blow bubble">&#9675;</button>
     <button class="deco-pick" data-tool="poke"   id="tool-poke"   title="Poke fish">&#128070;</button>
     <span class="bar-divider"></span>
-    <button class="deco-pick" data-deco="seaweed" title="Seaweed">🌿</button>
     <button class="deco-pick" data-deco="kelp"    title="Kelp">&#10072;</button>
-    <button class="deco-pick" data-deco="sand"    title="Sand">&#8776;</button>
+    <button class="deco-pick" data-deco="sand"    title="Sand"><svg width="18" height="14" viewBox="0 0 18 14" fill="currentColor"><circle cx="3" cy="11" r="2"/><circle cx="9" cy="11" r="2"/><circle cx="15" cy="11" r="2"/><circle cx="6" cy="7" r="1.6"/><circle cx="12" cy="7" r="1.6"/><circle cx="9" cy="3" r="1.3"/></svg></button>
     <button class="deco-pick" data-deco="shell"   title="Shell">🐚</button>
     <button class="deco-pick" data-deco="rock"    title="Rock">🪨</button>
     <button class="deco-pick" data-deco="star"    title="Star">&#11088;</button>
@@ -644,7 +643,7 @@
 
   function drawFish() { fishList.forEach(drawOneFish); }
 
-  const DECO_EMOJI = { seaweed:'🌿', shell:'🐚', rock:'🪨', star:'⭐' };
+  const DECO_EMOJI = { shell:'🐚', rock:'🪨', star:'⭐' };
   function drawDecos() {
     decos.forEach(d => {
       ctxT.save();
@@ -708,7 +707,7 @@
     return floor;
   }
   function getObjHeight(type) {
-    return { shell:18, rock:20, star:16, seaweed:22, kelp:0 }[type] ?? 16;
+    return { shell:18, rock:20, star:16, kelp:0 }[type] ?? 16;
   }
 
   function updateSand() {
