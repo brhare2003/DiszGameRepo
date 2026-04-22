@@ -789,7 +789,7 @@
         if (d < best) { best = d; target = f; }
       });
     }
-    if (target) {
+    if (target && best > 1) {
       const dx = target.x - fish.x, dy = target.y - fish.y;
       fish.vx += (dx / best * 2.2 - fish.vx) * 0.06;
       fish.vy += (dy / best * 2.2 - fish.vy) * 0.06;
@@ -802,7 +802,10 @@
     }
     if (fish.vx > 0.2) fish.dir = 1; else if (fish.vx < -0.2) fish.dir = -1;
     if (fish.boostTimer > 0) { fish.boostTimer -= dt; fish.vx *= 2.5; fish.vy *= 2.5; }
+    const spd = Math.hypot(fish.vx, fish.vy);
+    if (spd > 5.0) { fish.vx = fish.vx / spd * 5.0; fish.vy = fish.vy / spd * 5.0; }
     fish.x += fish.vx; fish.y += fish.vy;
+    if (!isFinite(fish.x) || !isFinite(fish.y)) { fish.x = W/2; fish.y = H/2; fish.vx = 0; fish.vy = 0; }
     const r = fish.size * 0.5;
     if (fish.x < r) { fish.x = r; fish.vx = Math.abs(fish.vx); }
     if (fish.x > W - r) { fish.x = W - r; fish.vx = -Math.abs(fish.vx); }
