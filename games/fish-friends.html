@@ -580,7 +580,6 @@
   const pops       = [];  // { x, y, r, age, maxAge } — pop burst animations
   const decos      = [];  // { type, x, y, hatchTimer? }
   let selectedDeco   = null;
-  let lastPlacedDeco = null;
   let activeTool     = 'food';
   let dragDeco = null, dragActive = false, pDownX = 0, pDownY = 0;
   let sandPainting   = false;  // true while finger/mouse is down with sand selected
@@ -592,7 +591,7 @@
     btn.addEventListener('click', () => {
       document.querySelectorAll('[data-tool],[data-deco]').forEach(b => b.classList.remove('selected'));
       activeTool = btn.dataset.tool;
-      selectedDeco = null; lastPlacedDeco = null; sandPainting = false;
+      selectedDeco = null; sandPainting = false;
       btn.classList.add('selected');
       window._ff.playPop();
     });
@@ -603,9 +602,8 @@
     btn.addEventListener('click', () => {
       const isSame = selectedDeco === btn.dataset.deco;
       document.querySelectorAll('[data-tool],[data-deco]').forEach(b => b.classList.remove('selected'));
-      if (isSame) { selectedDeco = null; lastPlacedDeco = null; return; }
+      if (isSame) { selectedDeco = null; return; }
       selectedDeco = btn.dataset.deco;
-      lastPlacedDeco = null; // fresh selection — next tap places a new item
       btn.classList.add('selected');
       window._ff.playPop();
     });
@@ -1040,7 +1038,7 @@
   }
 
   function handleTap(cx, cy) {
-    if (selectedDeco === 'sand') return; // sand is painted via drag, not single tap
+    if (selectedDeco === 'sand') return; // sand is painted via hold/drag
     if (selectedDeco) {
       if (selectedDeco === 'egg' && window._ff.savedFish.length === 0) {
         const btn = document.getElementById('btn-add-fish');
@@ -1048,27 +1046,19 @@
         setTimeout(() => { btn.style.boxShadow = ''; }, 900);
         return;
       }
-      if (lastPlacedDeco && lastPlacedDeco.type === selectedDeco) {
-        // Move the already-placed item to the new tap position
-        lastPlacedDeco.x = cx; lastPlacedDeco.y = cy;
-        if (selectedDeco !== 'egg') lastPlacedDeco.settled = false; // re-trigger fall
-        window._ff.playPop();
-      } else {
-        // Place a brand-new item
-        const d = { type: selectedDeco, x: cx, y: cy, vy: 0, settled: false };
-        if (['shell','rock','star'].includes(selectedDeco))
-          d.angle = Math.random() * Math.PI * 2;
-        if (selectedDeco === 'egg') {
-          d.hatchTimer = 5 + Math.random() * 5;
-          d.fishIndex  = window._ff.savedFish.length - 1;
-          d.vx = 0; d.vy_drift = 0; d.settled = true; // eggs float, not fall
-        }
-        if (selectedDeco === 'kelp') d.hitH = 168;
-        decos.push(d);
-        lastPlacedDeco = d;
-        window._ff.playChime();
+      // Always place a brand-new item on each tap
+      const d = { type: selectedDeco, x: cx, y: cy, vy: 0, settled: false };
+      if (['shell','rock','star'].includes(selectedDeco))
+        d.angle = Math.random() * Math.PI * 2;
+      if (selectedDeco === 'egg') {
+        d.hatchTimer = 5 + Math.random() * 5;
+        d.fishIndex  = window._ff.savedFish.length - 1;
+        d.vx = 0; d.vy_drift = 0; d.settled = true;
       }
-      return; // keep selectedDeco active for repositioning
+      if (selectedDeco === 'kelp') d.hitH = 168;
+      decos.push(d);
+      window._ff.playChime();
+      return;
     }
     if (activeTool === 'food') {
       foods.push({ x: cx, y: cy, vy: 0.4, settled: false, settleTimer: 0 });
