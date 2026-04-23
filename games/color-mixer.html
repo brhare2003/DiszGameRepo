@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Color Mixer</title>
+  <link rel="stylesheet" href="../shared.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: none;
+      user-select: none;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--cream);
+      font-family: 'Baloo 2', 'Fredoka', sans-serif;
+    }
+
+    /* Title */
+    .game-title {
+      margin-top: 18px;
+      font-size: clamp(22px, 5vw, 32px);
+      font-weight: 800;
+      color: var(--ink);
+      text-align: center;
+      letter-spacing: -0.01em;
+    }
+
+    /* Paint pots row */
+    .pots-row {
+      display: flex;
+      gap: clamp(12px, 4vw, 28px);
+      justify-content: center;
+      margin-top: clamp(12px, 3vh, 24px);
+      flex-wrap: wrap;
+    }
+
+    .pot-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px;
+      border-radius: 16px;
+      transition: transform 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pot-btn:active { transform: scale(0.92); }
+    .pot-btn.selected .pot-circle {
+      box-shadow: 0 0 0 5px var(--ink), 0 6px 0 var(--ink);
+    }
+
+    .pot-circle {
+      width: clamp(64px, 16vw, 90px);
+      height: clamp(64px, 16vw, 90px);
+      border-radius: 50%;
+      border: 4px solid var(--ink);
+      box-shadow: 0 5px 0 var(--ink);
+      transition: box-shadow 0.1s ease, transform 0.1s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .pot-circle::after {
+      content: '';
+      position: absolute;
+      top: 12%;
+      left: 16%;
+      width: 30%;
+      height: 22%;
+      background: rgba(255,255,255,0.55);
+      border-radius: 50%;
+      transform: rotate(-20deg);
+    }
+
+    .pot-label {
+      font-size: clamp(13px, 3vw, 18px);
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    /* Bowl area */
+    .bowl-wrap {
+      margin-top: clamp(14px, 3vh, 28px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .bowl-svg-wrap {
+      position: relative;
+      width: clamp(160px, 44vw, 260px);
+      height: clamp(130px, 35vw, 210px);
+    }
+
+    .bowl-fill {
+      transition: fill 0.6s ease;
+    }
+
+    /* Splat particles container */
+    #splat-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* Color result label */
+    .color-result {
+      min-height: 44px;
+      font-size: clamp(18px, 4.5vw, 28px);
+      font-weight: 800;
+      color: var(--ink);
+      text-align: center;
+      letter-spacing: -0.01em;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .color-result.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Celebration overlay */
+    #celebration {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: rgba(255,246,228,0.92);
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #celebration.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .celeb-emoji {
+      font-size: 64px;
+      animation: bounce-big 0.6s ease infinite alternate;
+    }
+    .celeb-text {
+      font-size: clamp(26px, 7vw, 48px);
+      font-weight: 800;
+      color: var(--ink);
+      text-align: center;
+      line-height: 1.1;
+    }
+    .celeb-color-name {
+      font-size: clamp(32px, 9vw, 62px);
+      font-weight: 800;
+      text-align: center;
+      -webkit-text-stroke: 3px var(--ink);
+    }
+    .celeb-tap {
+      font-size: clamp(16px, 4vw, 22px);
+      color: var(--ink-soft);
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    /* Buttons row */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: clamp(10px, 2.5vh, 20px);
+    }
+    .action-btn {
+      min-height: 52px;
+      font-size: clamp(16px, 3.5vw, 20px);
+      padding: 10px 22px;
+    }
+
+    /* Discovered colors panel */
+    .discovered-wrap {
+      margin-top: clamp(10px, 2vh, 18px);
+      text-align: center;
+    }
+    .discovered-label {
+      font-size: clamp(12px, 2.8vw, 16px);
+      font-weight: 600;
+      color: var(--ink-soft);
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .discovered-swatches {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .swatch {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 3px solid var(--ink);
+      box-shadow: 0 3px 0 var(--ink);
+      transition: transform 0.2s ease;
+    }
+    .swatch:hover { transform: scale(1.15); }
+
+    @keyframes bounce-big {
+      from { transform: translateY(0) rotate(-5deg); }
+      to   { transform: translateY(-12px) rotate(5deg); }
+    }
+    @keyframes splat-out {
+      0%   { transform: translate(-50%, -50%) scale(0) rotate(0); opacity: 1; }
+      60%  { transform: translate(-50%, -50%) scale(1.2) rotate(20deg); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(0.9) rotate(15deg); opacity: 0; }
+    }
+    @keyframes pop-in {
+      0%   { transform: translate(-50%, -50%) scale(0); opacity: 0.9; }
+      70%  { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-scene"></div>
+
+<a class="back-btn" href="../index.html" aria-label="Back to Game Hub">&#8592;</a>
+
+<div id="splat-container"></div>
+
+<h1 class="game-title">Color Mixer</h1>
+
+<!-- Paint pots -->
+<div class="pots-row" id="pots-row">
+  <!-- Buttons injected by JS -->
+</div>
+
+<!-- Bowl -->
+<div class="bowl-wrap">
+  <div class="bowl-svg-wrap" id="bowl-wrap">
+    <svg id="bowl-svg" viewBox="0 0 200 160" width="100%" height="100%" aria-label="Mixing bowl">
+      <!-- Bowl shadow -->
+      <ellipse cx="100" cy="148" rx="72" ry="8" fill="rgba(43,33,64,0.12)"/>
+      <!-- Bowl body -->
+      <path d="M28 60 Q32 140 100 148 Q168 140 172 60 Z" fill="white" stroke="#2B2140" stroke-width="5" stroke-linejoin="round"/>
+      <!-- Bowl fill (the mixed color) -->
+      <path id="bowl-fill" class="bowl-fill" d="M38 90 Q42 140 100 146 Q158 140 162 90 Z" fill="#e8e0d8" stroke="none"/>
+      <!-- Bowl rim -->
+      <ellipse cx="100" cy="60" rx="72" ry="20" fill="white" stroke="#2B2140" stroke-width="5"/>
+      <!-- Shine on rim -->
+      <ellipse cx="80" cy="55" rx="18" ry="7" fill="rgba(255,255,255,0.7)" stroke="none"/>
+    </svg>
+  </div>
+
+  <div class="color-result" id="color-result"></div>
+</div>
+
+<!-- Action buttons -->
+<div class="btn-row">
+  <button class="kid-btn action-btn" id="clear-btn" style="background: var(--red-deep);">
+    Clear
+  </button>
+</div>
+
+<!-- Discovered colors -->
+<div class="discovered-wrap">
+  <div class="discovered-label">Colors discovered</div>
+  <div class="discovered-swatches" id="swatches"></div>
+</div>
+
+<!-- Celebration overlay -->
+<div id="celebration" role="dialog" aria-live="polite">
+  <div class="celeb-emoji" id="celeb-emoji">🎨</div>
+  <div class="celeb-text">You made...</div>
+  <div class="celeb-color-name" id="celeb-name"></div>
+  <div class="celeb-tap">Tap anywhere to keep mixing!</div>
+</div>
+
+<script>
+  // ---------- Color data ----------
+  const PAINTS = [
+    { id: 'red',    label: 'Red',    hex: '#FF4040', rgb: [255,  64,  64] },
+    { id: 'yellow', label: 'Yellow', hex: '#FFD000', rgb: [255, 208,   0] },
+    { id: 'blue',   label: 'Blue',   hex: '#3080FF', rgb: [ 48, 128, 255] },
+    { id: 'white',  label: 'White',  hex: '#FFFFFF', rgb: [255, 255, 255] },
+  ];
+
+  // Named color results: sorted ingredient IDs → name + hex
+  const RECIPES = [
+    { key: 'red+yellow',        name: 'Orange',  hex: '#FF8C00', emoji: '🍊' },
+    { key: 'blue+yellow',       name: 'Green',   hex: '#32C832', emoji: '🌿' },
+    { key: 'blue+red',          name: 'Purple',  hex: '#8832DC', emoji: '🍇' },
+    { key: 'blue+red+yellow',   name: 'Brown',   hex: '#8B5A2B', emoji: '🪵' },
+    { key: 'red+white',         name: 'Pink',    hex: '#FF90B0', emoji: '🌸' },
+    { key: 'blue+white',        name: 'Light Blue', hex: '#90C8FF', emoji: '🩵' },
+    { key: 'red+yellow+white',  name: 'Peach',   hex: '#FFAA80', emoji: '🍑' },
+    { key: 'blue+red+white',    name: 'Lavender',hex: '#C090FF', emoji: '💜' },
+    { key: 'blue+yellow+white', name: 'Mint',    hex: '#80E0B0', emoji: '🌱' },
+  ];
+
+  const SINGLE_COLORS = {
+    red:    { name: 'Red',    hex: '#FF4040', emoji: '🍎' },
+    yellow: { name: 'Yellow', hex: '#FFD000', emoji: '🌟' },
+    blue:   { name: 'Blue',   hex: '#3080FF', emoji: '💙' },
+    white:  { name: 'White',  hex: '#F5F5F5', emoji: '☁️' },
+  };
+
+  // ---------- State ----------
+  let selected = new Set();
+  let discovered = new Set();
+
+  // ---------- Build UI ----------
+  const potsRow = document.getElementById('pots-row');
+  PAINTS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'pot-btn';
+    btn.id = 'pot-' + p.id;
+    btn.setAttribute('aria-label', p.label + ' paint');
+    btn.innerHTML = `
+      <div class="pot-circle" style="background:${p.hex}"></div>
+      <span class="pot-label">${p.label}</span>
+    `;
+    btn.addEventListener('click', () => togglePaint(p.id, btn, p));
+    potsRow.appendChild(btn);
+  });
+
+  // ---------- Helpers ----------
+  function mixColor() {
+    if (selected.size === 0) return null;
+    if (selected.size === 1) {
+      const id = [...selected][0];
+      return SINGLE_COLORS[id];
+    }
+    const key = [...selected].sort().join('+');
+    return RECIPES.find(r => r.key === key) || null;
+  }
+
+  function blendRGB() {
+    if (selected.size === 0) return [232, 224, 216];
+    const paints = PAINTS.filter(p => selected.has(p.id));
+    const r = Math.round(paints.reduce((s, p) => s + p.rgb[0], 0) / paints.length);
+    const g = Math.round(paints.reduce((s, p) => s + p.rgb[1], 0) / paints.length);
+    const b = Math.round(paints.reduce((s, p) => s + p.rgb[2], 0) / paints.length);
+    return [r, g, b];
+  }
+
+  function rgbToHex([r, g, b]) {
+    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  function updateBowl() {
+    const recipe = mixColor();
+    const bowlFill = document.getElementById('bowl-fill');
+    const resultEl = document.getElementById('color-result');
+
+    let fillHex;
+    if (recipe) {
+      fillHex = recipe.hex;
+    } else {
+      fillHex = rgbToHex(blendRGB());
+    }
+    bowlFill.setAttribute('fill', fillHex);
+
+    if (selected.size === 0) {
+      bowlFill.setAttribute('fill', '#e8e0d8');
+      resultEl.textContent = '';
+      resultEl.classList.remove('visible');
+    } else if (recipe) {
+      resultEl.textContent = recipe.emoji + ' ' + recipe.name + '!';
+      resultEl.classList.add('visible');
+    } else {
+      resultEl.textContent = '';
+      resultEl.classList.remove('visible');
+    }
+  }
+
+  // ---------- Toggle paint ----------
+  function togglePaint(id, btn, paint) {
+    if (selected.has(id)) {
+      selected.delete(id);
+      btn.classList.remove('selected');
+    } else {
+      selected.add(id);
+      btn.classList.add('selected');
+      fireSplat(btn, paint.hex);
+    }
+    updateBowl();
+
+    const recipe = mixColor();
+    if (recipe && selected.size > 1 && !discovered.has(recipe.name)) {
+      discovered.add(recipe.name);
+      setTimeout(() => celebrate(recipe), 400);
+      addSwatch(recipe.hex, recipe.name);
+    }
+  }
+
+  // ---------- Splat animation ----------
+  function fireSplat(btn, hex) {
+    const container = document.getElementById('splat-container');
+    const rect = btn.querySelector('.pot-circle').getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+
+    const bowlRect = document.getElementById('bowl-wrap').getBoundingClientRect();
+    const tx = bowlRect.left + bowlRect.width / 2;
+    const ty = bowlRect.top + bowlRect.height * 0.55;
+
+    const blob = document.createElement('div');
+    blob.style.cssText = `
+      position: fixed;
+      left: ${cx}px;
+      top: ${cy}px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: ${hex};
+      border: 3px solid #2B2140;
+      pointer-events: none;
+      z-index: 30;
+      transform: translate(-50%, -50%);
+      transition: left 0.45s cubic-bezier(.2,1,.4,1), top 0.45s cubic-bezier(.2,1,.4,1), opacity 0.2s ease 0.3s, transform 0.1s ease;
+    `;
+    container.appendChild(blob);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        blob.style.left = tx + 'px';
+        blob.style.top = ty + 'px';
+        blob.style.transform = 'translate(-50%, -50%) scale(1.3)';
+      });
+    });
+
+    setTimeout(() => {
+      blob.style.opacity = '0';
+      setTimeout(() => blob.remove(), 250);
+    }, 350);
+  }
+
+  // ---------- Celebrate ----------
+  function celebrate(recipe) {
+    const el = document.getElementById('celebration');
+    document.getElementById('celeb-emoji').textContent = recipe.emoji;
+    document.getElementById('celeb-name').textContent = recipe.name;
+    document.getElementById('celeb-name').style.color = recipe.hex;
+    el.classList.add('show');
+  }
+
+  document.getElementById('celebration').addEventListener('click', () => {
+    document.getElementById('celebration').classList.remove('show');
+  });
+
+  // ---------- Swatch ----------
+  function addSwatch(hex, name) {
+    const container = document.getElementById('swatches');
+    if (container.querySelector(`[data-name="${name}"]`)) return;
+    const s = document.createElement('div');
+    s.className = 'swatch';
+    s.style.background = hex;
+    s.title = name;
+    s.dataset.name = name;
+    container.appendChild(s);
+  }
+
+  // ---------- Clear ----------
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    selected.clear();
+    document.querySelectorAll('.pot-btn').forEach(b => b.classList.remove('selected'));
+    updateBowl();
+  });
+
+  // Initial bowl state
+  updateBowl();
+</script>
+</body>
+</html>
