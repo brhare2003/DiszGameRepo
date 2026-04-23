@@ -166,6 +166,11 @@
     img.src = `Images/${f}.png`;
     return img;
   });
+  const FISH_MASKS = FISH_FILES.map(f => {
+    const img = new Image();
+    img.src = `Images/${f}_mask.png`;
+    return img;
+  });
   function imgReady(i) { const m = FISH_IMAGES[i]; return m && m.complete && m.naturalWidth > 0; }
 
 
@@ -259,7 +264,7 @@
   resizeSel();
 
   // expose for later screens
-  window._ff = { FISH_IMAGES, FISH_NAMES, ac, beep, playPop, playChime, playPlop, playHatch, playGrow, fishType: () => fishType, showScreen, savedFish: [] };
+  window._ff = { FISH_IMAGES, FISH_MASKS, FISH_NAMES, ac, beep, playPop, playChime, playPlop, playHatch, playGrow, fishType: () => fishType, showScreen, savedFish: [] };
 })();
 
 // ── Screen 2: Paint ──────────────────────────────────────────────────────────
@@ -282,16 +287,42 @@
     renderPaint();
   }
 
+  // persistent temp canvas for mask-clipping paint
+  const paintTmp = document.createElement('canvas');
+  const paintTmpC = paintTmp.getContext('2d');
+
   function renderPaint() {
     const W = cvP.width, H = cvP.height;
     const ff = window._ff;
-    ctxP.clearRect(0, 0, W, H);
-    ctxP.drawImage(off, 0, 0);
     const idx = ff.fishType();
-    if (ff.FISH_IMAGES && ff.FISH_IMAGES[idx] && ff.FISH_IMAGES[idx].complete && ff.FISH_IMAGES[idx].naturalWidth) {
-      const img = ff.FISH_IMAGES[idx];
-      const scale = Math.min(W * 0.96 / img.naturalWidth, H * 0.96 / img.naturalHeight);
-      const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
+    ctxP.clearRect(0, 0, W, H);
+
+    // Scale helpers (same position for mask and line-art image)
+    function imgScale(img) {
+      return Math.min(W * 0.96 / img.naturalWidth, H * 0.96 / img.naturalHeight);
+    }
+
+    // Draw paint strokes clipped to the fish fill-mask
+    const mask = ff.FISH_MASKS && ff.FISH_MASKS[idx];
+    if (mask && mask.complete && mask.naturalWidth) {
+      paintTmp.width = W; paintTmp.height = H;
+      paintTmpC.clearRect(0, 0, W, H);
+      paintTmpC.drawImage(off, 0, 0);
+      const ms = imgScale(mask);
+      const mw = mask.naturalWidth * ms, mh = mask.naturalHeight * ms;
+      paintTmpC.globalCompositeOperation = 'destination-in';
+      paintTmpC.drawImage(mask, (W - mw) / 2, (H - mh) / 2, mw, mh);
+      paintTmpC.globalCompositeOperation = 'source-over';
+      ctxP.drawImage(paintTmp, 0, 0);
+    } else {
+      ctxP.drawImage(off, 0, 0);
+    }
+
+    // Overlay fish line-art on top
+    const img = ff.FISH_IMAGES && ff.FISH_IMAGES[idx];
+    if (img && img.complete && img.naturalWidth) {
+      const s = imgScale(img);
+      const dw = img.naturalWidth * s, dh = img.naturalHeight * s;
       ctxP.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
     }
   }
@@ -494,10 +525,15 @@
     ctxT.fillRect(0, 0, W, H);
   }
 
+  // shared temp canvas so we don't allocate per-frame per-fish
+  const fishTmp = document.createElement('canvas');
+  const fishTmpC = fishTmp.getContext('2d');
+
   function drawOneFish(fish) {
     const ff = window._ff;
     const idx = fish.fishType != null ? fish.fishType : ff.fishType();
-    const img = ff.FISH_IMAGES && ff.FISH_IMAGES[idx];
+    const img  = ff.FISH_IMAGES && ff.FISH_IMAGES[idx];
+    const mask = ff.FISH_MASKS  && ff.FISH_MASKS[idx];
     if (!img || !img.complete || !img.naturalWidth) return;
 
     const sz = fish.size;
@@ -512,8 +548,20 @@
 
     if (fish.paintOffCanvas) {
       const ps = fish.paintOffCanvas;
-      const psc = Math.min(dw / ps.width, dh / ps.height);
-      ctxT.drawImage(ps, -ps.width * psc / 2, -ps.height * psc / 2, ps.width * psc, ps.height * psc);
+      const tdw = Math.ceil(dw), tdh = Math.ceil(dh);
+      fishTmp.width = tdw; fishTmp.height = tdh;
+      fishTmpC.clearRect(0, 0, tdw, tdh);
+      // center paint inside tmp canvas
+      const psc = Math.min(tdw / ps.width, tdh / ps.height);
+      fishTmpC.drawImage(ps, (tdw - ps.width * psc) / 2, (tdh - ps.height * psc) / 2, ps.width * psc, ps.height * psc);
+      // clip to mask
+      if (mask && mask.complete && mask.naturalWidth) {
+        const ms = Math.min(tdw / mask.naturalWidth, tdh / mask.naturalHeight);
+        fishTmpC.globalCompositeOperation = 'destination-in';
+        fishTmpC.drawImage(mask, (tdw - mask.naturalWidth * ms) / 2, (tdh - mask.naturalHeight * ms) / 2, mask.naturalWidth * ms, mask.naturalHeight * ms);
+        fishTmpC.globalCompositeOperation = 'source-over';
+      }
+      ctxT.drawImage(fishTmp, -dw / 2, -dh / 2, dw, dh);
     } else {
       ctxT.fillStyle = 'rgba(100,200,255,0.18)';
       ctxT.fillRect(-dw / 2, -dh / 2, dw, dh);
