@@ -549,32 +549,32 @@
 
     const sz = fish.size;
     const scale = sz / Math.max(img.naturalWidth, img.naturalHeight);
-    const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
-    const tdw = Math.ceil(dw), tdh = Math.ceil(dh);
-    const cx = fish.x, cy = fish.y;
+    // round to whole pixels — eliminates sub-pixel jitter/flicker on small fish
+    const dw = Math.round(img.naturalWidth * scale);
+    const dh = Math.round(img.naturalHeight * scale);
+    const cx = Math.round(fish.x), cy = Math.round(fish.y);
+    const wobbleY = Math.round(Math.sin(fish.wobble) * sz * 0.04);
 
     ctxT.save();
     ctxT.translate(cx, cy);
     if (fish.dir > 0) ctxT.scale(-1, 1);
-    ctxT.translate(0, Math.sin(fish.wobble) * sz * 0.04);
+    ctxT.translate(0, wobbleY);
 
     if (fish.paintOffCanvas) {
       const ps = fish.paintOffCanvas;
-      // clear only the region we'll use — no canvas resize
-      fishTmpC.clearRect(0, 0, tdw, tdh);
-      fishTmpC.drawImage(ps, 0, 0, tdw, tdh);
+      fishTmpC.clearRect(0, 0, dw, dh);
+      fishTmpC.drawImage(ps, 0, 0, dw, dh);
       if (mask && mask.complete && mask.naturalWidth) {
         fishTmpC.globalCompositeOperation = 'destination-in';
-        fishTmpC.drawImage(mask, 0, 0, tdw, tdh);
+        fishTmpC.drawImage(mask, 0, 0, dw, dh);
         fishTmpC.globalCompositeOperation = 'source-over';
       }
-      // copy only the painted region out of fishTmp
-      ctxT.drawImage(fishTmp, 0, 0, tdw, tdh, -dw / 2, -dh / 2, dw, dh);
+      ctxT.drawImage(fishTmp, 0, 0, dw, dh, -dw >> 1, -dh >> 1, dw, dh);
     } else {
       ctxT.fillStyle = 'rgba(100,200,255,0.18)';
-      ctxT.fillRect(-dw / 2, -dh / 2, dw, dh);
+      ctxT.fillRect(-dw >> 1, -dh >> 1, dw, dh);
     }
-    ctxT.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+    ctxT.drawImage(img, -dw >> 1, -dh >> 1, dw, dh);
     ctxT.restore();
   }
 
