@@ -161,9 +161,10 @@
   const FISH_NAMES = ['Danio','Guppy','Angelfish','Betta','Tetra','Nano Danio','Spotted','Goldfish','Discus','Clownfish'];
   const FISH_FILES = ['fish_01_danio','fish_02_guppy','fish_03_angelfish','fish_04_betta','fish_05_tetra',
                       'fish_06_danio2','fish_07_spotted','fish_08_goldfish','fish_09_discus','fish_10_clownfish'];
-  const FISH_IMAGES = FISH_FILES.map(f => {
+  const FISH_IMAGES = FISH_FILES.map((f, i) => {
     const img = new Image();
     img.src = `Images/${f}.png`;
+    img.onload = () => { if (i === fishType && cvSel.width > 0) drawSelect(); };
     return img;
   });
   const FISH_MASKS = FISH_FILES.map(f => {
@@ -208,9 +209,10 @@
       const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
       const dx = (W - dw) / 2, dy = (H - 30 - dh) / 2;
       ctxSel.save();
+      // draw fish lines as solid cyan so they show on the dark background
       ctxSel.drawImage(img, dx, dy, dw, dh);
       ctxSel.globalCompositeOperation = 'source-atop';
-      ctxSel.fillStyle = 'rgba(126,237,244,0.32)';
+      ctxSel.fillStyle = '#7EEDF4';
       ctxSel.fillRect(dx, dy, dw, dh);
       ctxSel.restore();
     }
@@ -533,8 +535,9 @@
     ctxT.fillRect(0, 0, W, H);
   }
 
-  // shared temp canvas so we don't allocate per-frame per-fish
+  // fixed-size offscreen canvas — never resized so no per-frame GPU reallocation
   const fishTmp = document.createElement('canvas');
+  fishTmp.width = 512; fishTmp.height = 512;
   const fishTmpC = fishTmp.getContext('2d');
 
   function drawOneFish(fish) {
@@ -547,6 +550,7 @@
     const sz = fish.size;
     const scale = sz / Math.max(img.naturalWidth, img.naturalHeight);
     const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
+    const tdw = Math.ceil(dw), tdh = Math.ceil(dh);
     const cx = fish.x, cy = fish.y;
 
     ctxT.save();
@@ -556,18 +560,16 @@
 
     if (fish.paintOffCanvas) {
       const ps = fish.paintOffCanvas;
-      const tdw = Math.ceil(dw), tdh = Math.ceil(dh);
-      fishTmp.width = tdw; fishTmp.height = tdh;
+      // clear only the region we'll use — no canvas resize
       fishTmpC.clearRect(0, 0, tdw, tdh);
-      // paint is already normalized to fish-image coordinate space — draw at full fishTmp size
       fishTmpC.drawImage(ps, 0, 0, tdw, tdh);
-      // clip to mask (same coordinate space)
       if (mask && mask.complete && mask.naturalWidth) {
         fishTmpC.globalCompositeOperation = 'destination-in';
         fishTmpC.drawImage(mask, 0, 0, tdw, tdh);
         fishTmpC.globalCompositeOperation = 'source-over';
       }
-      ctxT.drawImage(fishTmp, -dw / 2, -dh / 2, dw, dh);
+      // copy only the painted region out of fishTmp
+      ctxT.drawImage(fishTmp, 0, 0, tdw, tdh, -dw / 2, -dh / 2, dw, dh);
     } else {
       ctxT.fillStyle = 'rgba(100,200,255,0.18)';
       ctxT.fillRect(-dw / 2, -dh / 2, dw, dh);
