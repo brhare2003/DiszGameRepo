@@ -222,6 +222,7 @@
   .card:nth-child(5){animation-delay:.26s} .card:nth-child(6){animation-delay:.32s}
   .card:nth-child(7){animation-delay:.38s} .card:nth-child(8){animation-delay:.44s}
   .card:nth-child(9){animation-delay:.50s} .card:nth-child(10){animation-delay:.56s}
+  .card:nth-child(11){animation-delay:.62s}
   @keyframes pop {
     from { opacity: 0; transform: translateY(20px) scale(0.92); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -459,6 +460,31 @@
       </div>
       <h2 class="card-title">Feed the Monster</h2>
       <p class="card-desc">Give the silly monster its favorite snacks!</p>
+      <span class="kid-btn card-play">
+        <svg width="16" height="18" viewBox="0 0 16 18"><polygon points="2,2 14,9 2,16" fill="white" stroke="#2B2140" stroke-width="2" stroke-linejoin="round"/></svg>
+        Play
+      </span>
+    </a>
+
+    <!-- COLOR MIXER -->
+    <a class="card theme-grape" role="listitem" href="games/color-mixer.html" aria-label="Play Color Mixer">
+      <span class="badge">Mix!</span>
+      <div class="card-art">
+        <svg width="120" height="110" viewBox="0 0 120 110" aria-hidden="true">
+          <!-- Red paint blob -->
+          <ellipse cx="28" cy="38" rx="18" ry="20" fill="#FF6B6B" stroke="#2B2140" stroke-width="3"/>
+          <!-- Yellow paint blob -->
+          <ellipse cx="60" cy="30" rx="16" ry="18" fill="#FFD53E" stroke="#2B2140" stroke-width="3"/>
+          <!-- Blue paint blob -->
+          <ellipse cx="92" cy="38" rx="18" ry="20" fill="#5BB8FF" stroke="#2B2140" stroke-width="3"/>
+          <!-- Mixing bowl -->
+          <path d="M22 70 Q60 100 98 70 L94 62 Q60 88 26 62 Z" fill="#B48BFF" stroke="#2B2140" stroke-width="3" stroke-linejoin="round"/>
+          <!-- Sparkle star -->
+          <polygon points="60,50 63,58 72,58 65,63 68,72 60,67 52,72 55,63 48,58 57,58" fill="#FFD53E" stroke="#2B2140" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2 class="card-title">Color Mixer</h2>
+      <p class="card-desc">Mix paints together and discover new colors!</p>
       <span class="kid-btn card-play">
         <svg width="16" height="18" viewBox="0 0 16 18"><polygon points="2,2 14,9 2,16" fill="white" stroke="#2B2140" stroke-width="2" stroke-linejoin="round"/></svg>
         Play
