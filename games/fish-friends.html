@@ -113,8 +113,6 @@
 <div class="screen" id="s-paint">
   <canvas id="cv-paint"></canvas>
   <div id="palette"></div>
-  <div class="swatch-row" id="lines-row"><span class="swatch-label">LINES</span></div>
-  <div class="swatch-row" id="eye-row"><span class="swatch-label">EYE</span></div>
   <div class="btn-row">
     <button class="icon-btn nav" id="btn-back2">&#8592;</button>
     <button class="icon-btn go"  id="btn-go2">&#10003;</button>
@@ -159,177 +157,17 @@
   function playHatch() { [400,600,900,1300].forEach((f,i) => setTimeout(() => beep(f,0.12,'sine'), i*60)); }
   function playGrow()  { [523,659,784,1047].forEach((f,i) => setTimeout(() => beep(f,0.14,'triangle'), i*70)); }
 
-  // ── Fish shape paths (fins included in silhouette so paint covers everything) ─
-  const SHAPES = [
-    // 0: Classic Tropical — oval body + triangular dorsal fin + forked tail + anal fin
-    function(ctx, cx, cy, r) {
-      ctx.beginPath();
-      ctx.moveTo(cx+r*.48, cy);                                               // tail fork center
-      ctx.lineTo(cx+r*.88, cy-r*.52);                                         // upper tail tip
-      ctx.quadraticCurveTo(cx+r*.66, cy-r*.16, cx+r*.42, cy-r*.22);          // upper tail root
-      ctx.quadraticCurveTo(cx+r*.22, cy-r*.52, cx+r*.02, cy-r*.48);          // dorsal fin peak
-      ctx.quadraticCurveTo(cx-r*.10, cy-r*.44, cx-r*.28, cy-r*.34);          // dorsal fin return
-      ctx.quadraticCurveTo(cx-r*.52, cy-r*.18, cx-r*.64, cy);                // body top to nose
-      ctx.quadraticCurveTo(cx-r*.52, cy+r*.18, cx-r*.24, cy+r*.36);          // nose to body bottom
-      ctx.quadraticCurveTo(cx-r*.04, cy+r*.48, cx+r*.12, cy+r*.44);          // anal fin tip
-      ctx.quadraticCurveTo(cx+r*.28, cy+r*.38, cx+r*.42, cy+r*.22);          // anal fin return
-      ctx.quadraticCurveTo(cx+r*.66, cy+r*.16, cx+r*.88, cy+r*.52);          // lower tail tip
-      ctx.closePath();
-    },
-    // 1: Angelfish — disc body + very long trailing top & bottom fins + small tail
-    function(ctx, cx, cy, r) {
-      ctx.beginPath();
-      ctx.moveTo(cx+r*.38, cy);                                               // tail junction
-      ctx.lineTo(cx+r*.58, cy-r*.18);                                         // upper tail tip
-      ctx.quadraticCurveTo(cx+r*.44, cy-r*.08, cx+r*.22, cy-r*.32);          // upper tail root
-      ctx.quadraticCurveTo(cx+r*.10, cy-r*.62, cx, cy-r*1.02);               // top fin rise
-      ctx.quadraticCurveTo(cx-r*.08, cy-r*.78, cx-r*.16, cy-r*.56);          // top fin return
-      ctx.quadraticCurveTo(cx-r*.36, cy-r*.30, cx-r*.54, cy);                // body top to nose
-      ctx.quadraticCurveTo(cx-r*.36, cy+r*.30, cx-r*.16, cy+r*.56);          // nose to body bottom
-      ctx.quadraticCurveTo(cx-r*.08, cy+r*.78, cx, cy+r*1.02);               // bottom fin drop
-      ctx.quadraticCurveTo(cx+r*.10, cy+r*.62, cx+r*.22, cy+r*.32);          // bottom fin return
-      ctx.quadraticCurveTo(cx+r*.44, cy+r*.08, cx+r*.58, cy+r*.18);          // lower tail root
-      ctx.closePath();
-    },
-    // 2: Pufferfish — round body + small tail fan + dorsal nub + ventral nub
-    function(ctx, cx, cy, r) {
-      ctx.beginPath();
-      ctx.moveTo(cx+r*.34, cy);                                               // tail junction
-      ctx.lineTo(cx+r*.62, cy-r*.24);                                         // upper tail tip
-      ctx.quadraticCurveTo(cx+r*.48, cy-r*.10, cx+r*.28, cy-r*.36);          // upper tail root
-      ctx.quadraticCurveTo(cx+r*.16, cy-r*.52, cx, cy-r*.58);                // dorsal nub peak
-      ctx.quadraticCurveTo(cx-r*.14, cy-r*.54, cx-r*.26, cy-r*.46);          // dorsal nub return
-      ctx.bezierCurveTo(cx-r*.52, cy-r*.34, cx-r*.70, cy-r*.12, cx-r*.70, cy); // round body
-      ctx.bezierCurveTo(cx-r*.70, cy+r*.12, cx-r*.52, cy+r*.34, cx-r*.26, cy+r*.46);
-      ctx.quadraticCurveTo(cx-r*.14, cy+r*.54, cx, cy+r*.58);                // ventral nub peak
-      ctx.quadraticCurveTo(cx+r*.16, cy+r*.52, cx+r*.28, cy+r*.36);          // ventral nub return
-      ctx.quadraticCurveTo(cx+r*.48, cy+r*.10, cx+r*.62, cy+r*.24);          // lower tail tip
-      ctx.closePath();
-    },
-    // 3: Needlefish — long torpedo body, small swept-back dorsal + anal fins, forked tail
-    function(ctx, cx, cy, r) {
-      ctx.beginPath();
-      ctx.moveTo(cx+r*.54, cy);                                               // tail fork center
-      ctx.lineTo(cx+r*.90, cy-r*.28);                                         // upper tail tip
-      ctx.quadraticCurveTo(cx+r*.68, cy-r*.06, cx+r*.44, cy-r*.12);          // upper tail root
-      ctx.quadraticCurveTo(cx+r*.24, cy-r*.22, cx+r*.12, cy-r*.22);          // dorsal fin peak
-      ctx.quadraticCurveTo(cx+r*.02, cy-r*.20, cx-r*.16, cy-r*.18);          // dorsal fin return
-      ctx.quadraticCurveTo(cx-r*.52, cy-r*.13, cx-r*.82, cy-r*.05);          // long body top
-      ctx.quadraticCurveTo(cx-r*.88, cy, cx-r*.82, cy+r*.05);                // pointed nose
-      ctx.quadraticCurveTo(cx-r*.52, cy+r*.13, cx-r*.16, cy+r*.18);          // long body bottom
-      ctx.quadraticCurveTo(cx+r*.02, cy+r*.20, cx+r*.12, cy+r*.22);          // anal fin peak
-      ctx.quadraticCurveTo(cx+r*.24, cy+r*.22, cx+r*.44, cy+r*.12);          // anal fin return
-      ctx.quadraticCurveTo(cx+r*.68, cy+r*.06, cx+r*.90, cy+r*.28);          // lower tail tip
-      ctx.closePath();
-    },
-    // 4: Fantail Goldfish — plump round body + dorsal fin + double butterfly tail
-    function(ctx, cx, cy, r) {
-      ctx.beginPath();
-      ctx.moveTo(cx+r*.42, cy);                                               // body-tail junction
-      ctx.bezierCurveTo(cx+r*.54, cy-r*.12, cx+r*.80, cy-r*.18, cx+r*.88, cy-r*.54); // outer tail
-      ctx.bezierCurveTo(cx+r*.94, cy-r*.82, cx+r*.76, cy-r*.98, cx+r*.60, cy-r*.86); // tail tip
-      ctx.quadraticCurveTo(cx+r*.52, cy-r*.60, cx+r*.46, cy-r*.26);          // inner tail notch
-      ctx.quadraticCurveTo(cx+r*.26, cy-r*.54, cx+r*.08, cy-r*.56);          // dorsal fin peak
-      ctx.quadraticCurveTo(cx-r*.06, cy-r*.54, cx-r*.20, cy-r*.46);          // dorsal return
-      ctx.bezierCurveTo(cx-r*.52, cy-r*.32, cx-r*.68, cy-r*.10, cx-r*.68, cy); // round body
-      ctx.bezierCurveTo(cx-r*.68, cy+r*.10, cx-r*.52, cy+r*.32, cx-r*.20, cy+r*.46);
-      ctx.quadraticCurveTo(cx-r*.06, cy+r*.54, cx+r*.08, cy+r*.56);          // ventral fin
-      ctx.quadraticCurveTo(cx+r*.26, cy+r*.54, cx+r*.46, cy+r*.26);          // inner tail notch
-      ctx.quadraticCurveTo(cx+r*.52, cy+r*.60, cx+r*.60, cy+r*.86);          // lower tail tip
-      ctx.bezierCurveTo(cx+r*.76, cy+r*.98, cx+r*.94, cy+r*.82, cx+r*.88, cy+r*.54);
-      ctx.bezierCurveTo(cx+r*.80, cy+r*.18, cx+r*.54, cy+r*.12, cx+r*.42, cy);
-      ctx.closePath();
-    },
-  ];
-  const LABELS = ['CICHLID','ANGEL','PUFFER','NEEDLE','GOLDFISH'];
+  // ── Fish images ───────────────────────────────────────────────────────────
+  const FISH_NAMES = ['Danio','Guppy','Angelfish','Betta','Tetra','Nano Danio','Spotted','Goldfish','Discus','Clownfish'];
+  const FISH_FILES = ['fish_01_danio','fish_02_guppy','fish_03_angelfish','fish_04_betta','fish_05_tetra',
+                      'fish_06_danio2','fish_07_spotted','fish_08_goldfish','fish_09_discus','fish_10_clownfish'];
+  const FISH_IMAGES = FISH_FILES.map(f => {
+    const img = new Image();
+    img.src = `Images/${f}.png`;
+    return img;
+  });
+  function imgReady(i) { const m = FISH_IMAGES[i]; return m && m.complete && m.naturalWidth > 0; }
 
-  // ── Internal markings only — all guaranteed inside the body silhouette ────
-  function toRgba(hex, a) {
-    const h = hex.replace('#','');
-    return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;
-  }
-  const DETAILS = [
-    // 0: Cichlid — gill arc, lateral line, pectoral ellipse
-    function(ctx, cx, cy, r, dc) {
-      dc = dc || '#7EEDF4';
-      ctx.save();
-      ctx.strokeStyle = toRgba(dc,0.75); ctx.lineWidth = 1.8; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(cx-r*.30, cy, r*.28, -1.05, 1.05); ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(cx-r*.18, cy+r*.08, r*.11, r*.055, 0.3, 0, Math.PI*2); ctx.stroke();
-      ctx.strokeStyle = toRgba(dc,0.22); ctx.lineWidth = r*.07;
-      ctx.beginPath();
-      ctx.moveTo(cx-r*.24, cy); ctx.quadraticCurveTo(cx+r*.08, cy-r*.04, cx+r*.36, cy-r*.02);
-      ctx.stroke();
-      ctx.restore();
-    },
-    // 1: Angelfish — gill arc, pectoral ellipse, fin rays (stay inside wings), body bar
-    function(ctx, cx, cy, r, dc) {
-      dc = dc || '#7EEDF4';
-      ctx.save();
-      ctx.strokeStyle = toRgba(dc,0.75); ctx.lineWidth = 1.8; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(cx-r*.26, cy, r*.24, -1.05, 1.05); ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(cx-r*.14, cy+r*.08, r*.10, r*.05, 0.3, 0, Math.PI*2); ctx.stroke();
-      ctx.strokeStyle = toRgba(dc,0.25); ctx.lineWidth = 1;
-      for (let i=0; i<3; i++) {
-        const t=i/2;
-        ctx.beginPath(); ctx.moveTo(cx+r*(.16-t*.16), cy-r*(.28+t*.24));
-        ctx.lineTo(cx+r*(.04-t*.10), cy-r*(.56+t*.12)); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx+r*(.16-t*.16), cy+r*(.28+t*.24));
-        ctx.lineTo(cx+r*(.04-t*.10), cy+r*(.56+t*.12)); ctx.stroke();
-      }
-      ctx.strokeStyle = toRgba(dc,0.18); ctx.lineWidth = r*.08;
-      ctx.beginPath(); ctx.moveTo(cx-r*.14, cy-r*.22); ctx.lineTo(cx-r*.14, cy+r*.22); ctx.stroke();
-      ctx.restore();
-    },
-    // 2: Pufferfish — gill arc, concentric inflation arcs, belly spots
-    function(ctx, cx, cy, r, dc) {
-      dc = dc || '#7EEDF4';
-      ctx.save();
-      ctx.strokeStyle = toRgba(dc,0.75); ctx.lineWidth = 1.8; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(cx-r*.28, cy, r*.26, -1.0, 1.0); ctx.stroke();
-      ctx.strokeStyle = toRgba(dc,0.20); ctx.lineWidth = 1.2;
-      [r*.16, r*.28, r*.38].forEach(rad => {
-        ctx.beginPath(); ctx.arc(cx-r*.14, cy, rad, -Math.PI*.60, Math.PI*.60); ctx.stroke();
-      });
-      ctx.fillStyle = toRgba(dc,0.28);
-      [[cx-r*.18, cy+r*.20], [cx+r*.02, cy+r*.28], [cx+r*.16, cy+r*.20]].forEach(([bx,by]) => {
-        ctx.beginPath(); ctx.arc(bx, by, r*.04, 0, Math.PI*2); ctx.fill();
-      });
-      ctx.restore();
-    },
-    // 3: Needlefish — gill arc, pectoral ellipse, prominent lateral line
-    function(ctx, cx, cy, r, dc) {
-      dc = dc || '#7EEDF4';
-      ctx.save();
-      ctx.strokeStyle = toRgba(dc,0.75); ctx.lineWidth = 1.5; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(cx-r*.52, cy, r*.14, -0.85, 0.85); ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(cx-r*.44, cy+r*.08, r*.09, r*.045, 0.2, 0, Math.PI*2); ctx.stroke();
-      ctx.strokeStyle = toRgba(dc,0.32); ctx.lineWidth = r*.055;
-      ctx.beginPath();
-      ctx.moveTo(cx-r*.44, cy-r*.02);
-      ctx.quadraticCurveTo(cx+r*.06, cy-r*.04, cx+r*.46, cy-r*.02);
-      ctx.stroke();
-      ctx.restore();
-    },
-    // 4: Goldfish — gill arc, pectoral ellipse, scale arcs, tail rays inside butterfly
-    function(ctx, cx, cy, r, dc) {
-      dc = dc || '#7EEDF4';
-      ctx.save();
-      ctx.strokeStyle = toRgba(dc,0.75); ctx.lineWidth = 1.8; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(cx-r*.34, cy, r*.28, -1.1, 1.1); ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(cx-r*.22, cy+r*.06, r*.12, r*.06, 0.3, 0, Math.PI*2); ctx.stroke();
-      ctx.strokeStyle = toRgba(dc,0.18); ctx.lineWidth=1;
-      [[-r*.28, r*.22], [-r*.10, r*.28], [r*.08, r*.22]].forEach(([dx,rad]) => {
-        ctx.beginPath(); ctx.arc(cx+dx, cy, rad, -Math.PI*.55, Math.PI*.55); ctx.stroke();
-      });
-      const tx=cx+r*.42;
-      ctx.strokeStyle = toRgba(dc,0.25);
-      [[cx+r*.62,cy-r*.38],[cx+r*.70,cy-r*.58],[cx+r*.62,cy+r*.38],[cx+r*.70,cy+r*.58]].forEach(([ex,ey]) => {
-        ctx.beginPath(); ctx.moveTo(tx,cy); ctx.lineTo(ex,ey); ctx.stroke();
-      });
-      ctx.restore();
-    },
-  ];
 
   // ── Shared state ──────────────────────────────────────────────────────────
   let fishType = 0;
@@ -352,42 +190,49 @@
   function drawSelect() {
     const W = cvSel.width, H = cvSel.height;
     ctxSel.clearRect(0, 0, W, H);
-    const r = Math.min(W, H) * 0.4;
 
-    // Glow
-    const grd = ctxSel.createRadialGradient(W/2,H/2,r*.1,W/2,H/2,r*1.3);
-    grd.addColorStop(0,'rgba(100,220,255,0.15)');
-    grd.addColorStop(1,'rgba(100,220,255,0)');
-    ctxSel.fillStyle = grd; ctxSel.fillRect(0,0,W,H);
+    const grd = ctxSel.createRadialGradient(W/2, H/2, 10, W/2, H/2, W * 0.6);
+    grd.addColorStop(0, 'rgba(100,220,255,0.18)');
+    grd.addColorStop(1, 'rgba(100,220,255,0)');
+    ctxSel.fillStyle = grd; ctxSel.fillRect(0, 0, W, H);
 
-    // Fish body
-    SHAPES[fishType](ctxSel, W/2, H/2, r);
-    ctxSel.fillStyle = 'rgba(150,215,255,0.18)'; ctxSel.fill();
-    ctxSel.strokeStyle = '#7EEDF4'; ctxSel.lineWidth = 3; ctxSel.stroke();
+    if (imgReady(fishType)) {
+      const img = FISH_IMAGES[fishType];
+      const maxW = W * 0.84, maxH = (H - 30) * 0.88;
+      const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
+      const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
+      const dx = (W - dw) / 2, dy = (H - 30 - dh) / 2;
+      ctxSel.save();
+      ctxSel.drawImage(img, dx, dy, dw, dh);
+      ctxSel.globalCompositeOperation = 'source-atop';
+      ctxSel.fillStyle = 'rgba(126,237,244,0.32)';
+      ctxSel.fillRect(dx, dy, dw, dh);
+      ctxSel.restore();
+    }
 
-    // Detail fins/gills/markings
-    DETAILS[fishType](ctxSel, W/2, H/2, r);
-
-    // Eye
+    // Fish name
     ctxSel.fillStyle = '#7EEDF4';
-    ctxSel.beginPath(); ctxSel.arc(W/2-r*.28, H/2-r*.1, r*.07, 0, Math.PI*2); ctxSel.fill();
+    ctxSel.font = `bold ${Math.round(H * 0.075)}px 'Segoe UI',sans-serif`;
+    ctxSel.textAlign = 'center';
+    ctxSel.fillText(FISH_NAMES[fishType].toUpperCase(), W / 2, H - 16);
 
-    // Pagination dots
-    for (let i = 0; i < SHAPES.length; i++) {
-      const active = i === fishType;
+    // Pagination dots (10 fish)
+    const n = FISH_IMAGES.length;
+    for (let i = 0; i < n; i++) {
       ctxSel.beginPath();
-      ctxSel.arc(W/2 + (i-2)*22, H-10, active?7:5, 0, Math.PI*2);
-      ctxSel.fillStyle = active ? '#7EEDF4' : 'rgba(126,237,244,0.3)';
+      ctxSel.arc(W / 2 + (i - (n - 1) / 2) * 16, H - 6, i === fishType ? 5 : 3.5, 0, Math.PI * 2);
+      ctxSel.fillStyle = i === fishType ? '#7EEDF4' : 'rgba(126,237,244,0.3)';
       ctxSel.fill();
     }
   }
 
+
   document.getElementById('btn-prev').addEventListener('click', () => {
-    fishType = (fishType - 1 + SHAPES.length) % SHAPES.length;
+    fishType = (fishType - 1 + FISH_IMAGES.length) % FISH_IMAGES.length;
     playPop(); drawSelect();
   });
   document.getElementById('btn-next').addEventListener('click', () => {
-    fishType = (fishType + 1) % SHAPES.length;
+    fishType = (fishType + 1) % FISH_IMAGES.length;
     playPop(); drawSelect();
   });
   document.getElementById('btn-go1').addEventListener('click', () => {
@@ -403,8 +248,8 @@
     const dx = e.changedTouches[0].clientX - swipeX;
     if (Math.abs(dx) > 38) {
       fishType = dx < 0
-        ? (fishType+1) % SHAPES.length
-        : (fishType-1+SHAPES.length) % SHAPES.length;
+        ? (fishType+1) % FISH_IMAGES.length
+        : (fishType-1+FISH_IMAGES.length) % FISH_IMAGES.length;
       playPop(); drawSelect();
     }
     swipeX = null;
@@ -414,7 +259,7 @@
   resizeSel();
 
   // expose for later screens
-  window._ff = { SHAPES, DETAILS, ac, beep, playPop, playChime, playPlop, playHatch, playGrow, fishType: () => fishType, showScreen, savedFish: [] };
+  window._ff = { FISH_IMAGES, FISH_NAMES, ac, beep, playPop, playChime, playPlop, playHatch, playGrow, fishType: () => fishType, showScreen, savedFish: [] };
 })();
 
 // ── Screen 2: Paint ──────────────────────────────────────────────────────────
@@ -423,52 +268,34 @@
     '#FF4D4D','#FF9A3C','#FFE24D','#7ED957','#4DC8FF',
     '#A04DFF','#FF79C6','#FFFFFF','#8B4513','#3333AA'
   ];
-  const LINE_PALETTE = ['#7EEDF4','#FFFFFF','#000000','#FFD700','#FF4D4D','#7ED957','#A04DFF','#FF9A3C','#FF79C6','#8B4513'];
-  const EYE_PALETTE  = ['#7EEDF4','#FFFFFF','#FFD700','#FF4D4D','#FF9A3C','#7ED957','#FF79C6','#A04DFF','#000000','#8B4513'];
-  let paintColor  = PALETTE[0];
-  let linesColor  = LINE_PALETTE[0];
-  let eyeColor    = EYE_PALETTE[0];
+  let paintColor = PALETTE[0];
 
   const cvP  = document.getElementById('cv-paint');
   const ctxP = cvP.getContext('2d');
-  // off-screen overlay that holds paint strokes
   const off  = document.createElement('canvas');
   const offC = off.getContext('2d');
 
   function resizePaint() {
     const sz = Math.min(window.innerWidth * 0.94, window.innerHeight * 0.60, 480);
-    cvP.width  = sz; cvP.height = Math.round(sz * 0.72);
+    cvP.width  = sz; cvP.height = Math.round(sz * 0.88);
     off.width  = cvP.width; off.height = cvP.height;
     renderPaint();
   }
 
   function renderPaint() {
     const W = cvP.width, H = cvP.height;
-    const r = Math.min(W, H) * 0.4;
     const ff = window._ff;
-
     ctxP.clearRect(0, 0, W, H);
-
-    // Clip to fish shape, draw overlay
-    ctxP.save();
-    ff.SHAPES[ff.fishType()](ctxP, W/2, H/2, r);
-    ctxP.clip();
     ctxP.drawImage(off, 0, 0);
-    ctxP.restore();
-
-    // Fish outline on top
-    ff.SHAPES[ff.fishType()](ctxP, W/2, H/2, r);
-    ctxP.strokeStyle = linesColor; ctxP.lineWidth = 3; ctxP.stroke();
-
-    // Detail fins/gills/markings
-    ff.DETAILS[ff.fishType()](ctxP, W/2, H/2, r, linesColor);
-
-    // Eye
-    ctxP.fillStyle = eyeColor;
-    ctxP.beginPath(); ctxP.arc(W/2-r*.28, H/2-r*.1, r*.07, 0, Math.PI*2); ctxP.fill();
+    const idx = ff.fishType();
+    if (ff.FISH_IMAGES && ff.FISH_IMAGES[idx] && ff.FISH_IMAGES[idx].complete && ff.FISH_IMAGES[idx].naturalWidth) {
+      const img = ff.FISH_IMAGES[idx];
+      const scale = Math.min(W * 0.96 / img.naturalWidth, H * 0.96 / img.naturalHeight);
+      const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
+      ctxP.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    }
   }
 
-  // Build palette buttons
   const pal = document.getElementById('palette');
   PALETTE.forEach((col, i) => {
     const b = document.createElement('button');
@@ -483,25 +310,6 @@
     pal.appendChild(b);
   });
 
-  function buildSwatchRow(id, palette, onPick) {
-    const row = document.getElementById(id);
-    palette.forEach((col, i) => {
-      const b = document.createElement('button');
-      b.className = 'swatch-btn' + (i === 0 ? ' active' : '');
-      b.style.background = col;
-      b.addEventListener('click', () => {
-        row.querySelectorAll('.swatch-btn').forEach(x => x.classList.remove('active'));
-        b.classList.add('active');
-        onPick(col);
-        renderPaint();
-        window._ff.playPop();
-      });
-      row.appendChild(b);
-    });
-  }
-  buildSwatchRow('lines-row', LINE_PALETTE, col => { linesColor = col; });
-  buildSwatchRow('eye-row',   EYE_PALETTE,  col => { eyeColor   = col; });
-
   function getPos(e) {
     const rect = cvP.getBoundingClientRect();
     const scaleX = cvP.width  / rect.width;
@@ -515,7 +323,7 @@
     e.preventDefault(); painting = true;
     const p = getPos(e);
     offC.beginPath(); offC.moveTo(p.x, p.y);
-    window._ff.beep(440 + Math.random()*200, 0.05);
+    window._ff.beep(440 + Math.random() * 200, 0.05);
   }
   function movePaint(e) {
     if (!painting) return; e.preventDefault();
@@ -544,28 +352,25 @@
     const saved = document.createElement('canvas');
     saved.width = off.width; saved.height = off.height;
     saved.getContext('2d').drawImage(off, 0, 0);
-    window._ff.savedFish.push({ fishType: window._ff.fishType(), paintOffCanvas: saved, linesColor, eyeColor });
+    window._ff.savedFish.push({ fishType: window._ff.fishType(), paintOffCanvas: saved });
     window._ff.paintedCanvas = saved;
     window._ff.showScreen('s-tank');
   });
 
-  // Reset overlay when entering paint screen
   const origShow = window._ff.showScreen;
   window._ff.showScreen = function(id) {
     if (id === 's-paint') {
       off.width  = cvP.width  || 1;
       off.height = cvP.height || 1;
       offC.clearRect(0, 0, off.width, off.height);
-      linesColor = LINE_PALETTE[0]; eyeColor = EYE_PALETTE[0];
-      document.querySelectorAll('#lines-row .swatch-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
-      document.querySelectorAll('#eye-row .swatch-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
     }
     origShow(id);
     if (id === 's-paint') { resizePaint(); renderPaint(); }
   };
 
-  window.addEventListener('resize', () => { if (document.getElementById('s-paint').classList.contains('active')) resizePaint(); });
-  // initial size in case screen is already shown
+  window.addEventListener('resize', () => {
+    if (document.getElementById('s-paint').classList.contains('active')) resizePaint();
+  });
   resizePaint();
 })();
 
@@ -691,43 +496,29 @@
 
   function drawOneFish(fish) {
     const ff = window._ff;
-    const r  = fish.size * 0.5;
+    const idx = fish.fishType != null ? fish.fishType : ff.fishType();
+    const img = ff.FISH_IMAGES && ff.FISH_IMAGES[idx];
+    if (!img || !img.complete || !img.naturalWidth) return;
+
+    const sz = fish.size;
+    const scale = sz / Math.max(img.naturalWidth, img.naturalHeight);
+    const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
     const cx = fish.x, cy = fish.y;
-    const shapeIdx = fish.fishType != null ? fish.fishType : ff.fishType();
-    const paintSrc = fish.paintOffCanvas || null;
 
     ctxT.save();
     ctxT.translate(cx, cy);
     if (fish.dir > 0) ctxT.scale(-1, 1);
-    ctxT.translate(0, Math.sin(fish.wobble) * r * 0.08);
-    ctxT.translate(-cx, -cy);
+    ctxT.translate(0, Math.sin(fish.wobble) * sz * 0.04);
 
-    if (paintSrc) {
-      const pW = paintSrc.width, pH = paintSrc.height;
-      ff.SHAPES[shapeIdx](ctxT, cx, cy, r);
-      ctxT.clip();
-      const scale = r / (Math.min(pW, pH) * 0.4);
-      ctxT.drawImage(paintSrc, cx - pW*scale/2, cy - pH*scale/2, pW*scale, pH*scale);
-      ctxT.restore();
-      ctxT.save();
-      ctxT.translate(cx, cy);
-      if (fish.dir > 0) ctxT.scale(-1, 1);
-      ctxT.translate(0, Math.sin(fish.wobble) * r * 0.08);
-      ctxT.translate(-cx, -cy);
+    if (fish.paintOffCanvas) {
+      const ps = fish.paintOffCanvas;
+      const psc = Math.min(dw / ps.width, dh / ps.height);
+      ctxT.drawImage(ps, -ps.width * psc / 2, -ps.height * psc / 2, ps.width * psc, ps.height * psc);
+    } else {
+      ctxT.fillStyle = 'rgba(100,200,255,0.18)';
+      ctxT.fillRect(-dw / 2, -dh / 2, dw, dh);
     }
-
-    ff.SHAPES[shapeIdx](ctxT, cx, cy, r);
-    ctxT.strokeStyle = fish.linesColor || '#7EEDF4'; ctxT.lineWidth = 2.5; ctxT.stroke();
-    if (!paintSrc) { ctxT.fillStyle = 'rgba(100,200,255,0.25)'; ctxT.fill(); }
-
-    // Detail fins/gills/markings
-    ff.DETAILS[shapeIdx](ctxT, cx, cy, r, fish.linesColor || '#7EEDF4');
-
-    const eyeX = cx - r * 0.28;
-    ctxT.fillStyle = fish.eyeColor || '#7EEDF4';
-    ctxT.beginPath(); ctxT.arc(eyeX, cy - r*0.1, r*0.1, 0, Math.PI*2); ctxT.fill();
-    ctxT.fillStyle = '#001428';
-    ctxT.beginPath(); ctxT.arc(eyeX, cy - r*0.1, r*0.05, 0, Math.PI*2); ctxT.fill();
+    ctxT.drawImage(img, -dw / 2, -dh / 2, dw, dh);
     ctxT.restore();
   }
 
@@ -1009,9 +800,7 @@
           dir: 1, wobble: 0, size: 34, eating: 0, boostTimer: 0,
           eatCount: 0, eatLimit: 3 + Math.floor(Math.random()*4), digestTimer: 0,
           fishType: sf ? sf.fishType : 0,
-          paintOffCanvas: sf ? sf.paintOffCanvas : null,
-          linesColor: sf ? sf.linesColor : '#7EEDF4',
-          eyeColor:   sf ? sf.eyeColor   : '#7EEDF4'
+          paintOffCanvas: sf ? sf.paintOffCanvas : null
         });
         window._ff.playHatch();
         for (let b = 0; b < 6; b++) bubbles.push({ x: d.x+(Math.random()-0.5)*30, y: d.y, r: 3+Math.random()*5, vy: -1-Math.random() });
