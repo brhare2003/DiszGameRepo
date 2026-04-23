@@ -380,10 +380,18 @@
   });
   document.getElementById('btn-go2').addEventListener('click', () => {
     window._ff.playChime();
+    const fishIdx = window._ff.fishType();
+    const img = window._ff.FISH_IMAGES[fishIdx];
+    const W = cvP.width, H = cvP.height;
+    // Crop to the exact fish region in the paint canvas and normalize to
+    // natural image dimensions so paint aligns with the mask in the aquarium
+    const sc = Math.min(W * 0.96 / img.naturalWidth, H * 0.96 / img.naturalHeight);
+    const dw = img.naturalWidth * sc, dh = img.naturalHeight * sc;
+    const dx = (W - dw) / 2, dy = (H - dh) / 2;
     const saved = document.createElement('canvas');
-    saved.width = off.width; saved.height = off.height;
-    saved.getContext('2d').drawImage(off, 0, 0);
-    window._ff.savedFish.push({ fishType: window._ff.fishType(), paintOffCanvas: saved });
+    saved.width = img.naturalWidth; saved.height = img.naturalHeight;
+    saved.getContext('2d').drawImage(off, dx, dy, dw, dh, 0, 0, img.naturalWidth, img.naturalHeight);
+    window._ff.savedFish.push({ fishType: fishIdx, paintOffCanvas: saved });
     window._ff.paintedCanvas = saved;
     window._ff.showScreen('s-tank');
   });
@@ -551,14 +559,12 @@
       const tdw = Math.ceil(dw), tdh = Math.ceil(dh);
       fishTmp.width = tdw; fishTmp.height = tdh;
       fishTmpC.clearRect(0, 0, tdw, tdh);
-      // center paint inside tmp canvas
-      const psc = Math.min(tdw / ps.width, tdh / ps.height);
-      fishTmpC.drawImage(ps, (tdw - ps.width * psc) / 2, (tdh - ps.height * psc) / 2, ps.width * psc, ps.height * psc);
-      // clip to mask
+      // paint is already normalized to fish-image coordinate space — draw at full fishTmp size
+      fishTmpC.drawImage(ps, 0, 0, tdw, tdh);
+      // clip to mask (same coordinate space)
       if (mask && mask.complete && mask.naturalWidth) {
-        const ms = Math.min(tdw / mask.naturalWidth, tdh / mask.naturalHeight);
         fishTmpC.globalCompositeOperation = 'destination-in';
-        fishTmpC.drawImage(mask, (tdw - mask.naturalWidth * ms) / 2, (tdh - mask.naturalHeight * ms) / 2, mask.naturalWidth * ms, mask.naturalHeight * ms);
+        fishTmpC.drawImage(mask, 0, 0, tdw, tdh);
         fishTmpC.globalCompositeOperation = 'source-over';
       }
       ctxT.drawImage(fishTmp, -dw / 2, -dh / 2, dw, dh);
