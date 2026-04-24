@@ -520,7 +520,7 @@
       ctx.font='22px sans-serif'; ctx.textAlign='left'; ctx.globalAlpha=1;
       for(let i=0;i<5;i++) {
         ctx.globalAlpha = i<lives ? 1 : 0.2;
-        ctx.fillText('❤️', 14+i*26, 10);
+        ctx.fillText('❤️', W-14-26*(4-i), 10);
       }
       ctx.globalAlpha=1;
 
