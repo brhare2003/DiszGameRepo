@@ -12,12 +12,14 @@ body{background:#1a0a2e;font-family:'Segoe UI',sans-serif;overflow:hidden;user-s
 .screen.active{display:flex;}
 
 /* ── Pick screen ── */
-#screen-pick{flex-direction:column;align-items:center;justify-content:center;gap:20px;background:linear-gradient(160deg,#1a0a2e,#2e1060);}
-#screen-pick h1{color:#FFD53E;font-size:2rem;text-shadow:0 2px 8px #000a;}
-.bg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:10px;}
-.bg-thumb{width:140px;height:100px;border-radius:16px;border:4px solid #fff4;cursor:pointer;overflow:hidden;transition:transform .15s,border-color .15s;}
-.bg-thumb:hover,.bg-thumb:focus{transform:scale(1.07);border-color:#FFD53E;outline:none;}
-.bg-thumb canvas{width:100%;height:100%;}
+#screen-pick{flex-direction:column;align-items:center;justify-content:flex-start;gap:16px;background:linear-gradient(160deg,#1a0a2e,#2e1060);overflow-y:auto;padding:60px 16px 24px;}
+#screen-pick h1{color:#FFD53E;font-size:2rem;text-shadow:0 2px 8px #000a;flex-shrink:0;}
+.bg-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;width:100%;max-width:520px;}
+.bg-thumb{width:100%;aspect-ratio:7/5;border-radius:16px;border:4px solid #fff4;cursor:pointer;overflow:hidden;transition:transform .15s,border-color .15s;}
+.bg-thumb:hover,.bg-thumb:focus{transform:scale(1.04);border-color:#FFD53E;outline:none;}
+.bg-thumb canvas{width:100%;height:100%;display:block;}
+.bg-thumb-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.45);color:#fff;font-size:13px;font-weight:600;text-align:center;padding:4px 0;border-radius:0 0 12px 12px;}
+.bg-thumb{position:relative;}
 
 /* ── Play screen ── */
 #screen-play{flex-direction:column;position:relative;}
@@ -99,6 +101,8 @@ const BACKGROUNDS = [
   { name:'Outer Space',    draw: drawSpace    },
   { name:'Under the Sea',  draw: drawOcean    },
   { name:'Snowy Mountain', draw: drawMountain },
+  { name:'Rainy City',     draw: drawCity     },
+  { name:'Desert Sunset',  draw: drawDesert   },
 ];
 
 function drawMeadow(ctx,w,h){
@@ -154,15 +158,62 @@ function drawMountain(ctx,w,h){
   ctx.beginPath(); ctx.moveTo(w*0.35,h*0.3); ctx.lineTo(w*0.25,h*0.48); ctx.lineTo(w*0.45,h*0.48); ctx.fill();
 }
 
+function drawCity(ctx,w,h){
+  // Rainy dark sky
+  ctx.fillStyle='#2a3a4a'; ctx.fillRect(0,0,w,h);
+  // Buildings
+  [[0,0.45,0.18,0.55],[0.16,0.35,0.22,0.65],[0.36,0.28,0.18,0.72],[0.52,0.4,0.2,0.6],[0.7,0.32,0.16,0.68],[0.84,0.42,0.16,0.58]].forEach(([x,y,bw,bh])=>{
+    ctx.fillStyle='#3a4a5a'; ctx.fillRect(w*x,h*y,w*bw,h*bh);
+    ctx.fillStyle='rgba(255,240,150,0.6)';
+    for(let wy=h*(y+0.06);wy<h*(y+bh)-8;wy+=h*0.1)
+      for(let wx=w*(x+0.03);wx<w*(x+bw)-6;wx+=w*0.06)
+        if(Math.random()>0.35) ctx.fillRect(wx,wy,w*0.03,h*0.06);
+  });
+  // Road
+  ctx.fillStyle='#222'; ctx.fillRect(0,h*0.85,w,h*0.15);
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  for(let rx=0;rx<w;rx+=w*0.12) ctx.fillRect(rx,h*0.915,w*0.07,h*0.02);
+  // Rain streaks
+  ctx.strokeStyle='rgba(180,210,255,0.35)'; ctx.lineWidth=1;
+  for(let i=0;i<40;i++){
+    const rx=Math.random()*w, ry=Math.random()*h*0.85;
+    ctx.beginPath(); ctx.moveTo(rx,ry); ctx.lineTo(rx-3,ry+h*0.06); ctx.stroke();
+  }
+}
+function drawDesert(ctx,w,h){
+  // Gradient sky
+  const sky=ctx.createLinearGradient(0,0,0,h*0.65);
+  sky.addColorStop(0,'#1a0033'); sky.addColorStop(0.4,'#ff5500'); sky.addColorStop(1,'#ffaa00');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,w,h);
+  // Sun on horizon
+  ctx.fillStyle='#FFD53E';
+  ctx.beginPath(); ctx.arc(w*0.5,h*0.62,h*0.1,0,Math.PI*2); ctx.fill();
+  // Sand dunes
+  ctx.fillStyle='#c8914a';
+  ctx.beginPath(); ctx.moveTo(0,h); ctx.bezierCurveTo(w*0.2,h*0.62,w*0.45,h*0.75,w*0.6,h*0.65); ctx.bezierCurveTo(w*0.75,h*0.56,w*0.9,h*0.7,w,h*0.65); ctx.lineTo(w,h); ctx.fill();
+  ctx.fillStyle='#e0a85a';
+  ctx.beginPath(); ctx.moveTo(0,h); ctx.bezierCurveTo(w*0.15,h*0.72,w*0.35,h*0.82,w*0.55,h*0.74); ctx.bezierCurveTo(w*0.7,h*0.67,w*0.85,h*0.78,w,h*0.73); ctx.lineTo(w,h); ctx.fill();
+  // Cacti
+  [[0.15,0.68],[0.78,0.72]].forEach(([cx,cy])=>{
+    ctx.fillStyle='#2d7a2d'; ctx.strokeStyle='#1a4a1a'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.roundRect(w*cx-w*0.02,h*cy,w*0.04,h*0.22,2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.roundRect(w*cx-w*0.055,h*(cy+0.06),w*0.035,h*0.08,2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.roundRect(w*cx+w*0.02,h*(cy+0.08),w*0.035,h*0.07,2); ctx.fill(); ctx.stroke();
+  });
+}
+
 /* ── Thumbnail grid ── */
 const grid = document.getElementById('bg-grid');
 BACKGROUNDS.forEach((bg, i) => {
   const btn = document.createElement('button');
   btn.className = 'bg-thumb'; btn.title = bg.name;
   const c = document.createElement('canvas');
-  c.width = 280; c.height = 200;
-  bg.draw(c.getContext('2d'), 280, 200);
+  c.width = 350; c.height = 250;
+  bg.draw(c.getContext('2d'), 350, 250);
   btn.appendChild(c);
+  const lbl = document.createElement('div');
+  lbl.className = 'bg-thumb-label'; lbl.textContent = bg.name;
+  btn.appendChild(lbl);
   btn.addEventListener('click', () => startPlay(i));
   grid.appendChild(btn);
 });
