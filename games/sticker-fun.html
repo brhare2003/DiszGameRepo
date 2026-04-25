@@ -32,7 +32,9 @@ body{background:#1a0a2e;font-family:'Segoe UI',sans-serif;overflow:hidden;user-s
 .sticker-btn.selected{border-color:#FFD53E;background:rgba(255,213,62,0.25);transform:scale(1.1);}
 #back-btn{position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.5);color:#fff;border:2px solid #fff5;border-radius:10px;padding:6px 14px;font-size:15px;cursor:pointer;}
 #back-btn:hover{background:rgba(0,0,0,0.75);}
-#clear-btn{position:absolute;top:10px;right:10px;background:rgba(220,50,50,0.7);color:#fff;border:2px solid #fff5;border-radius:10px;padding:6px 14px;font-size:15px;cursor:pointer;}
+#undo-btn,#clear-btn{background:rgba(0,0,0,0.5);color:#fff;border:2px solid #fff5;border-radius:10px;padding:6px 14px;font-size:15px;cursor:pointer;}
+#undo-btn:hover{background:rgba(80,80,180,0.85);}
+#clear-btn{background:rgba(220,50,50,0.7);}
 #clear-btn:hover{background:rgba(220,50,50,0.95);}
 #hint{position:absolute;top:14px;left:50%;transform:translateX(-50%);color:#fff;font-size:14px;opacity:0.7;pointer-events:none;white-space:nowrap;}
 </style>
@@ -49,7 +51,10 @@ body{background:#1a0a2e;font-family:'Segoe UI',sans-serif;overflow:hidden;user-s
 <div id="screen-play" class="screen">
   <button id="back-btn">← Back</button>
   <span id="hint">Pick a sticker below, then tap the scene!</span>
-  <button id="clear-btn">🗑 Clear</button>
+  <div style="position:absolute;top:10px;right:10px;display:flex;gap:8px;">
+    <button id="undo-btn">↩ Undo</button>
+    <button id="clear-btn">🗑 Clear</button>
+  </div>
   <canvas id="scene-canvas"></canvas>
   <div id="tray-wrap">
     <div id="tray-label">Stickers →</div>
@@ -202,6 +207,23 @@ function playPop() {
   osc.start(); osc.stop(audioCtx.currentTime + 0.18);
 }
 
+function playJingle() {
+  ensureAudio();
+  const notes = [523, 659, 784, 1047];
+  notes.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'triangle';
+    const t = audioCtx.currentTime + i * 0.12;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.18, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    osc.start(t); osc.stop(t + 0.22);
+  });
+}
+
 function playWhoosh() {
   ensureAudio();
   const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.15, audioCtx.sampleRate);
@@ -261,8 +283,12 @@ document.getElementById('back-btn').addEventListener('click', () => {
   placed = []; selectedSticker = null;
   document.querySelectorAll('.sticker-btn').forEach(b => b.classList.remove('selected'));
 });
+document.getElementById('undo-btn').addEventListener('click', () => {
+  if (placed.length) { placed.pop(); playWhoosh(); redraw(); }
+});
 document.getElementById('clear-btn').addEventListener('click', () => {
   placed = [];
+  playWhoosh();
   redraw();
 });
 
@@ -273,6 +299,7 @@ function startPlay(bgIdx) {
   document.getElementById('screen-pick').classList.remove('active');
   document.getElementById('screen-play').classList.add('active');
   resizeCanvas();
+  playJingle();
 }
 window.addEventListener('resize', () => { if (activeBg) resizeCanvas(); });
 </script>
