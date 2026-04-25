@@ -76,7 +76,17 @@ h2{color:#FFD53E;font-size:1.4rem;margin-bottom:12px;}
   <button class="big-btn green" id="btn-word-done">✔ Ready to Play!</button>
   <p id="word-err" style="color:#f55;font-size:0.9rem;display:none;">Please enter at least 2 letters.</p>
 </div>
-<div id="screen-play"    class="screen"></div>
+<!-- PLAY SCREEN -->
+<div id="screen-play" class="screen" style="background:#0d0d1a;flex-direction:column;padding:8px;gap:8px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:480px;">
+    <span id="play-wrong-label" style="color:#f55;font-weight:700;font-size:1rem;"></span>
+    <span style="color:#aaa;font-size:0.85rem;">Guess the word!</span>
+  </div>
+  <canvas id="gallows-canvas" style="border-radius:12px;background:#1a1a2e;max-width:480px;width:100%;"></canvas>
+  <div id="play-word-display" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;"></div>
+  <div id="play-guessed" style="color:#aaa;font-size:0.85rem;min-height:20px;"></div>
+  <div id="play-keyboard" style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:480px;width:100%;"></div>
+</div>
 <div id="screen-result"  class="screen"></div>
 
 <script>
