@@ -6,20 +6,20 @@
 <title>Hangman</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;touch-action:manipulation;}
-body{background:#1a0a2e;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none;color:#fff;}
-.screen{display:none;width:100vw;height:100dvh;flex-direction:column;align-items:center;justify-content:center;}
+body{background:#f5e8d0;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none;color:#2B2140;}
+.screen{display:none;width:100vw;height:100dvh;flex-direction:column;align-items:center;justify-content:center;background:#f5e8d0;}
 .screen.active{display:flex;}
 #home-btn{position:fixed;top:12px;left:12px;z-index:300;color:#2B2140;text-decoration:none;font-size:0.88rem;font-weight:700;background:rgba(255,246,228,0.92);border:2px solid #2B2140;padding:6px 14px;border-radius:20px;letter-spacing:1px;}
 .big-btn{background:#7b5ea7;color:#fff;border:3px solid #2B2140;border-radius:18px;padding:14px 32px;font-size:1.2rem;font-weight:700;cursor:pointer;margin:8px;transition:transform .1s,background .1s;}
 .big-btn:hover{transform:scale(1.05);background:#9b7ec7;}
 .big-btn.green{background:#3a9a3a;} .big-btn.green:hover{background:#4dbb4d;}
 .big-btn.red{background:#c0392b;} .big-btn.red:hover{background:#e74c3c;}
-h1{color:#FFD53E;font-size:2rem;text-shadow:0 2px 8px #000a;margin-bottom:16px;}
-h2{color:#FFD53E;font-size:1.4rem;margin-bottom:12px;}
-.tool-btn{width:38px;height:38px;background:rgba(255,255,255,0.1);border:2px solid #fff3;border-radius:8px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.tool-btn:hover,.tool-btn.active{background:rgba(255,213,62,0.3);border-color:#FFD53E;}
-.color-swatch{width:26px;height:26px;border-radius:50%;border:3px solid #fff4;cursor:pointer;flex-shrink:0;}
-.color-swatch.active{border-color:#FFD53E;transform:scale(1.2);}
+h1{color:#5a3200;font-size:2rem;margin-bottom:16px;}
+h2{color:#5a3200;font-size:1.4rem;margin-bottom:12px;}
+.tool-btn{width:38px;height:38px;background:rgba(0,0,0,0.08);border:2px solid rgba(0,0,0,0.2);border-radius:8px;color:#2B2140;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tool-btn:hover,.tool-btn.active{background:rgba(123,63,0,0.15);border-color:#7b3f00;}
+.color-swatch{width:26px;height:26px;border-radius:50%;border:3px solid rgba(0,0,0,0.2);cursor:pointer;flex-shrink:0;}
+.color-swatch.active{border-color:#7b3f00;transform:scale(1.2);}
 #draw-parts-list .color-swatch{width:28px;height:28px;}
 /* drawing screen layout */
 #draw-main{flex:1;display:flex;min-height:0;width:100%;}
@@ -27,41 +27,42 @@ h2{color:#FFD53E;font-size:1.4rem;margin-bottom:12px;}
 #draw-backdrop,#draw-canvas{position:absolute;inset:0;width:100%;height:100%;}
 #draw-backdrop{pointer-events:none;}
 #draw-canvas{cursor:crosshair;touch-action:none;background:transparent;}
-#draw-parts-list{width:120px;background:#13092a;overflow-y:auto;flex-shrink:0;padding:6px 4px;display:flex;flex-direction:column;gap:3px;}
+#draw-parts-list{width:120px;background:#e8d5b5;overflow-y:auto;flex-shrink:0;padding:6px 4px;display:flex;flex-direction:column;gap:3px;border-left:2px solid #d4b896;}
 .part-row{display:flex;align-items:center;gap:4px;padding:5px 4px;border-radius:8px;cursor:pointer;transition:background .12s;}
-.part-row.current{background:rgba(255,213,62,0.15);border:1px solid #FFD53E;}
+.part-row.current{background:rgba(123,63,0,0.12);border:1px solid #7b3f00;}
 .part-row:not(.current){border:1px solid transparent;}
-.part-arrow{color:#FFD53E;font-size:14px;width:14px;flex-shrink:0;visibility:hidden;}
+.part-arrow{color:#7b3f00;font-size:14px;width:14px;flex-shrink:0;visibility:hidden;}
 .part-row.current .part-arrow{visibility:visible;}
-.part-check{width:15px;height:15px;flex-shrink:0;accent-color:#4dbb4d;pointer-events:none;}
-.part-name{font-size:11px;color:#ccc;flex:1;line-height:1.2;}
-.part-row.done .part-name{color:#4dbb4d;}
-#draw-toolbar{display:flex;align-items:center;gap:6px;padding:8px 10px;padding-bottom:calc(env(safe-area-inset-bottom,8px) + 8px);background:#1a0a2e;flex-shrink:0;overflow-x:auto;}
+.part-check{width:15px;height:15px;flex-shrink:0;accent-color:#3a9a3a;pointer-events:none;}
+.part-name{font-size:11px;color:#6b5740;flex:1;line-height:1.2;}
+.part-row.done .part-name{color:#3a7a2a;}
+#draw-toolbar{display:flex;align-items:center;gap:6px;padding:8px 10px;padding-bottom:calc(env(safe-area-inset-bottom,8px) + 8px);background:#e8d5b5;border-top:2px solid #d4b896;flex-shrink:0;overflow-x:auto;}
+#draw-parts-list #color-swatches{border-top:1px solid rgba(0,0,0,0.12);}
 </style>
 </head>
 <body>
 <a href="../index.html" id="home-btn">&#8592; Home</a>
 
 <!-- INTRO -->
-<div id="screen-intro" class="screen active" style="background:linear-gradient(160deg,#1a0a2e,#2e1060);">
+<div id="screen-intro" class="screen active">
   <h1>🪢 Hangman</h1>
-  <p style="color:#ccc;margin-bottom:28px;font-size:1.1rem;">A drawing word-guessing game for 2 players</p>
+  <p style="color:#6b5740;margin-bottom:28px;font-size:1.1rem;">A drawing word-guessing game for 2 players</p>
   <button class="big-btn green" onclick="show('screen-choose')">▶ Start Game</button>
 </div>
 
 <!-- CHOOSE PERSON -->
-<div id="screen-choose" class="screen" style="background:linear-gradient(160deg,#1a0a2e,#2e1060);gap:12px;">
+<div id="screen-choose" class="screen" style="gap:12px;">
   <h1>👤 Your Hangman Person</h1>
-  <p style="color:#ccc;text-align:center;max-width:320px;margin-bottom:8px;">
+  <p style="color:#6b5740;text-align:center;max-width:320px;margin-bottom:8px;">
     Draw your own person part by part, or use a default stick figure.
   </p>
   <button class="big-btn" id="btn-draw-person" onclick="startDrawing()">✏️ Draw My Person</button>
   <button class="big-btn green" onclick="useDefault()">🙂 Use Default</button>
 </div>
 <!-- DRAWING SCREEN -->
-<div id="screen-draw" class="screen" style="background:#111;flex-direction:column;padding:0;">
-  <div id="draw-header" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#1a0a2e;flex-shrink:0;">
-    <span id="draw-part-label" style="color:#FFD53E;font-weight:700;font-size:1rem;flex:1;"></span>
+<div id="screen-draw" class="screen" style="flex-direction:column;padding:0;">
+  <div id="draw-header" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#e8d5b5;border-bottom:2px solid #d4b896;flex-shrink:0;">
+    <span id="draw-part-label" style="color:#5a3200;font-weight:700;font-size:1rem;flex:1;"></span>
     <button class="big-btn green" id="btn-part-done" style="padding:8px 18px;font-size:0.95rem;margin:0;">✔ Done</button>
   </div>
   <div id="draw-main">
@@ -83,31 +84,31 @@ h2{color:#FFD53E;font-size:1.4rem;margin-bottom:12px;}
   </div>
 </div>
 <!-- WORD ENTRY -->
-<div id="screen-word" class="screen" style="background:linear-gradient(160deg,#1a0a2e,#2e1060);gap:16px;">
+<div id="screen-word" class="screen" style="gap:16px;">
   <h1>🔤 Enter a Word</h1>
-  <p style="color:#ccc;text-align:center;max-width:300px;">Type a word for the other player to guess. Make sure they look away!</p>
+  <p style="color:#6b5740;text-align:center;max-width:300px;">Type a word for the other player to guess. Make sure they look away!</p>
   <input id="word-input" type="text" autocomplete="off" autocorrect="off" spellcheck="false"
-    style="font-size:1.6rem;padding:12px 20px;border-radius:14px;border:3px solid #7b5ea7;background:#2a1a4e;color:#fff;text-align:center;letter-spacing:4px;width:90%;max-width:360px;text-transform:uppercase;"
+    style="font-size:1.6rem;padding:12px 20px;border-radius:14px;border:3px solid #7b5ea7;background:#fff;color:#2B2140;text-align:center;letter-spacing:4px;width:90%;max-width:360px;text-transform:uppercase;"
     placeholder="TYPE WORD HERE"/>
   <button class="big-btn green" id="btn-word-done">✔ Ready to Play!</button>
-  <p id="word-err" style="color:#f55;font-size:0.9rem;display:none;">Please enter at least 2 letters.</p>
+  <p id="word-err" style="color:#c0392b;font-size:0.9rem;display:none;">Please enter at least 2 letters.</p>
 </div>
 <!-- PLAY SCREEN -->
-<div id="screen-play" class="screen" style="background:#0d0d1a;flex-direction:column;padding:8px;gap:8px;">
+<div id="screen-play" class="screen" style="flex-direction:column;padding:8px;gap:8px;">
   <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:480px;">
-    <span id="play-wrong-label" style="color:#f55;font-weight:700;font-size:1rem;"></span>
-    <span style="color:#aaa;font-size:0.85rem;">Guess the word!</span>
+    <span id="play-wrong-label" style="color:#c0392b;font-weight:700;font-size:1rem;"></span>
+    <span style="color:#6b5740;font-size:0.85rem;">Guess the word!</span>
   </div>
-  <canvas id="gallows-canvas" style="border-radius:12px;background:#1a1a2e;max-width:480px;width:100%;"></canvas>
+  <canvas id="gallows-canvas" style="border-radius:12px;background:#fff;border:2px solid #d4b896;max-width:480px;width:100%;"></canvas>
   <div id="play-word-display" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;"></div>
-  <div id="play-guessed" style="color:#aaa;font-size:0.85rem;min-height:20px;"></div>
+  <div id="play-guessed" style="color:#6b5740;font-size:0.85rem;min-height:20px;"></div>
   <div id="play-keyboard" style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:480px;width:100%;"></div>
 </div>
 <!-- RESULT SCREEN -->
-<div id="screen-result" class="screen" style="background:linear-gradient(160deg,#1a0a2e,#2e1060);gap:14px;">
+<div id="screen-result" class="screen" style="gap:14px;">
   <div id="result-emoji" style="font-size:4rem;"></div>
   <h1 id="result-title"></h1>
-  <p id="result-word" style="color:#ccc;font-size:1.1rem;"></p>
+  <p id="result-word" style="color:#6b5740;font-size:1.1rem;"></p>
   <button class="big-btn green" id="btn-play-again">▶ Play Again (same drawing)</button>
   <button class="big-btn" id="btn-new-drawing">✏️ New Drawing + New Word</button>
   <button class="big-btn red" id="btn-main-menu" onclick="show('screen-intro')">🏠 Main Menu</button>
@@ -311,7 +312,7 @@ function startGame(){
 function drawGallows(){
   const w = gallows.width, h = gallows.height;
   gCtx.clearRect(0,0,w,h);
-  gCtx.strokeStyle='#ccc'; gCtx.lineWidth=3; gCtx.lineCap='round';
+  gCtx.strokeStyle='#2B2140'; gCtx.lineWidth=3; gCtx.lineCap='round';
   // base, pole, beam, rope
   gCtx.beginPath(); gCtx.moveTo(w*0.1,h*0.92); gCtx.lineTo(w*0.55,h*0.92); gCtx.stroke();
   gCtx.beginPath(); gCtx.moveTo(w*0.22,h*0.92); gCtx.lineTo(w*0.22,h*0.08); gCtx.stroke();
@@ -352,7 +353,7 @@ function renderGame(){
   wd.innerHTML='';
   [...secretWord].forEach(ch=>{
     const box=document.createElement('div');
-    box.style.cssText='width:36px;height:44px;border-bottom:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:#FFD53E;';
+    box.style.cssText='width:36px;height:44px;border-bottom:3px solid #2B2140;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:#5a3200;';
     box.textContent = guessedLetters.has(ch) ? ch : '';
     wd.appendChild(box);
   });
@@ -379,7 +380,7 @@ function buildKeyboard(){
     btn.className='key-btn';
     btn.dataset.letter=l;
     btn.textContent=l;
-    btn.style.cssText='width:36px;height:36px;border-radius:8px;border:2px solid #fff3;color:#fff;font-weight:700;font-size:0.95rem;cursor:pointer;';
+    btn.style.cssText='width:36px;height:36px;border-radius:8px;border:2px solid rgba(0,0,0,0.2);background:#fff;color:#2B2140;font-weight:700;font-size:0.95rem;cursor:pointer;';
     btn.addEventListener('click',()=>guessLetter(l));
     kb.appendChild(btn);
   });
