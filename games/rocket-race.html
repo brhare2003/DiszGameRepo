@@ -446,10 +446,11 @@
 
     function checkEnemyCollisions() {
       const rw=Math.min(W*0.08,48), rh=rw*1.8;
-      const noseY=rocketY-rh*0.3; // front tip of rocket
+      // Rocket bounding box — nose is the top edge
+      const rL=rocketX-rw*0.5, rR=rocketX+rw*0.5;
+      const rT=rocketY-rh*0.3,  rB=rocketY+rh*0.5;
       enemies.forEach(e => {
-        const dx=rocketX-e.x, dy=noseY-e.y;
-        if (Math.abs(dx)<e.w*0.5+rw*0.35 && Math.abs(dy)<e.h*0.5+rw*0.08) {
+        if (e.x+e.w*0.5>rL && e.x-e.w*0.5<rR && e.y+e.h*0.5>rT && e.y-e.h*0.5<rB) {
           lives--;
           playSound('cloud');
           addFloat(e.x, e.y-22, lives>0?'💥 -1 ❤️':'💀 GAME OVER','#ff4444');
@@ -459,10 +460,11 @@
           if (lives<=0) { state='gameover'; showGameOver(); }
         }
       });
-      // Laser hits nose
+      // Laser hits rocket (circle of radius rh*0.3 so top = nose)
+      const hitR = rh*0.3;
       lasers = lasers.filter(l => {
-        const dx=rocketX-l.x, dy=noseY-l.y;
-        if (Math.sqrt(dx*dx+dy*dy) < rw*0.48) {
+        const dx=rocketX-l.x, dy=rocketY-l.y;
+        if (Math.sqrt(dx*dx+dy*dy) < hitR) {
           lives--;
           playSound('cloud');
           addFloat(l.x, l.y-22, lives>0?'🔴 -1 ❤️':'💀 GAME OVER','#ff4444');
@@ -530,20 +532,15 @@
     // ── Collision & scoring ─────────────────────────────────────────────────
     function checkCollisions() {
       const rw = Math.min(W*0.08,48), rh=rw*1.8;
-      const noseY = rocketY-rh*0.3; // front tip of rocket
-      const bodyHitR = rw*0.6;      // generous collect radius for stars/gems
-      const hazardHitR = rw*0.42;   // tight radius at nose for hazards
+      // hitR = rh*0.3 so the TOP of the circle sits exactly at the nose
+      const hitR = rh*0.3;
       items = items.filter(it => {
         if (magnetActive && it.type!=='asteroid') {
           const dx=rocketX-it.x, dy=rocketY-it.y;
           const d=Math.sqrt(dx*dx+dy*dy);
           if (d < W*0.42 && d > 1) { it.x+=dx/d*5; it.y+=dy/d*5; }
         }
-        // hazards collide at nose; collectibles collide with body center
-        const isHazard = it.type==='asteroid';
-        const cx=rocketX, cy=isHazard ? noseY : rocketY;
-        const hitR=isHazard ? hazardHitR : bodyHitR;
-        const dx=cx-it.x, dy=cy-it.y;
+        const dx=rocketX-it.x, dy=rocketY-it.y;
         const dist=Math.sqrt(dx*dx+dy*dy);
         if (dist < hitR+it.r) {
           if (it.type==='star') {
