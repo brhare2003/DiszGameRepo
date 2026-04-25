@@ -316,125 +316,146 @@ function startGame(){
 
 function drawDefaultCharacter(shown, cx, headR, w, h){
   const g = gCtx;
-  const neckY   = h*0.26 + headR;
-  const torsoT  = neckY;
-  const torsoB  = h*0.57;
-  const torsoHW = w*0.065;
-  const shoulderY = torsoT + (torsoB-torsoT)*0.12;
-  const elbowLX = cx - torsoHW*2.4, elbowY  = shoulderY + (torsoB-torsoT)*0.38;
-  const elbowRX = cx + torsoHW*2.4;
-  const handLX  = elbowLX - w*0.04, handY   = elbowY + (torsoB-torsoT)*0.22;
-  const handRX  = elbowRX + w*0.04;
-  const kneeLX  = cx - torsoHW*0.9, kneeY   = torsoB + (h*0.90-torsoB)*0.4;
-  const kneeRX  = cx + torsoHW*0.9;
-  const footLX  = kneeLX - w*0.025, footY   = h*0.86;
-  const footRX  = kneeRX + w*0.025;
+  g.save();
+  g.lineCap = 'round'; g.lineJoin = 'round';
 
-  const skin  = '#FDBCB4';
-  const hair  = '#3B1F0A';
-  const shirt = '#3498db';
-  const pants = '#2c3e50';
-  const shoe  = '#1a1a2e';
+  // ── Key positions (headR-based so proportions scale with canvas) ──────────
+  const hcy      = h*0.26;
+  const neck     = hcy + headR;
+  const shoulder = neck  + headR*0.5;
+  const hip      = shoulder + headR*2.6;
 
-  // Part 0 – Head
-  if(shown>=1){
-    g.fillStyle=skin; g.fillRect(cx-headR*0.28, neckY-2, headR*0.56, headR*0.42);
-    g.fillStyle=skin; g.beginPath(); g.arc(cx,h*0.26,headR,0,Math.PI*2); g.fill();
-    g.fillStyle=skin;
-    g.beginPath(); g.ellipse(cx-headR*0.95, h*0.26, headR*0.2, headR*0.28, 0, 0, Math.PI*2); g.fill();
-    g.beginPath(); g.ellipse(cx+headR*0.95, h*0.26, headR*0.2, headR*0.28, 0, 0, Math.PI*2); g.fill();
-    g.fillStyle=hair;
-    g.beginPath(); g.arc(cx,h*0.26,headR,Math.PI,0); g.fill();
-    g.beginPath(); g.ellipse(cx-headR*0.55, h*0.26-headR*0.7, headR*0.45, headR*0.3, -0.3, 0, Math.PI*2); g.fill();
-    g.beginPath(); g.ellipse(cx+headR*0.55, h*0.26-headR*0.7, headR*0.45, headR*0.3,  0.3, 0, Math.PI*2); g.fill();
-    g.strokeStyle='rgba(0,0,0,0.25)'; g.lineWidth=1.5;
-    g.beginPath(); g.arc(cx,h*0.26,headR,0,Math.PI*2); g.stroke();
-    g.fillStyle='#fff';
-    g.beginPath(); g.ellipse(cx-headR*0.35, h*0.26-headR*0.05, headR*0.22, headR*0.16, 0, 0, Math.PI*2); g.fill();
-    g.beginPath(); g.ellipse(cx+headR*0.35, h*0.26-headR*0.05, headR*0.22, headR*0.16, 0, 0, Math.PI*2); g.fill();
-    g.fillStyle='#2c3e50';
-    g.beginPath(); g.arc(cx-headR*0.33, h*0.26-headR*0.05, headR*0.1, 0, Math.PI*2); g.fill();
-    g.beginPath(); g.arc(cx+headR*0.33, h*0.26-headR*0.05, headR*0.1, 0, Math.PI*2); g.fill();
-    g.strokeStyle='rgba(0,0,0,0.3)'; g.lineWidth=1.2; g.lineCap='round';
-    g.beginPath(); g.moveTo(cx,h*0.26); g.quadraticCurveTo(cx+headR*0.18,h*0.26+headR*0.2,cx,h*0.26+headR*0.32); g.stroke();
-    g.strokeStyle='rgba(0,0,0,0.4)'; g.lineWidth=1.5;
-    g.beginPath(); g.arc(cx, h*0.26+headR*0.25, headR*0.3, 0.2, Math.PI-0.2); g.stroke();
-  }
-  // Part 1 – Torso
-  if(shown>=2){
-    g.fillStyle=shirt;
+  // Arms: upper arm + forearm together in parts 2/3; hand alone in parts 4/5
+  const shldrL   = cx - headR*1.1,  shldrR  = cx + headR*1.1;
+  const elbowLX  = cx - headR*2.0,  elbowRX = cx + headR*2.0;
+  const elbowY   = shoulder + headR*1.4;
+  const wristLX  = cx - headR*2.6,  wristRX = cx + headR*2.6;
+  const wristY   = elbowY + headR*1.2;
+
+  // Legs: thigh + shin together in parts 6/7; shoe alone in parts 8/9
+  const hipLX    = cx - headR*0.5,  hipRX   = cx + headR*0.5;
+  const kneeLX   = cx - headR*0.8,  kneeRX  = cx + headR*0.8;
+  const kneeY    = hip  + headR*1.4;
+  const ankleLX  = cx - headR*0.9,  ankleRX = cx + headR*0.9;
+  const ankleY   = kneeY + headR*1.3;
+
+  const lw    = headR * 0.32;
+  const skin  = '#F5C18A';
+  const hair  = '#7B4020';
+  const shirt = '#4A90D9';
+  const pants = '#808080';
+  const shoe  = '#111111';
+
+  // ── Part 0 – Head ──────────────────────────────────────────────────────────
+  if(shown >= 1){
+    // neck
+    g.fillStyle = skin;
+    g.fillRect(cx - headR*0.2, neck - 1, headR*0.4, headR*0.5);
+    // face
+    g.fillStyle = skin;
+    g.beginPath(); g.arc(cx, hcy, headR, 0, Math.PI*2); g.fill();
+    // hair cap
+    g.fillStyle = hair;
+    g.beginPath(); g.arc(cx, hcy, headR, Math.PI*1.08, -0.08); g.closePath(); g.fill();
+    // head outline
+    g.strokeStyle = 'rgba(0,0,0,0.22)'; g.lineWidth = headR*0.09;
+    g.beginPath(); g.arc(cx, hcy, headR, 0, Math.PI*2); g.stroke();
+    // eye whites
+    g.fillStyle = '#fff';
+    g.beginPath(); g.ellipse(cx - headR*0.32, hcy - headR*0.07, headR*0.19, headR*0.17, 0, 0, Math.PI*2); g.fill();
+    g.beginPath(); g.ellipse(cx + headR*0.32, hcy - headR*0.07, headR*0.19, headR*0.17, 0, 0, Math.PI*2); g.fill();
+    // pupils
+    const worried = shown >= 7;
+    g.fillStyle = '#2a2a2a';
+    g.beginPath(); g.arc(cx - headR*0.30, hcy - headR*0.07, headR*0.09, 0, Math.PI*2); g.fill();
+    g.beginPath(); g.arc(cx + headR*0.30, hcy - headR*0.07, headR*0.09, 0, Math.PI*2); g.fill();
+    // eyebrows
+    g.strokeStyle = hair; g.lineWidth = headR*0.1;
+    if(worried){
+      g.beginPath(); g.moveTo(cx - headR*0.50, hcy - headR*0.34); g.lineTo(cx - headR*0.14, hcy - headR*0.27); g.stroke();
+      g.beginPath(); g.moveTo(cx + headR*0.50, hcy - headR*0.34); g.lineTo(cx + headR*0.14, hcy - headR*0.27); g.stroke();
+    } else {
+      g.beginPath(); g.moveTo(cx - headR*0.50, hcy - headR*0.30); g.lineTo(cx - headR*0.14, hcy - headR*0.30); g.stroke();
+      g.beginPath(); g.moveTo(cx + headR*0.50, hcy - headR*0.30); g.lineTo(cx + headR*0.14, hcy - headR*0.30); g.stroke();
+    }
+    // mouth
+    g.strokeStyle = 'rgba(0,0,0,0.42)'; g.lineWidth = headR*0.1;
     g.beginPath();
-    g.moveTo(cx-torsoHW*1.05, torsoT+headR*0.3);
-    g.lineTo(cx-torsoHW*1.35, torsoB);
-    g.lineTo(cx+torsoHW*1.35, torsoB);
-    g.lineTo(cx+torsoHW*1.05, torsoT+headR*0.3);
-    g.closePath(); g.fill();
-    g.fillStyle=skin;
-    g.beginPath();
-    g.moveTo(cx-headR*0.3, torsoT);
-    g.lineTo(cx+headR*0.3, torsoT);
-    g.lineTo(cx, torsoT+(torsoB-torsoT)*0.22);
-    g.closePath(); g.fill();
-    g.strokeStyle='rgba(0,0,0,0.2)'; g.lineWidth=1.2;
-    g.beginPath();
-    g.moveTo(cx-torsoHW*1.05, torsoT+headR*0.3);
-    g.lineTo(cx-torsoHW*1.35, torsoB);
-    g.lineTo(cx+torsoHW*1.35, torsoB);
-    g.lineTo(cx+torsoHW*1.05, torsoT+headR*0.3);
-    g.closePath(); g.stroke();
+    if(worried){
+      g.arc(cx, hcy + headR*0.50, headR*0.26, Math.PI*0.15, Math.PI*0.85, true);
+    } else {
+      g.arc(cx, hcy + headR*0.28, headR*0.26, 0.2, Math.PI - 0.2);
+    }
+    g.stroke();
   }
-  // Part 2 – Left Arm
-  if(shown>=3){
-    g.strokeStyle=shirt; g.lineWidth=headR*0.38; g.lineCap='round';
-    g.beginPath(); g.moveTo(cx-torsoHW, shoulderY); g.lineTo(elbowLX, elbowY); g.stroke();
+
+  // ── Part 1 – Torso ─────────────────────────────────────────────────────────
+  if(shown >= 2){
+    g.strokeStyle = shirt; g.lineWidth = headR*1.1;
+    g.beginPath(); g.moveTo(cx, neck + headR*0.2); g.lineTo(cx, hip); g.stroke();
+    g.lineWidth = headR*0.8;
+    g.beginPath(); g.moveTo(shldrL, shoulder); g.lineTo(shldrR, shoulder); g.stroke();
   }
-  // Part 3 – Right Arm
-  if(shown>=4){
-    g.strokeStyle=shirt; g.lineWidth=headR*0.38; g.lineCap='round';
-    g.beginPath(); g.moveTo(cx+torsoHW, shoulderY); g.lineTo(elbowRX, elbowY); g.stroke();
+
+  // ── Part 2 – Left Arm (upper arm + forearm — hand drawn separately) ────────
+  if(shown >= 3){
+    g.strokeStyle = shirt; g.lineWidth = lw*1.5;
+    g.beginPath(); g.moveTo(shldrL, shoulder); g.lineTo(elbowLX, elbowY); g.stroke();
+    g.strokeStyle = skin; g.lineWidth = lw*1.3;
+    g.beginPath(); g.moveTo(elbowLX, elbowY); g.lineTo(wristLX, wristY); g.stroke();
   }
-  // Part 4 – Left Hand
-  if(shown>=5){
-    g.strokeStyle=skin; g.lineWidth=headR*0.32; g.lineCap='round';
-    g.beginPath(); g.moveTo(elbowLX, elbowY); g.lineTo(handLX, handY); g.stroke();
-    g.fillStyle=skin;
-    g.beginPath(); g.ellipse(handLX, handY, headR*0.22, headR*0.3, -0.4, 0, Math.PI*2); g.fill();
-    g.strokeStyle='rgba(0,0,0,0.2)'; g.lineWidth=1;
-    g.beginPath(); g.ellipse(handLX, handY, headR*0.22, headR*0.3, -0.4, 0, Math.PI*2); g.stroke();
+
+  // ── Part 3 – Right Arm (upper arm + forearm) ───────────────────────────────
+  if(shown >= 4){
+    g.strokeStyle = shirt; g.lineWidth = lw*1.5;
+    g.beginPath(); g.moveTo(shldrR, shoulder); g.lineTo(elbowRX, elbowY); g.stroke();
+    g.strokeStyle = skin; g.lineWidth = lw*1.3;
+    g.beginPath(); g.moveTo(elbowRX, elbowY); g.lineTo(wristRX, wristY); g.stroke();
   }
-  // Part 5 – Right Hand
-  if(shown>=6){
-    g.strokeStyle=skin; g.lineWidth=headR*0.32; g.lineCap='round';
-    g.beginPath(); g.moveTo(elbowRX, elbowY); g.lineTo(handRX, handY); g.stroke();
-    g.fillStyle=skin;
-    g.beginPath(); g.ellipse(handRX, handY, headR*0.22, headR*0.3, 0.4, 0, Math.PI*2); g.fill();
-    g.strokeStyle='rgba(0,0,0,0.2)'; g.lineWidth=1;
-    g.beginPath(); g.ellipse(handRX, handY, headR*0.22, headR*0.3, 0.4, 0, Math.PI*2); g.stroke();
+
+  // ── Part 4 – Left Hand ONLY ────────────────────────────────────────────────
+  if(shown >= 5){
+    g.fillStyle = skin;
+    g.strokeStyle = 'rgba(0,0,0,0.18)'; g.lineWidth = headR*0.07;
+    g.beginPath(); g.arc(wristLX, wristY, headR*0.22, 0, Math.PI*2); g.fill(); g.stroke();
   }
-  // Part 6 – Left Leg
-  if(shown>=7){
-    g.strokeStyle=pants; g.lineWidth=headR*0.42; g.lineCap='round';
-    g.beginPath(); g.moveTo(cx-torsoHW*0.5, torsoB); g.lineTo(kneeLX, kneeY); g.stroke();
+
+  // ── Part 5 – Right Hand ONLY ───────────────────────────────────────────────
+  if(shown >= 6){
+    g.fillStyle = skin;
+    g.strokeStyle = 'rgba(0,0,0,0.18)'; g.lineWidth = headR*0.07;
+    g.beginPath(); g.arc(wristRX, wristY, headR*0.22, 0, Math.PI*2); g.fill(); g.stroke();
   }
-  // Part 7 – Right Leg
-  if(shown>=8){
-    g.strokeStyle=pants; g.lineWidth=headR*0.42; g.lineCap='round';
-    g.beginPath(); g.moveTo(cx+torsoHW*0.5, torsoB); g.lineTo(kneeRX, kneeY); g.stroke();
+
+  // ── Part 6 – Left Leg (thigh + shin — shoe drawn separately) ──────────────
+  if(shown >= 7){
+    g.strokeStyle = pants; g.lineWidth = lw*1.7;
+    g.beginPath(); g.moveTo(hipLX, hip); g.lineTo(kneeLX, kneeY); g.stroke();
+    g.lineWidth = lw*1.5;
+    g.beginPath(); g.moveTo(kneeLX, kneeY); g.lineTo(ankleLX, ankleY); g.stroke();
   }
-  // Part 8 – Left Foot
-  if(shown>=9){
-    g.strokeStyle=pants; g.lineWidth=headR*0.38; g.lineCap='round';
-    g.beginPath(); g.moveTo(kneeLX, kneeY); g.lineTo(footLX, footY); g.stroke();
-    g.fillStyle=shoe;
-    g.beginPath(); g.ellipse(footLX-headR*0.18, footY+headR*0.1, headR*0.42, headR*0.18, -0.15, 0, Math.PI*2); g.fill();
+
+  // ── Part 7 – Right Leg (thigh + shin) ─────────────────────────────────────
+  if(shown >= 8){
+    g.strokeStyle = pants; g.lineWidth = lw*1.7;
+    g.beginPath(); g.moveTo(hipRX, hip); g.lineTo(kneeRX, kneeY); g.stroke();
+    g.lineWidth = lw*1.5;
+    g.beginPath(); g.moveTo(kneeRX, kneeY); g.lineTo(ankleRX, ankleY); g.stroke();
   }
-  // Part 9 – Right Foot
-  if(shown>=10){
-    g.strokeStyle=pants; g.lineWidth=headR*0.38; g.lineCap='round';
-    g.beginPath(); g.moveTo(kneeRX, kneeY); g.lineTo(footRX, footY); g.stroke();
-    g.fillStyle=shoe;
-    g.beginPath(); g.ellipse(footRX+headR*0.18, footY+headR*0.1, headR*0.42, headR*0.18, 0.15, 0, Math.PI*2); g.fill();
+
+  // ── Part 8 – Left Shoe ONLY ────────────────────────────────────────────────
+  if(shown >= 9){
+    g.fillStyle = shoe;
+    g.beginPath(); g.ellipse(ankleLX - headR*0.2, ankleY + headR*0.12, headR*0.44, headR*0.17, 0, 0, Math.PI*2); g.fill();
   }
+
+  // ── Part 9 – Right Shoe ONLY ───────────────────────────────────────────────
+  if(shown >= 10){
+    g.fillStyle = shoe;
+    g.beginPath(); g.ellipse(ankleRX + headR*0.2, ankleY + headR*0.12, headR*0.44, headR*0.17, 0, 0, Math.PI*2); g.fill();
+  }
+
+  g.restore();
 }
 
 /* draw gallows + body parts revealed so far */
