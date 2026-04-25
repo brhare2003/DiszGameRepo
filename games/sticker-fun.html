@@ -163,13 +163,14 @@ const _cityWindows = Array.from({length:300}, () => Math.random() > 0.35);
 const _cityRain    = Array.from({length:40},  () => [Math.random(), Math.random()]);
 function drawCity(ctx,w,h){
   ctx.fillStyle='#2a3a4a'; ctx.fillRect(0,0,w,h);
+  const winW = w*0.032, winH = w*0.044, winVStep = w*0.072, winHStep = w*0.06;
   let wi = 0;
   [[0,0.45,0.18,0.55],[0.16,0.35,0.22,0.65],[0.36,0.28,0.18,0.72],[0.52,0.4,0.2,0.6],[0.7,0.32,0.16,0.68],[0.84,0.42,0.16,0.58]].forEach(([x,y,bw,bh])=>{
     ctx.fillStyle='#3a4a5a'; ctx.fillRect(w*x,h*y,w*bw,h*bh);
     ctx.fillStyle='rgba(255,240,150,0.6)';
-    for(let wy=h*(y+0.06);wy<h*(y+bh)-8;wy+=h*0.1)
-      for(let wx=w*(x+0.03);wx<w*(x+bw)-6;wx+=w*0.06)
-        if(_cityWindows[wi++ % _cityWindows.length]) ctx.fillRect(wx,wy,w*0.03,h*0.06);
+    for(let wy=h*y+winVStep*0.6; wy<h*(y+bh)-winH; wy+=winVStep)
+      for(let wx=w*(x+0.03); wx<w*(x+bw)-winW; wx+=winHStep)
+        if(_cityWindows[wi++ % _cityWindows.length]) ctx.fillRect(wx,wy,winW,winH);
   });
   ctx.fillStyle='#222'; ctx.fillRect(0,h*0.85,w,h*0.15);
   ctx.fillStyle='rgba(255,255,255,0.5)';
