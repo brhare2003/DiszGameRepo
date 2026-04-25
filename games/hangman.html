@@ -487,6 +487,8 @@ function drawGallows(){
   gCtx.fillStyle='#3da03d'; gCtx.fill();
 
   // ── Gallows (wooden timber) ───────────────────────────────────────────────
+  gCtx.save();
+  gCtx.translate(0, h*0.07); // shift gallows + character down
   gCtx.lineCap='round'; gCtx.lineJoin='round';
   // shadow under base
   gCtx.strokeStyle='rgba(0,0,0,0.18)'; gCtx.lineWidth=h*0.022;
@@ -545,6 +547,7 @@ function drawGallows(){
       if(pc) gCtx.drawImage(pc,offX,offY,partW,partH);
     }
   }
+  gCtx.restore();
 }
 
 function renderGame(){
