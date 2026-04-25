@@ -19,6 +19,20 @@ body{background:#1a0a2e;font-family:'Segoe UI',sans-serif;overflow:hidden;user-s
 .bg-thumb{width:140px;height:100px;border-radius:16px;border:4px solid #fff4;cursor:pointer;overflow:hidden;transition:transform .15s,border-color .15s;}
 .bg-thumb:hover,.bg-thumb:focus{transform:scale(1.07);border-color:#FFD53E;outline:none;}
 .bg-thumb canvas{width:100%;height:100%;}
+
+/* ── Play screen ── */
+#screen-play{flex-direction:column;position:relative;}
+#scene-canvas{display:block;flex:1;width:100%;cursor:crosshair;}
+#tray{height:100px;background:rgba(0,0,0,0.55);border-top:3px solid #fff3;display:flex;align-items:center;gap:0;overflow-x:auto;overflow-y:hidden;padding:6px 8px;scrollbar-width:thin;}
+#tray::-webkit-scrollbar{height:5px;}#tray::-webkit-scrollbar-thumb{background:#fff4;border-radius:4px;}
+.sticker-btn{flex-shrink:0;width:72px;height:72px;font-size:38px;background:rgba(255,255,255,0.08);border:3px solid transparent;border-radius:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .12s,border-color .12s;margin-right:6px;}
+.sticker-btn:hover{transform:scale(1.18);border-color:#FFD53E;}
+.sticker-btn.selected{border-color:#FFD53E;background:rgba(255,213,62,0.25);transform:scale(1.1);}
+#back-btn{position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.5);color:#fff;border:2px solid #fff5;border-radius:10px;padding:6px 14px;font-size:15px;cursor:pointer;}
+#back-btn:hover{background:rgba(0,0,0,0.75);}
+#clear-btn{position:absolute;top:10px;right:10px;background:rgba(220,50,50,0.7);color:#fff;border:2px solid #fff5;border-radius:10px;padding:6px 14px;font-size:15px;cursor:pointer;}
+#clear-btn:hover{background:rgba(220,50,50,0.95);}
+#hint{position:absolute;top:14px;left:50%;transform:translateX(-50%);color:#fff;font-size:14px;opacity:0.7;pointer-events:none;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -29,8 +43,14 @@ body{background:#1a0a2e;font-family:'Segoe UI',sans-serif;overflow:hidden;user-s
   <div class="bg-grid" id="bg-grid"></div>
 </div>
 
-<!-- Screen 2: sticker canvas (built next increment) -->
-<div id="screen-play" class="screen"></div>
+<!-- Screen 2: sticker canvas -->
+<div id="screen-play" class="screen">
+  <button id="back-btn">← Back</button>
+  <span id="hint">Pick a sticker below, then tap the scene!</span>
+  <button id="clear-btn">🗑 Clear</button>
+  <canvas id="scene-canvas"></canvas>
+  <div id="tray"></div>
+</div>
 
 <script>
 const BACKGROUNDS = [
@@ -110,12 +130,86 @@ BACKGROUNDS.forEach((bg, i) => {
   grid.appendChild(btn);
 });
 
+/* ── Stickers ── */
+const STICKERS = [
+  '⭐','🌈','☀️','🌙','❄️','🔥','💧','🌸','🌻','🍄',
+  '🦋','🐶','🐱','🐸','🦄','🐠','🦊','🐧','🦁','🐼',
+  '🎈','🎉','🎀','💎','🍭','🍦','🍕','🎮','🏆','🎸',
+  '❤️','💜','💛','🌟','✨','💫','🎵','🎨','🚀','🌍',
+];
+
+let activeBg = null;
+let selectedSticker = null;
+let placed = [];     // [{emoji,x,y,size}]
+const canvas = document.getElementById('scene-canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const play = document.getElementById('screen-play');
+  const tray = document.getElementById('tray');
+  canvas.width  = play.clientWidth;
+  canvas.height = play.clientHeight - tray.offsetHeight;
+  redraw();
+}
+
+function redraw() {
+  if (!activeBg) return;
+  activeBg.draw(ctx, canvas.width, canvas.height);
+  ctx.font = '60px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  placed.forEach(s => {
+    ctx.font = s.size + 'px serif';
+    ctx.fillText(s.emoji, s.x, s.y);
+  });
+}
+
+/* ── Build tray ── */
+const tray = document.getElementById('tray');
+STICKERS.forEach(em => {
+  const btn = document.createElement('button');
+  btn.className = 'sticker-btn';
+  btn.textContent = em;
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sticker-btn').forEach(b => b.classList.remove('selected'));
+    if (selectedSticker === em) { selectedSticker = null; return; }
+    selectedSticker = em;
+    btn.classList.add('selected');
+  });
+  tray.appendChild(btn);
+});
+
+/* ── Place sticker on tap/click ── */
+canvas.addEventListener('click', e => {
+  if (!selectedSticker) return;
+  const r = canvas.getBoundingClientRect();
+  const x = e.clientX - r.left;
+  const y = e.clientY - r.top;
+  placed.push({ emoji: selectedSticker, x, y, size: 60 });
+  redraw();
+});
+
+/* ── Back / Clear ── */
+document.getElementById('back-btn').addEventListener('click', () => {
+  document.getElementById('screen-play').classList.remove('active');
+  document.getElementById('screen-pick').classList.add('active');
+  placed = []; selectedSticker = null;
+  document.querySelectorAll('.sticker-btn').forEach(b => b.classList.remove('selected'));
+});
+document.getElementById('clear-btn').addEventListener('click', () => {
+  placed = [];
+  redraw();
+});
+
 function startPlay(bgIdx) {
+  activeBg = BACKGROUNDS[bgIdx];
+  placed = []; selectedSticker = null;
+  document.querySelectorAll('.sticker-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('screen-pick').classList.remove('active');
   document.getElementById('screen-play').classList.add('active');
-  // sticker play screen built in next increment
-  alert('Scene ' + BACKGROUNDS[bgIdx].name + ' selected! (sticker screen coming next)');
+  resizeCanvas();
 }
+window.addEventListener('resize', () => { if (activeBg) resizeCanvas(); });
 </script>
 </body>
 </html>
