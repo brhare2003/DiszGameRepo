@@ -938,7 +938,6 @@
   }
 
   cvT.addEventListener('pointerdown', e => {
-    e.preventDefault(); cvT.setPointerCapture(e.pointerId);
     const rect = cvT.getBoundingClientRect();
     const px = e.clientX - rect.left, py = e.clientY - rect.top;
     if (selectedDeco === 'sand') { sandPainting = true; sandPointerX = px; sandPointerY = py; return; }
@@ -953,7 +952,7 @@
       });
       dragDeco = found;
     }
-  }, { passive: false });
+  });
 
   cvT.addEventListener('pointermove', e => {
     const rect = cvT.getBoundingClientRect();
@@ -964,16 +963,24 @@
     if (dragActive) { dragDeco.x = px; dragDeco.y = py; }
   });
 
+  function resetPointerState() {
+    sandPainting = false;
+    dragDeco = null;
+    dragActive = false;
+  }
+
   cvT.addEventListener('pointerup', e => {
-    if (sandPainting) { sandPainting = false; return; }
+    if (sandPainting) { resetPointerState(); return; }
     const rect = cvT.getBoundingClientRect();
     if (!dragActive) {
       handleTap(e.clientX - rect.left, e.clientY - rect.top);
     } else if (dragDeco && dragDeco.type !== 'egg') {
       dragDeco.settled = false; // re-fall after manual drag-and-drop
     }
-    dragDeco = null; dragActive = false;
+    resetPointerState();
   });
+
+  cvT.addEventListener('pointercancel', resetPointerState);
 
   // Only clear the tank on the very first entry; preserve state when adding more fish
   let tankReady = false;
