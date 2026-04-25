@@ -102,7 +102,7 @@ h2{color:#5a3200;font-size:1.4rem;margin-bottom:12px;}
     <span id="play-wrong-label" style="color:#c0392b;font-weight:700;font-size:1rem;"></span>
     <span style="color:#6b5740;font-size:0.85rem;">Guess the word!</span>
   </div>
-  <canvas id="gallows-canvas" style="border-radius:12px;background:#fff;border:2px solid #d4b896;max-width:480px;width:100%;"></canvas>
+  <canvas id="gallows-canvas" style="border-radius:12px;border:2px solid #d4b896;max-width:480px;width:100%;"></canvas>
   <div id="play-word-display" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;"></div>
   <div id="play-guessed" style="color:#6b5740;font-size:0.85rem;min-height:20px;"></div>
   <div id="play-keyboard" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:520px;width:100%;"></div>
@@ -315,12 +315,98 @@ function startGame(){
 function drawGallows(){
   const w = gallows.width, h = gallows.height;
   gCtx.clearRect(0,0,w,h);
-  gCtx.strokeStyle='#2B2140'; gCtx.lineWidth=3; gCtx.lineCap='round';
-  // base, pole, beam, rope
-  gCtx.beginPath(); gCtx.moveTo(w*0.1,h*0.92); gCtx.lineTo(w*0.55,h*0.92); gCtx.stroke();
-  gCtx.beginPath(); gCtx.moveTo(w*0.22,h*0.92); gCtx.lineTo(w*0.22,h*0.08); gCtx.stroke();
-  gCtx.beginPath(); gCtx.moveTo(w*0.22,h*0.08); gCtx.lineTo(w*0.52,h*0.08); gCtx.stroke();
-  gCtx.beginPath(); gCtx.moveTo(w*0.52,h*0.08); gCtx.lineTo(w*0.52,h*0.18); gCtx.stroke();
+
+  // ── Sky gradient ──────────────────────────────────────────────────────────
+  const sky = gCtx.createLinearGradient(0,0,0,h*0.72);
+  sky.addColorStop(0,'#5bb8f5');
+  sky.addColorStop(1,'#c9eaff');
+  gCtx.fillStyle = sky;
+  gCtx.fillRect(0,0,w,h);
+
+  // ── Sun ───────────────────────────────────────────────────────────────────
+  const sunX=w*0.88, sunY=h*0.10, sunR=h*0.075;
+  // glow
+  const sunGlow = gCtx.createRadialGradient(sunX,sunY,sunR*0.4,sunX,sunY,sunR*2.2);
+  sunGlow.addColorStop(0,'rgba(255,240,80,0.55)');
+  sunGlow.addColorStop(1,'rgba(255,240,80,0)');
+  gCtx.fillStyle=sunGlow; gCtx.beginPath(); gCtx.arc(sunX,sunY,sunR*2.2,0,Math.PI*2); gCtx.fill();
+  // disc
+  gCtx.fillStyle='#FFE033';
+  gCtx.beginPath(); gCtx.arc(sunX,sunY,sunR,0,Math.PI*2); gCtx.fill();
+  gCtx.fillStyle='#FFD000';
+  gCtx.beginPath(); gCtx.arc(sunX,sunY,sunR*0.72,0,Math.PI*2); gCtx.fill();
+  // rays
+  gCtx.strokeStyle='#FFD000'; gCtx.lineWidth=Math.max(1.5,h*0.012); gCtx.lineCap='round';
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI/4, r1=sunR*1.18, r2=sunR*1.68;
+    gCtx.beginPath(); gCtx.moveTo(sunX+Math.cos(a)*r1,sunY+Math.sin(a)*r1);
+    gCtx.lineTo(sunX+Math.cos(a)*r2,sunY+Math.sin(a)*r2); gCtx.stroke();
+  }
+
+  // ── Hill ─────────────────────────────────────────────────────────────────
+  const hillY = h*0.74; // where hill apex is (left side higher → gentle slope right)
+  gCtx.beginPath();
+  gCtx.moveTo(0, h*0.70);
+  gCtx.bezierCurveTo(w*0.25, h*0.64, w*0.55, h*0.78, w, h*0.82);
+  gCtx.lineTo(w,h); gCtx.lineTo(0,h); gCtx.closePath();
+  const grass = gCtx.createLinearGradient(0,hillY,0,h);
+  grass.addColorStop(0,'#6ec96e');
+  grass.addColorStop(0.35,'#4db34d');
+  grass.addColorStop(1,'#2d7a2d');
+  gCtx.fillStyle=grass; gCtx.fill();
+  // darker grass edge strip
+  gCtx.beginPath();
+  gCtx.moveTo(0, h*0.70);
+  gCtx.bezierCurveTo(w*0.25, h*0.64, w*0.55, h*0.78, w, h*0.82);
+  gCtx.lineTo(w, h*0.82+h*0.025); gCtx.lineTo(w*0.55, h*0.78+h*0.025);
+  gCtx.bezierCurveTo(w*0.25, h*0.64+h*0.025, 0, h*0.70+h*0.025, 0, h*0.70+h*0.025);
+  gCtx.closePath();
+  gCtx.fillStyle='#3da03d'; gCtx.fill();
+
+  // ── Gallows (wooden timber) ───────────────────────────────────────────────
+  gCtx.lineCap='round'; gCtx.lineJoin='round';
+  // shadow under base
+  gCtx.strokeStyle='rgba(0,0,0,0.18)'; gCtx.lineWidth=h*0.022;
+  gCtx.beginPath(); gCtx.moveTo(w*0.09,h*0.755); gCtx.lineTo(w*0.54,h*0.755); gCtx.stroke();
+
+  const woodFill = (x1,y1,x2,y2,thick)=>{
+    const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
+    const nx=-dy/len*thick/2, ny=dx/len*thick/2;
+    // grain gradient across thickness
+    const grd=gCtx.createLinearGradient(x1+nx,y1+ny,x1-nx,y1-ny);
+    grd.addColorStop(0,'#c8843a'); grd.addColorStop(0.4,'#e8a54a'); grd.addColorStop(0.7,'#d4923e'); grd.addColorStop(1,'#b87030');
+    gCtx.fillStyle=grd;
+    gCtx.beginPath();
+    gCtx.moveTo(x1+nx,y1+ny); gCtx.lineTo(x2+nx,y2+ny);
+    gCtx.lineTo(x2-nx,y2-ny); gCtx.lineTo(x1-nx,y1-ny);
+    gCtx.closePath(); gCtx.fill();
+    gCtx.strokeStyle='#8B5520'; gCtx.lineWidth=1.2; gCtx.stroke();
+  };
+
+  const thick = h*0.038;
+  // base
+  woodFill(w*0.09,h*0.742,w*0.54,h*0.742,thick);
+  // vertical pole
+  woodFill(w*0.22,h*0.742,w*0.22,h*0.09,thick);
+  // horizontal beam
+  woodFill(w*0.22,h*0.09,w*0.52,h*0.09,thick);
+  // diagonal brace
+  woodFill(w*0.22,h*0.30,w*0.38,h*0.09,thick*0.75);
+  // bolt circles at joints
+  [
+    [w*0.22,h*0.09],[w*0.52,h*0.09],[w*0.22,h*0.742]
+  ].forEach(([bx,by])=>{
+    gCtx.fillStyle='#5a3200'; gCtx.beginPath(); gCtx.arc(bx,by,thick*0.35,0,Math.PI*2); gCtx.fill();
+    gCtx.fillStyle='#c8a060'; gCtx.beginPath(); gCtx.arc(bx,by,thick*0.18,0,Math.PI*2); gCtx.fill();
+  });
+  // rope
+  gCtx.strokeStyle='#c8a060'; gCtx.lineWidth=Math.max(2,h*0.014); gCtx.lineCap='round';
+  gCtx.beginPath(); gCtx.moveTo(w*0.52,h*0.09+thick/2); gCtx.lineTo(w*0.52,h*0.18); gCtx.stroke();
+  gCtx.strokeStyle='#a07840'; gCtx.lineWidth=Math.max(1,h*0.005);
+  for(let i=0;i<6;i++){
+    const ry=h*0.09+thick/2+i*(h*0.09/6);
+    gCtx.beginPath(); gCtx.moveTo(w*0.52-h*0.006,ry); gCtx.lineTo(w*0.52+h*0.006,ry+h*0.012); gCtx.stroke();
+  }
 
   const cx=w*0.52, headR=h*0.08;
   const torsoY1=h*0.26+headR, torsoY2=h*0.55;
