@@ -48,6 +48,32 @@
       font-family: 'Segoe UI', sans-serif;
       font-size: 1rem; color: rgba(255,255,255,0.5); letter-spacing: 2px;
     }
+    #gameover-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center; gap: 18px;
+      background: rgba(0,0,16,0.82);
+    }
+    #gameover-overlay h1 {
+      font-family: 'Segoe UI', sans-serif;
+      font-size: clamp(2rem, 9vw, 4rem); font-weight: 900;
+      color: #ff4444; letter-spacing: 4px; text-align: center;
+      text-shadow: 0 0 30px rgba(255,68,68,0.7);
+    }
+    .go-stat {
+      font-family: 'Segoe UI', sans-serif;
+      font-size: clamp(1rem, 4vw, 1.6rem); color: #fff; text-align: center;
+    }
+    .go-stat span { color: #FFD53E; font-weight: 900; }
+    #play-again-btn {
+      padding: 18px 50px; font-size: clamp(1.2rem, 5vw, 1.8rem);
+      font-weight: 900; font-family: 'Segoe UI', sans-serif;
+      color: #fff; background: linear-gradient(135deg, #ff9a00, #ff5500);
+      border: none; border-radius: 50px; cursor: pointer; letter-spacing: 3px;
+      box-shadow: 0 0 30px rgba(255,100,0,0.6); margin-top: 8px;
+      transition: transform 0.1s;
+    }
+    #play-again-btn:active { transform: scale(0.95); }
   </style>
   <script>
     document.addEventListener('touchmove', e => { if(e.touches.length>1) e.preventDefault(); }, {passive:false});
@@ -63,14 +89,24 @@
     <button id="start-btn">🚀 LAUNCH!</button>
     <div id="hi-disp"></div>
   </div>
+  <div id="gameover-overlay">
+    <h1>💥 GAME OVER</h1>
+    <p class="go-stat">Score: <span id="go-score-val">0</span></p>
+    <p class="go-stat">Best: <span id="go-best-val">0</span></p>
+    <button id="play-again-btn">🚀 PLAY AGAIN</button>
+  </div>
   <script>
   (function () {
     // ── Canvas & state ──────────────────────────────────────────────────────
     const canvas = document.getElementById('c');
     const ctx    = canvas.getContext('2d');
-    const startOverlay = document.getElementById('start-overlay');
-    const startBtn     = document.getElementById('start-btn');
-    const hiDisp       = document.getElementById('hi-disp');
+    const startOverlay   = document.getElementById('start-overlay');
+    const startBtn       = document.getElementById('start-btn');
+    const hiDisp         = document.getElementById('hi-disp');
+    const gameoverOverlay= document.getElementById('gameover-overlay');
+    const goScoreVal     = document.getElementById('go-score-val');
+    const goBestVal      = document.getElementById('go-best-val');
+    const playAgainBtn   = document.getElementById('play-again-btn');
 
     let W, H;
     let state = 'start'; // 'start' | 'playing' | 'gameover'
@@ -409,29 +445,30 @@
     }
 
     function checkEnemyCollisions() {
+      const rw=Math.min(W*0.08,48), rh=rw*1.8;
+      const noseY=rocketY-rh*0.3; // front tip of rocket
       enemies.forEach(e => {
-        const dx=rocketX-e.x, dy=rocketY-e.y;
-        if (Math.abs(dx)<e.w*0.55 && Math.abs(dy)<e.h*0.55) {
+        const dx=rocketX-e.x, dy=noseY-e.y;
+        if (Math.abs(dx)<e.w*0.5+rw*0.35 && Math.abs(dy)<e.h*0.5+rw*0.08) {
           lives--;
           playSound('cloud');
           addFloat(e.x, e.y-22, lives>0?'💥 -1 ❤️':'💀 GAME OVER','#ff4444');
           rocketSpinV += (Math.random()>0.5?1:-1)*0.3;
           spawnConfetti(e.x, e.y, 10);
           e.y = H+100;
-          if (lives<=0) { state='gameover'; if(score>hiScore){hiScore=score;localStorage.setItem('rocketHi',hiScore);} }
+          if (lives<=0) { state='gameover'; showGameOver(); }
         }
       });
-      // Laser hits player
-      const rw=Math.min(W*0.08,48);
+      // Laser hits nose
       lasers = lasers.filter(l => {
-        const dx=rocketX-l.x, dy=rocketY-l.y;
-        if (Math.sqrt(dx*dx+dy*dy) < rw*0.6) {
+        const dx=rocketX-l.x, dy=noseY-l.y;
+        if (Math.sqrt(dx*dx+dy*dy) < rw*0.48) {
           lives--;
           playSound('cloud');
           addFloat(l.x, l.y-22, lives>0?'🔴 -1 ❤️':'💀 GAME OVER','#ff4444');
           rocketSpinV += (Math.random()>0.5?1:-1)*0.25;
           spawnConfetti(l.x, l.y, 6);
-          if (lives<=0) { state='gameover'; if(score>hiScore){hiScore=score;localStorage.setItem('rocketHi',hiScore);} }
+          if (lives<=0) { state='gameover'; showGameOver(); }
           return false;
         }
         return true;
@@ -492,15 +529,21 @@
 
     // ── Collision & scoring ─────────────────────────────────────────────────
     function checkCollisions() {
-      const rw = Math.min(W*0.08,48);
-      const hitR = rw*0.6;
+      const rw = Math.min(W*0.08,48), rh=rw*1.8;
+      const noseY = rocketY-rh*0.3; // front tip of rocket
+      const bodyHitR = rw*0.6;      // generous collect radius for stars/gems
+      const hazardHitR = rw*0.42;   // tight radius at nose for hazards
       items = items.filter(it => {
         if (magnetActive && it.type!=='asteroid') {
           const dx=rocketX-it.x, dy=rocketY-it.y;
           const d=Math.sqrt(dx*dx+dy*dy);
           if (d < W*0.42 && d > 1) { it.x+=dx/d*5; it.y+=dy/d*5; }
         }
-        const dx=rocketX-it.x, dy=rocketY-it.y;
+        // hazards collide at nose; collectibles collide with body center
+        const isHazard = it.type==='asteroid';
+        const cx=rocketX, cy=isHazard ? noseY : rocketY;
+        const hitR=isHazard ? hazardHitR : bodyHitR;
+        const dx=cx-it.x, dy=cy-it.y;
         const dist=Math.sqrt(dx*dx+dy*dy);
         if (dist < hitR+it.r) {
           if (it.type==='star') {
@@ -516,7 +559,7 @@
             addFloat(it.x, it.y-22, lives>0?'💥 -1 ❤️':'💀 GAME OVER', '#ff4444');
             rocketSpinV += (Math.random()>0.5?1:-1)*0.28;
             spawnConfetti(it.x, it.y, 8);
-            if (lives<=0) { state='gameover'; if(score>hiScore){hiScore=score;localStorage.setItem('rocketHi',hiScore);} }
+            if (lives<=0) { state='gameover'; showGameOver(); }
           } else if (it.type==='magnet') {
             magnetActive=true; magnetTimer=320; playSound('whoosh');
             addFloat(it.x, it.y-22, '🧲 MAGNET!', '#ff3366');
@@ -617,29 +660,14 @@
       confetti=confetti.filter(c=>{ c.x+=c.vx;c.y+=c.vy;c.vy+=0.13;c.rot+=c.rotV;c.life-=c.decay; return c.life>0; });
       floats  =floats.filter(f=>{ f.y+=f.vy;f.life-=0.022; return f.life>0; });
 
-      if (score>hiScore) { hiScore=score; localStorage.setItem('rocketHi',hiScore); }
     }
 
-    // ── Game Over screen ────────────────────────────────────────────────────
-    function drawGameOver() {
-      ctx.save();
-      ctx.fillStyle='rgba(0,0,0,0.72)';
-      ctx.fillRect(0,0,W,H);
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.font=`900 ${Math.round(Math.min(H*0.09,58))}px 'Segoe UI',sans-serif`;
-      ctx.fillStyle='#ff4444';
-      ctx.strokeStyle='#000'; ctx.lineWidth=5;
-      ctx.strokeText('GAME OVER', W/2, H*0.38);
-      ctx.fillText('GAME OVER', W/2, H*0.38);
-      ctx.font=`700 ${Math.round(Math.min(H*0.055,36))}px 'Segoe UI',sans-serif`;
-      ctx.fillStyle='#fff';
-      ctx.fillText(`Score: ${score}`, W/2, H*0.50);
-      ctx.fillStyle='#FFD53E';
-      ctx.fillText(`Best: ${hiScore}`, W/2, H*0.58);
-      ctx.font=`600 ${Math.round(Math.min(H*0.04,26))}px 'Segoe UI',sans-serif`;
-      ctx.fillStyle='rgba(255,255,255,0.7)';
-      ctx.fillText('TAP TO PLAY AGAIN', W/2, H*0.70);
-      ctx.restore();
+    // ── Game Over ────────────────────────────────────────────────────────────
+    function showGameOver() {
+      if (score>hiScore) { hiScore=score; localStorage.setItem('rocketHi',hiScore); }
+      goScoreVal.textContent = score;
+      goBestVal.textContent  = hiScore;
+      gameoverOverlay.style.display = 'flex';
     }
 
     // ── Main loop ───────────────────────────────────────────────────────────
@@ -653,8 +681,7 @@
       drawItems();
       drawEnemies();
       drawRocket(rocketX, rocketY, rocketSpin);
-      if (state==='playing') drawHUD();
-      if (state==='gameover') { drawHUD(); drawGameOver(); }
+      if (state==='playing' || state==='gameover') drawHUD();
     }
 
     function startGame() {
@@ -670,8 +697,10 @@
     }
 
     startBtn.addEventListener('click', startGame);
-    canvas.addEventListener('click', ()=>{ if(state==='gameover') startGame(); });
-    canvas.addEventListener('touchend', ()=>{ if(state==='gameover') startGame(); }, {passive:true});
+    playAgainBtn.addEventListener('click', ()=>{
+      gameoverOverlay.style.display = 'none';
+      startGame();
+    });
 
     hiDisp.textContent = hiScore>0 ? `🏆 BEST: ${hiScore}` : '';
     loop();
