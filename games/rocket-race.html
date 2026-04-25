@@ -460,11 +460,11 @@
           if (lives<=0) { state='gameover'; showGameOver(); }
         }
       });
-      // Laser hits rocket (circle of radius rh*0.3 so top = nose)
-      const hitR = rh*0.3;
+      // Laser hits rocket — same shifted circle as items
+      const hitR2 = rw*0.6, hitCY2 = rocketY - rh*0.3 + hitR2;
       lasers = lasers.filter(l => {
-        const dx=rocketX-l.x, dy=rocketY-l.y;
-        if (Math.sqrt(dx*dx+dy*dy) < hitR) {
+        const dx=rocketX-l.x, dy=hitCY2-l.y;
+        if (Math.sqrt(dx*dx+dy*dy) < hitR2) {
           lives--;
           playSound('cloud');
           addFloat(l.x, l.y-22, lives>0?'🔴 -1 ❤️':'💀 GAME OVER','#ff4444');
@@ -532,15 +532,16 @@
     // ── Collision & scoring ─────────────────────────────────────────────────
     function checkCollisions() {
       const rw = Math.min(W*0.08,48), rh=rw*1.8;
-      // hitR = rh*0.3 so the TOP of the circle sits exactly at the nose
-      const hitR = rh*0.3;
+      const hitR  = rw*0.6;
+      // shift centre up so the TOP of the circle lands exactly on the nose
+      const hitCY = rocketY - rh*0.3 + hitR;
       items = items.filter(it => {
         if (magnetActive && it.type!=='asteroid') {
-          const dx=rocketX-it.x, dy=rocketY-it.y;
+          const dx=rocketX-it.x, dy=hitCY-it.y;
           const d=Math.sqrt(dx*dx+dy*dy);
           if (d < W*0.42 && d > 1) { it.x+=dx/d*5; it.y+=dy/d*5; }
         }
-        const dx=rocketX-it.x, dy=rocketY-it.y;
+        const dx=rocketX-it.x, dy=hitCY-it.y;
         const dist=Math.sqrt(dx*dx+dy*dy);
         if (dist < hitR+it.r) {
           if (it.type==='star') {
