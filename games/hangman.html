@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;touch-action:manipulation;}
 body{background:#1a0a2e;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none;color:#fff;}
-.screen{display:none;width:100vw;height:100vh;flex-direction:column;align-items:center;justify-content:center;}
+.screen{display:none;width:100vw;height:100dvh;flex-direction:column;align-items:center;justify-content:center;}
 .screen.active{display:flex;}
 #home-btn{position:fixed;top:12px;left:12px;z-index:300;color:#2B2140;text-decoration:none;font-size:0.88rem;font-weight:700;background:rgba(255,246,228,0.92);border:2px solid #2B2140;padding:6px 14px;border-radius:20px;letter-spacing:1px;}
 .big-btn{background:#7b5ea7;color:#fff;border:3px solid #2B2140;border-radius:18px;padding:14px 32px;font-size:1.2rem;font-weight:700;cursor:pointer;margin:8px;transition:transform .1s,background .1s;}
@@ -20,9 +20,22 @@ h2{color:#FFD53E;font-size:1.4rem;margin-bottom:12px;}
 .tool-btn:hover,.tool-btn.active{background:rgba(255,213,62,0.3);border-color:#FFD53E;}
 .color-swatch{width:30px;height:30px;border-radius:50%;border:3px solid #fff4;cursor:pointer;flex-shrink:0;}
 .color-swatch.active{border-color:#FFD53E;transform:scale(1.2);}
-.part-pip{width:26px;height:26px;border-radius:6px;border:2px solid #fff4;background:rgba(255,255,255,0.08);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.part-pip.done{background:rgba(100,200,100,0.3);border-color:#4dbb4d;}
-.part-pip.current{border-color:#FFD53E;background:rgba(255,213,62,0.2);}
+/* drawing screen layout */
+#draw-main{flex:1;display:flex;min-height:0;width:100%;}
+#draw-area{flex:1;position:relative;background:#f5e8d0;overflow:hidden;}
+#draw-backdrop,#draw-canvas{position:absolute;inset:0;width:100%;height:100%;}
+#draw-backdrop{pointer-events:none;}
+#draw-canvas{cursor:crosshair;touch-action:none;background:transparent;}
+#draw-parts-list{width:120px;background:#13092a;overflow-y:auto;flex-shrink:0;padding:6px 4px;display:flex;flex-direction:column;gap:3px;}
+.part-row{display:flex;align-items:center;gap:4px;padding:5px 4px;border-radius:8px;cursor:pointer;transition:background .12s;}
+.part-row.current{background:rgba(255,213,62,0.15);border:1px solid #FFD53E;}
+.part-row:not(.current){border:1px solid transparent;}
+.part-arrow{color:#FFD53E;font-size:14px;width:14px;flex-shrink:0;visibility:hidden;}
+.part-row.current .part-arrow{visibility:visible;}
+.part-check{width:15px;height:15px;flex-shrink:0;accent-color:#4dbb4d;pointer-events:none;}
+.part-name{font-size:11px;color:#ccc;flex:1;line-height:1.2;}
+.part-row.done .part-name{color:#4dbb4d;}
+#draw-toolbar{display:flex;align-items:center;gap:6px;padding:8px 10px;padding-bottom:calc(env(safe-area-inset-bottom,8px) + 8px);background:#1a0a2e;flex-shrink:0;overflow-x:auto;}
 </style>
 </head>
 <body>
@@ -46,21 +59,23 @@ h2{color:#FFD53E;font-size:1.4rem;margin-bottom:12px;}
 </div>
 <!-- DRAWING SCREEN -->
 <div id="screen-draw" class="screen" style="background:#111;flex-direction:column;padding:0;">
-  <div id="draw-header" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#1a0a2e;flex-shrink:0;flex-wrap:wrap;">
-    <span id="draw-part-label" style="color:#FFD53E;font-weight:700;font-size:1rem;min-width:110px;"></span>
-    <div id="draw-parts-nav" style="display:flex;gap:4px;flex-wrap:wrap;flex:1;"></div>
+  <div id="draw-header" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#1a0a2e;flex-shrink:0;">
+    <span id="draw-part-label" style="color:#FFD53E;font-weight:700;font-size:1rem;flex:1;"></span>
     <button class="big-btn green" id="btn-part-done" style="padding:8px 18px;font-size:0.95rem;margin:0;">✔ Done</button>
   </div>
-  <canvas id="draw-canvas" style="flex:1;display:block;cursor:crosshair;touch-action:none;width:100%;"></canvas>
-  <div id="draw-toolbar" style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:#1a0a2e;flex-shrink:0;overflow-x:auto;">
-    <!-- color swatches -->
+  <div id="draw-main">
+    <div id="draw-area">
+      <canvas id="draw-backdrop"></canvas>
+      <canvas id="draw-canvas"></canvas>
+    </div>
+    <div id="draw-parts-list"></div>
+  </div>
+  <div id="draw-toolbar">
     <div id="color-swatches" style="display:flex;gap:4px;flex-shrink:0;"></div>
     <div style="width:1px;height:32px;background:#fff3;flex-shrink:0;margin:0 4px;"></div>
-    <!-- size -->
     <button class="tool-btn" id="btn-thin"  title="Thin">─</button>
     <button class="tool-btn" id="btn-thick" title="Thick">━</button>
     <div style="width:1px;height:32px;background:#fff3;flex-shrink:0;margin:0 4px;"></div>
-    <!-- special -->
     <button class="tool-btn" id="btn-rainbow" title="Rainbow">🌈</button>
     <button class="tool-btn" id="btn-eraser"  title="Eraser">⬜</button>
     <button class="tool-btn" id="btn-clear"   title="Clear" style="color:#f55;">🗑</button>
@@ -119,20 +134,22 @@ function useDefault(){
    DRAWING SCREEN
 ══════════════════════════════════════ */
 const COLORS = ['#222222','#e74c3c','#e67e22','#f1c40f','#2ecc71','#3498db','#9b59b6','#fff'];
-let drawTool = { color: COLORS[0], size: 4, mode: 'draw' };
+let drawTool = { color: COLORS[0], size: 6, mode: 'draw' };
 let rainbowHue = 0;
 let isDrawing = false;
 let lastX = 0, lastY = 0;
 
-const drawCanvas = document.getElementById('draw-canvas');
-const drawCtx    = drawCanvas.getContext('2d');
+const drawCanvas   = document.getElementById('draw-canvas');
+const drawCtx      = drawCanvas.getContext('2d');
+const drawBackdrop = document.getElementById('draw-backdrop');
+const bdCtx        = drawBackdrop.getContext('2d');
 
 /* build color swatches */
 const swatchRow = document.getElementById('color-swatches');
 COLORS.forEach(c => {
   const s = document.createElement('div');
   s.className = 'color-swatch' + (c === COLORS[0] ? ' active' : '');
-  s.style.background = c; s.style.border = c==='#fff' ? '3px solid #888' : '';
+  s.style.background = c; if(c==='#fff') s.style.border='3px solid #888';
   s.addEventListener('click', () => {
     document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('active'));
     s.classList.add('active');
@@ -142,7 +159,6 @@ COLORS.forEach(c => {
   swatchRow.appendChild(s);
 });
 
-/* tool buttons */
 function setToolActive(id){ document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active')); document.getElementById(id).classList.add('active'); }
 document.getElementById('btn-thin').addEventListener('click',()=>{ drawTool.size=3; });
 document.getElementById('btn-thick').addEventListener('click',()=>{ drawTool.size=14; });
@@ -151,12 +167,29 @@ document.getElementById('btn-eraser').addEventListener('click',()=>{ drawTool.mo
 document.getElementById('btn-clear').addEventListener('click',()=>{ drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height); });
 
 function resizeDrawCanvas(){
+  const area = document.getElementById('draw-area');
+  const w = area.clientWidth, h = area.clientHeight;
+  // preserve current strokes
   const tmp = document.createElement('canvas');
   tmp.width=drawCanvas.width; tmp.height=drawCanvas.height;
   tmp.getContext('2d').drawImage(drawCanvas,0,0);
-  drawCanvas.width  = drawCanvas.clientWidth  || window.innerWidth;
-  drawCanvas.height = drawCanvas.clientHeight || (window.innerHeight - 120);
-  drawCtx.drawImage(tmp,0,0);
+  drawCanvas.width = drawBackdrop.width = w;
+  drawCanvas.height = drawBackdrop.height = h;
+  drawCtx.drawImage(tmp,0,0,w,h);
+  refreshBackdrop();
+}
+
+/* backdrop: all saved parts except current, at 0.22 opacity */
+function refreshBackdrop(){
+  const w=drawBackdrop.width, h=drawBackdrop.height;
+  bdCtx.clearRect(0,0,w,h);
+  bdCtx.globalAlpha = 0.22;
+  PARTS.forEach((p,i)=>{
+    if(i===currentPartIdx) return;
+    const pc=partCanvases[p];
+    if(pc) bdCtx.drawImage(pc,0,0,w,h);
+  });
+  bdCtx.globalAlpha = 1;
 }
 
 function getPos(e){
@@ -165,82 +198,72 @@ function getPos(e){
   return [src.clientX - r.left, src.clientY - r.top];
 }
 
-function startStroke(e){
-  e.preventDefault();
-  [lastX, lastY] = getPos(e);
-  isDrawing = true;
-}
+function startStroke(e){ e.preventDefault(); [lastX,lastY]=getPos(e); isDrawing=true; }
 function moveStroke(e){
-  if (!isDrawing) return;
-  e.preventDefault();
-  const [x,y] = getPos(e);
-  drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
-  if (drawTool.mode === 'erase'){
-    drawCtx.globalCompositeOperation = 'destination-out';
-    drawCtx.lineWidth = 28;
-    drawCtx.strokeStyle = 'rgba(0,0,0,1)';
+  if(!isDrawing) return; e.preventDefault();
+  const [x,y]=getPos(e);
+  drawCtx.lineCap='round'; drawCtx.lineJoin='round';
+  if(drawTool.mode==='erase'){
+    drawCtx.globalCompositeOperation='destination-out';
+    drawCtx.lineWidth=28; drawCtx.strokeStyle='rgba(0,0,0,1)';
   } else {
-    drawCtx.globalCompositeOperation = 'source-over';
-    drawCtx.lineWidth = drawTool.size;
-    if (drawTool.mode === 'rainbow'){
-      rainbowHue = (rainbowHue + 4) % 360;
-      drawCtx.strokeStyle = `hsl(${rainbowHue},100%,55%)`;
-    } else {
-      drawCtx.strokeStyle = drawTool.color;
-    }
+    drawCtx.globalCompositeOperation='source-over';
+    drawCtx.lineWidth=drawTool.size;
+    drawCtx.strokeStyle=drawTool.mode==='rainbow'
+      ? `hsl(${rainbowHue=(rainbowHue+4)%360},100%,55%)`
+      : drawTool.color;
   }
   drawCtx.beginPath(); drawCtx.moveTo(lastX,lastY); drawCtx.lineTo(x,y); drawCtx.stroke();
-  [lastX, lastY] = [x,y];
+  [lastX,lastY]=[x,y];
 }
-function endStroke(){ isDrawing = false; drawCtx.globalCompositeOperation='source-over'; }
+function endStroke(){ isDrawing=false; drawCtx.globalCompositeOperation='source-over'; }
 
 drawCanvas.addEventListener('pointerdown', startStroke);
 drawCanvas.addEventListener('pointermove', moveStroke);
 drawCanvas.addEventListener('pointerup',   endStroke);
 drawCanvas.addEventListener('pointerleave',endStroke);
 
-/* part nav pips */
-const partsNav = document.getElementById('draw-parts-nav');
+/* right-side parts list */
+const partsList = document.getElementById('draw-parts-list');
 PARTS.forEach((p,i)=>{
-  const pip = document.createElement('div');
-  pip.className='part-pip'; pip.title=p;
-  pip.textContent = p.replace('Left ','L.').replace('Right ','R.');
-  pip.dataset.idx = i;
-  pip.addEventListener('click',()=>{ saveCurrentPart(); loadPart(i); });
-  partsNav.appendChild(pip);
+  const row = document.createElement('div');
+  row.className='part-row'; row.dataset.idx=i;
+  row.innerHTML=`<span class="part-arrow">▶</span><input type="checkbox" class="part-check" disabled/><span class="part-name">${p}</span>`;
+  row.addEventListener('click',()=>{ saveCurrentPart(); loadPart(i); });
+  partsList.appendChild(row);
 });
 
-function updatePips(){
-  document.querySelectorAll('.part-pip').forEach((p,i)=>{
-    p.classList.toggle('done', !!partCanvases[PARTS[i]]);
-    p.classList.toggle('current', i===currentPartIdx);
+function updatePartsList(){
+  document.querySelectorAll('.part-row').forEach((row,i)=>{
+    const done = !!partCanvases[PARTS[i]];
+    row.classList.toggle('current', i===currentPartIdx);
+    row.classList.toggle('done', done);
+    row.querySelector('.part-check').checked = done;
   });
-  document.getElementById('draw-part-label').textContent = 'Drawing: ' + PARTS[currentPartIdx];
+  document.getElementById('draw-part-label').textContent = 'Drawing: '+PARTS[currentPartIdx];
 }
 
 function saveCurrentPart(){
-  const off = document.createElement('canvas');
+  const off=document.createElement('canvas');
   off.width=drawCanvas.width; off.height=drawCanvas.height;
   off.getContext('2d').drawImage(drawCanvas,0,0);
-  partCanvases[PARTS[currentPartIdx]] = off;
+  partCanvases[PARTS[currentPartIdx]]=off;
 }
 
 function loadPart(idx){
-  currentPartIdx = idx;
+  currentPartIdx=idx;
   drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
-  const saved = partCanvases[PARTS[idx]];
-  if (saved) drawCtx.drawImage(saved,0,0,drawCanvas.width,drawCanvas.height);
-  updatePips();
+  const saved=partCanvases[PARTS[idx]];
+  if(saved) drawCtx.drawImage(saved,0,0,drawCanvas.width,drawCanvas.height);
+  refreshBackdrop();
+  updatePartsList();
 }
 
 document.getElementById('btn-part-done').addEventListener('click',()=>{
   saveCurrentPart();
-  const nextIdx = currentPartIdx + 1;
-  if (nextIdx < PARTS.length){
-    loadPart(nextIdx);
-  } else {
-    show('screen-word');
-  }
+  const next=currentPartIdx+1;
+  if(next<PARTS.length){ loadPart(next); }
+  else { show('screen-word'); }
 });
 
 /* ══════════════════════════════════════
@@ -403,7 +426,8 @@ function startDrawing(){
   setTimeout(()=>{
     resizeDrawCanvas();
     drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
-    updatePips();
+    refreshBackdrop();
+    updatePartsList();
   },50);
 }
 </script>
