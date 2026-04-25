@@ -555,14 +555,23 @@ function renderGar() {
 (function buildCarSelect() {
   const container = document.getElementById('car-cards');
   const cw = Math.min(Math.floor((window.innerWidth - 60) / 3), 150);
-  const ch = Math.round(cw * 0.52);
+  const ch = Math.round(cw * 0.72); // taller canvas so cabin tops and wheels fit
   CAR_TYPES.forEach((ct, i) => {
     const card = document.createElement('div');
     card.className = 'car-card' + (i===0 ? ' active' : '');
     card.dataset.type = ct.id;
     const cv = document.createElement('canvas');
     cv.width = cw; cv.height = ch;
-    renderPreview(cv, cv.getContext('2d'), '#444444', null, 0, ct.id);
+    // Draw with smaller car (0.72w × 0.50h) and centre shifted down so the
+    // tallest cabin clears the top and wheels clear the bottom.
+    const ctx = cv.getContext('2d');
+    const W = cw, H = ch;
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#5bbaf0'); bg.addColorStop(1, '#b8dff5');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#5cc45c'; ctx.fillRect(0, H*0.82, W, H*0.18);
+    ctx.fillStyle = '#3da83d'; ctx.fillRect(0, H*0.82, W, 4);
+    drawCar(ctx, W/2, H*0.55, W*0.72, H*0.50, '#444444', 1, 0, null, ct.id);
     const lbl = document.createElement('div');
     lbl.className = 'card-label'; lbl.textContent = ct.label;
     card.appendChild(cv); card.appendChild(lbl);
