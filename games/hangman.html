@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Hangman</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;touch-action:manipulation;}
+body{background:#1a0a2e;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none;color:#fff;}
+.screen{display:none;width:100vw;height:100vh;flex-direction:column;align-items:center;justify-content:center;}
+.screen.active{display:flex;}
+#home-btn{position:fixed;top:12px;left:12px;z-index:300;color:#2B2140;text-decoration:none;font-size:0.88rem;font-weight:700;background:rgba(255,246,228,0.92);border:2px solid #2B2140;padding:6px 14px;border-radius:20px;letter-spacing:1px;}
+.big-btn{background:#7b5ea7;color:#fff;border:3px solid #2B2140;border-radius:18px;padding:14px 32px;font-size:1.2rem;font-weight:700;cursor:pointer;margin:8px;transition:transform .1s,background .1s;}
+.big-btn:hover{transform:scale(1.05);background:#9b7ec7;}
+.big-btn.green{background:#3a9a3a;} .big-btn.green:hover{background:#4dbb4d;}
+.big-btn.red{background:#c0392b;} .big-btn.red:hover{background:#e74c3c;}
+h1{color:#FFD53E;font-size:2rem;text-shadow:0 2px 8px #000a;margin-bottom:16px;}
+h2{color:#FFD53E;font-size:1.4rem;margin-bottom:12px;}
+</style>
+</head>
+<body>
+<a href="../index.html" id="home-btn">&#8592; Home</a>
+
+<!-- screens filled in next increments -->
+<div id="screen-intro"   class="screen active"><h1>Hangman</h1><p>Loading…</p></div>
+<div id="screen-choose"  class="screen"></div>
+<div id="screen-draw"    class="screen"></div>
+<div id="screen-word"    class="screen"></div>
+<div id="screen-play"    class="screen"></div>
+<div id="screen-result"  class="screen"></div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+// placeholder
+show('screen-intro');
+</script>
+</body>
+</html>
