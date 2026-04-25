@@ -253,6 +253,120 @@ function submitWord(){
   startGame();
 }
 
+/* ══════════════════════════════════════
+   GAME LOGIC
+══════════════════════════════════════ */
+const MAX_WRONG = PARTS.length; // 10 wrong guesses
+let wrongGuesses = 0;
+let guessedLetters = new Set();
+
+const gallows = document.getElementById('gallows-canvas');
+const gCtx    = gallows.getContext('2d');
+
+function startGame(){
+  wrongGuesses = 0;
+  guessedLetters = new Set();
+  show('screen-play');
+  setTimeout(()=>{
+    gallows.width  = gallows.clientWidth;
+    gallows.height = gallows.clientWidth * 0.7;
+    buildKeyboard();
+    renderGame();
+  }, 50);
+}
+
+/* draw gallows + body parts revealed so far */
+function drawGallows(){
+  const w = gallows.width, h = gallows.height;
+  gCtx.clearRect(0,0,w,h);
+  gCtx.strokeStyle='#ccc'; gCtx.lineWidth=3; gCtx.lineCap='round';
+  // base, pole, beam, rope
+  gCtx.beginPath(); gCtx.moveTo(w*0.1,h*0.92); gCtx.lineTo(w*0.55,h*0.92); gCtx.stroke();
+  gCtx.beginPath(); gCtx.moveTo(w*0.22,h*0.92); gCtx.lineTo(w*0.22,h*0.08); gCtx.stroke();
+  gCtx.beginPath(); gCtx.moveTo(w*0.22,h*0.08); gCtx.lineTo(w*0.52,h*0.08); gCtx.stroke();
+  gCtx.beginPath(); gCtx.moveTo(w*0.52,h*0.08); gCtx.lineTo(w*0.52,h*0.18); gCtx.stroke();
+
+  const cx=w*0.52, headR=h*0.08;
+  const torsoY1=h*0.26+headR, torsoY2=h*0.55;
+
+  if (useDefaultPerson){
+    // default stick figure drawn part by part
+    const shown = wrongGuesses;
+    if(shown>=1){gCtx.strokeStyle='#FFD53E';gCtx.lineWidth=3;gCtx.beginPath();gCtx.arc(cx,h*0.26,headR,0,Math.PI*2);gCtx.stroke();}
+    if(shown>=2){gCtx.beginPath();gCtx.moveTo(cx,torsoY1);gCtx.lineTo(cx,torsoY2);gCtx.stroke();}
+    if(shown>=3){gCtx.beginPath();gCtx.moveTo(cx,torsoY1+h*0.05);gCtx.lineTo(cx-w*0.1,torsoY1+h*0.15);gCtx.stroke();}
+    if(shown>=4){gCtx.beginPath();gCtx.moveTo(cx,torsoY1+h*0.05);gCtx.lineTo(cx+w*0.1,torsoY1+h*0.15);gCtx.stroke();}
+    if(shown>=5){gCtx.beginPath();gCtx.moveTo(cx-w*0.1,torsoY1+h*0.15);gCtx.lineTo(cx-w*0.12,torsoY1+h*0.25);gCtx.stroke();}
+    if(shown>=6){gCtx.beginPath();gCtx.moveTo(cx+w*0.1,torsoY1+h*0.15);gCtx.lineTo(cx+w*0.12,torsoY1+h*0.25);gCtx.stroke();}
+    if(shown>=7){gCtx.beginPath();gCtx.moveTo(cx,torsoY2);gCtx.lineTo(cx-w*0.1,torsoY2+h*0.18);gCtx.stroke();}
+    if(shown>=8){gCtx.beginPath();gCtx.moveTo(cx,torsoY2);gCtx.lineTo(cx+w*0.1,torsoY2+h*0.18);gCtx.stroke();}
+    if(shown>=9){gCtx.beginPath();gCtx.moveTo(cx-w*0.1,torsoY2+h*0.18);gCtx.lineTo(cx-w*0.08,torsoY2+h*0.26);gCtx.stroke();}
+    if(shown>=10){gCtx.beginPath();gCtx.moveTo(cx+w*0.1,torsoY2+h*0.18);gCtx.lineTo(cx+w*0.08,torsoY2+h*0.26);gCtx.stroke();}
+  } else {
+    // composite of drawn part canvases
+    const partW=w*0.35, partH=h*0.75;
+    const offX=cx-partW/2, offY=h*0.14;
+    for(let i=0;i<wrongGuesses;i++){
+      const pc=partCanvases[PARTS[i]];
+      if(pc) gCtx.drawImage(pc,offX,offY,partW,partH);
+    }
+  }
+}
+
+function renderGame(){
+  drawGallows();
+  // word display
+  const wd = document.getElementById('play-word-display');
+  wd.innerHTML='';
+  [...secretWord].forEach(ch=>{
+    const box=document.createElement('div');
+    box.style.cssText='width:36px;height:44px;border-bottom:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:#FFD53E;';
+    box.textContent = guessedLetters.has(ch) ? ch : '';
+    wd.appendChild(box);
+  });
+  // wrong count
+  document.getElementById('play-wrong-label').textContent=`Wrong: ${wrongGuesses}/${MAX_WRONG}`;
+  // guessed letters
+  document.getElementById('play-guessed').textContent = guessedLetters.size ? 'Tried: '+[...guessedLetters].join(' ') : '';
+  // keyboard state
+  document.querySelectorAll('.key-btn').forEach(btn=>{
+    const l=btn.dataset.letter;
+    const used=guessedLetters.has(l);
+    const correct=used&&secretWord.includes(l);
+    btn.disabled=used;
+    btn.style.background=used?(correct?'#2ecc71':'#c0392b'):'rgba(255,255,255,0.12)';
+    btn.style.opacity=used?'0.5':'1';
+  });
+}
+
+function buildKeyboard(){
+  const kb=document.getElementById('play-keyboard');
+  kb.innerHTML='';
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l=>{
+    const btn=document.createElement('button');
+    btn.className='key-btn';
+    btn.dataset.letter=l;
+    btn.textContent=l;
+    btn.style.cssText='width:36px;height:36px;border-radius:8px;border:2px solid #fff3;color:#fff;font-weight:700;font-size:0.95rem;cursor:pointer;';
+    btn.addEventListener('click',()=>guessLetter(l));
+    kb.appendChild(btn);
+  });
+  // also handle physical keyboard
+  document.onkeydown = e=>{
+    const l=e.key.toUpperCase();
+    if(/^[A-Z]$/.test(l)&&!guessedLetters.has(l)) guessLetter(l);
+  };
+}
+
+function guessLetter(l){
+  guessedLetters.add(l);
+  if(!secretWord.includes(l)) wrongGuesses++;
+  renderGame();
+  const won=[...secretWord].every(c=>guessedLetters.has(c));
+  const lost=wrongGuesses>=MAX_WRONG;
+  if(won||lost) setTimeout(()=>endGame(won),600);
+}
+
 function startDrawing(){
   useDefaultPerson = false;
   currentPartIdx = 0;
