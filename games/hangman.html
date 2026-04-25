@@ -97,23 +97,26 @@ h2{color:#5a3200;font-size:1.4rem;margin-bottom:12px;}
   <p id="word-err" style="color:#c0392b;font-size:0.9rem;display:none;">Please enter at least 2 letters.</p>
 </div>
 <!-- PLAY SCREEN -->
-<div id="screen-play" class="screen" style="flex-direction:column;padding:8px;gap:8px;position:relative;">
+<div id="screen-play" class="screen" style="flex-direction:column;padding:8px;gap:8px;">
   <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:480px;">
     <span id="play-wrong-label" style="color:#c0392b;font-weight:700;font-size:1rem;"></span>
     <span style="color:#6b5740;font-size:0.85rem;">Guess the word!</span>
   </div>
   <canvas id="gallows-canvas" style="border-radius:12px;border:2px solid #d4b896;max-width:480px;width:100%;"></canvas>
-  <div id="play-word-display" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;"></div>
-  <div id="play-guessed" style="color:#6b5740;font-size:0.85rem;min-height:20px;"></div>
-  <div id="play-keyboard" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:520px;width:100%;"></div>
-  <!-- result overlay -->
-  <div id="result-overlay" style="display:none;position:absolute;inset:0;background:rgba(245,232,208,0.92);flex-direction:column;align-items:center;justify-content:center;gap:14px;border-radius:8px;">
-    <div id="result-emoji" style="font-size:5rem;"></div>
-    <h1 id="result-title" style="font-size:2.4rem;"></h1>
-    <p id="result-word" style="color:#6b5740;font-size:1.1rem;"></p>
-    <button class="big-btn green" id="btn-play-again">▶ Play Again</button>
-    <button class="big-btn" id="btn-new-drawing">✏️ New Drawing + New Word</button>
-    <button class="big-btn red" id="btn-main-menu" onclick="show('screen-intro')">🏠 Main Menu</button>
+  <!-- word/keyboard section — overlay lives here so canvas stays visible -->
+  <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;max-width:520px;">
+    <div id="play-word-display" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;"></div>
+    <div id="play-guessed" style="color:#6b5740;font-size:0.85rem;min-height:20px;"></div>
+    <div id="play-keyboard" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:520px;width:100%;"></div>
+    <!-- result overlay (only covers word+keyboard, not the canvas above) -->
+    <div id="result-overlay" style="display:none;position:absolute;inset:0;background:rgba(245,232,208,0.96);flex-direction:column;align-items:center;justify-content:center;gap:10px;border-radius:8px;padding:12px;">
+      <div id="result-emoji" style="font-size:3.5rem;"></div>
+      <h1 id="result-title" style="font-size:1.9rem;"></h1>
+      <p id="result-word" style="color:#6b5740;font-size:1rem;"></p>
+      <button class="big-btn green" id="btn-play-again">▶ Play Again</button>
+      <button class="big-btn" id="btn-new-drawing">✏️ New Drawing + New Word</button>
+      <button class="big-btn red" id="btn-main-menu" onclick="show('screen-intro')">🏠 Main Menu</button>
+    </div>
   </div>
 </div>
 
