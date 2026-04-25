@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Rainbow Draw</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #FFF6E4;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      touch-action: none;
+    }
+
+    #draw-canvas {
+      display: block;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      cursor: crosshair;
+    }
+
+    /* ── Top bar ── */
+    #top-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    #top-bar a, #top-bar button {
+      pointer-events: all;
+    }
+
+    #home-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #ccc;
+      font-size: 0.85rem;
+      letter-spacing: 2px;
+      padding: 7px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+    #home-btn:hover { background: rgba(255,255,255,0.16); color: #fff; }
+
+    #app-title {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: transparent;
+      background: linear-gradient(90deg, #ff3333, #ff9900, #ffee00, #33dd55, #3399ff, #cc33ff, #ff3333);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      animation: titleShift 4s linear infinite;
+    }
+    @keyframes titleShift {
+      from { background-position: 0% center; }
+      to   { background-position: 200% center; }
+    }
+
+    /* brush-size indicator — small dot showing current size */
+    #brush-indicator {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #brush-dot {
+      border-radius: 50%;
+      background: #fff;
+      transition: width 0.15s, height 0.15s;
+    }
+
+    /* ── Bottom toolbar ── */
+    #bottom-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      padding: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      z-index: 10;
+    }
+
+    /* ── Color swatch row ── */
+    #color-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 18px 6px;
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    #color-row::-webkit-scrollbar { display: none; }
+
+    .color-btn {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(255,255,255,0.18);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color 0.15s, transform 0.12s;
+      padding: 0;
+      position: relative;
+    }
+    .color-btn:hover  { transform: scale(1.15); }
+    .color-btn.active {
+      border-color: #fff;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.35);
+      transform: scale(1.18);
+    }
+
+    #color-rainbow {
+      background: conic-gradient(
+        hsl(0,100%,58%), hsl(45,100%,58%), hsl(90,100%,50%),
+        hsl(140,100%,47%), hsl(185,100%,50%), hsl(220,100%,62%),
+        hsl(270,100%,65%), hsl(315,100%,60%), hsl(360,100%,58%)
+      );
+    }
+
+    #color-eraser {
+      font-size: 0.9rem;
+      line-height: 1;
+      color: #ccc;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+    }
+    #color-eraser.active {
+      border-color: #fff;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.35);
+    }
+
+    /* Size + clear row */
+    #size-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 6px 24px 12px;
+    }
+
+    /* Brush-size buttons */
+    .size-btn {
+      border: 2px solid rgba(255,255,255,0.25);
+      border-radius: 50%;
+      background: rgba(255,255,255,0.07);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s, background 0.15s;
+      flex-shrink: 0;
+    }
+    .size-btn:active  { background: rgba(255,255,255,0.20); }
+    .size-btn.active  { border-color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.15); }
+    .size-btn .dot    { background: #fff; border-radius: 50%; pointer-events: none; }
+
+    #btn-sm  { width: 44px; height: 44px; }
+    #btn-md  { width: 52px; height: 52px; }
+    #btn-lg  { width: 60px; height: 60px; }
+    #btn-sm  .dot { width: 6px;  height: 6px;  }
+    #btn-md  .dot { width: 12px; height: 12px; }
+    #btn-lg  .dot { width: 20px; height: 20px; }
+
+    /* Big trash-can clear button */
+    #clear-btn {
+      width: 68px; height: 68px;
+      border-radius: 18px;
+      border: 2px solid rgba(255, 80, 80, 0.55);
+      background: rgba(200, 40, 40, 0.18);
+      cursor: pointer;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 4px;
+      transition: background 0.2s, border-color 0.2s, transform 0.12s;
+      flex-shrink: 0;
+    }
+    #clear-btn:active {
+      background: rgba(255, 60, 60, 0.40);
+      transform: scale(0.93);
+    }
+
+    .trash-icon {
+      pointer-events: none;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .trash-lid {
+      width: 26px; height: 5px;
+      background: #ff5555;
+      border-radius: 3px 3px 0 0;
+      position: relative;
+    }
+    .trash-lid::before {
+      content: '';
+      position: absolute;
+      top: -6px; left: 50%; transform: translateX(-50%);
+      width: 12px; height: 6px;
+      background: #ff5555;
+      border-radius: 3px 3px 0 0;
+    }
+    .trash-body {
+      width: 22px; height: 26px;
+      background: #ff5555;
+      border-radius: 2px 2px 5px 5px;
+      position: relative;
+      overflow: hidden;
+    }
+    .trash-body::before,
+    .trash-body::after {
+      content: '';
+      position: absolute;
+      top: 4px; bottom: 4px;
+      width: 2px;
+      background: rgba(0,0,0,0.30);
+      border-radius: 2px;
+    }
+    .trash-body::before { left: 6px; }
+    .trash-body::after  { right: 6px; }
+    .trash-label {
+      font-size: 0.6rem;
+      letter-spacing: 1px;
+      color: #ff8888;
+      font-weight: 700;
+    }
+  </style>
+  <script>
+    // Block pinch-zoom, double-tap zoom, gesture zoom, ctrl+scroll zoom
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    (function() {
+      var lt = 0;
+      document.addEventListener('touchend', function(e) {
+        var now = Date.now();
+        if (now - lt < 300) e.preventDefault();
+        lt = now;
+      }, false);
+    })();
+    document.addEventListener('gesturestart',  function(e) { e.preventDefault(); }, false);
+    document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, false);
+    window.addEventListener('wheel', function(e) {
+      if (e.ctrlKey) e.preventDefault();
+    }, { passive: false });
+  </script>
+</head>
+<body>
+
+  <canvas id="draw-canvas"></canvas>
+
+  <div id="top-bar">
+    <a href="../index.html" id="home-btn">&#8592; HOME</a>
+    <div id="app-title">RAINBOW DRAW</div>
+    <div id="brush-indicator">
+      <div id="brush-dot" style="width:8px;height:8px;"></div>
+    </div>
+  </div>
+
+  <div id="bottom-bar">
+    <div id="color-row">
+      <button class="color-btn active" id="color-rainbow"  aria-label="Rainbow"                                          ></button>
+      <button class="color-btn" id="color-red"     aria-label="Red"    style="background:hsl(0,100%,58%)"               ></button>
+      <button class="color-btn" id="color-orange"  aria-label="Orange" style="background:hsl(25,100%,58%)"              ></button>
+      <button class="color-btn" id="color-yellow"  aria-label="Yellow" style="background:hsl(52,100%,55%)"              ></button>
+      <button class="color-btn" id="color-lime"    aria-label="Lime"   style="background:hsl(95,100%,50%)"              ></button>
+      <button class="color-btn" id="color-green"   aria-label="Green"  style="background:hsl(140,100%,45%)"             ></button>
+      <button class="color-btn" id="color-cyan"    aria-label="Cyan"   style="background:hsl(185,100%,50%)"             ></button>
+      <button class="color-btn" id="color-blue"    aria-label="Blue"   style="background:hsl(220,100%,62%)"             ></button>
+      <button class="color-btn" id="color-purple"  aria-label="Purple" style="background:hsl(270,100%,65%)"             ></button>
+      <button class="color-btn" id="color-pink"    aria-label="Pink"   style="background:hsl(315,100%,60%)"             ></button>
+      <button class="color-btn" id="color-white"   aria-label="White"  style="background:#fff"                          ></button>
+      <button class="color-btn" id="color-eraser"  aria-label="Eraser" style="background:#111;border-color:rgba(255,255,255,0.4)" title="Eraser">&#9003;</button>
+    </div>
+
+    <div id="size-row">
+      <button class="size-btn" id="btn-sm"  aria-label="Small brush" ><div class="dot"></div></button>
+      <button class="size-btn active" id="btn-md" aria-label="Medium brush"><div class="dot"></div></button>
+      <button class="size-btn" id="btn-lg"  aria-label="Large brush" ><div class="dot"></div></button>
+
+      <button id="clear-btn" aria-label="Clear canvas">
+        <div class="trash-icon">
+          <div class="trash-lid"></div>
+          <div class="trash-body"></div>
+        </div>
+        <div class="trash-label">CLEAR</div>
+      </button>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    const canvas  = document.getElementById('draw-canvas');
+    const ctx     = canvas.getContext('2d');
+    const brushDot = document.getElementById('brush-dot');
+
+    // ── Audio ─────────────────────────────────────────────────────────────
+    let _ac=null;
+    function getAC(){ if(!_ac) _ac=new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+    let lastTone=0;
+    function playDrawTone(hueVal){
+      const now=Date.now(); if(now-lastTone<80) return; lastTone=now;
+      try{
+        const a=getAC(), t=a.currentTime;
+        const freq=300+((hueVal||180)/360)*600;
+        const o=a.createOscillator(), g=a.createGain();
+        o.type='sine'; o.connect(g); g.connect(a.destination);
+        o.frequency.setValueAtTime(freq,t);
+        g.gain.setValueAtTime(0.08,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.08);
+        o.start(t); o.stop(t+0.08);
+      }catch(e){}
+    }
+    function playClearSound(){
+      try{
+        const a=getAC(), t=a.currentTime;
+        const o=a.createOscillator(), g=a.createGain();
+        o.type='sawtooth'; o.connect(g); g.connect(a.destination);
+        o.frequency.setValueAtTime(400,t); o.frequency.exponentialRampToValueAtTime(80,t+0.3);
+        g.gain.setValueAtTime(0.15,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.32);
+        o.start(t); o.stop(t+0.32);
+      }catch(e){}
+    }
+
+    // ── Sizing ────────────────────────────────────────────────────────────
+    const TOP_BAR    = 52;
+    const BOTTOM_BAR = 88;
+    const BRUSH_SIZES = { sm: 4, md: 10, lg: 22 };
+    let brushRadius   = BRUSH_SIZES.md;
+
+    function resize() {
+      // Preserve drawing: copy to temp, resize, restore
+      const tmp = document.createElement('canvas');
+      tmp.width  = canvas.width;
+      tmp.height = canvas.height;
+      tmp.getContext('2d').drawImage(canvas, 0, 0);
+
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+      fillBackground();
+      ctx.drawImage(tmp, 0, 0);
+    }
+
+    function fillBackground() {
+      ctx.fillStyle = '#111';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+
+    // ── Color mode state ──────────────────────────────────────────────────
+    // colorMode: 'rainbow' | 'eraser' | an HSL string
+    let colorMode = 'rainbow';
+    let hue = 0;
+
+    function nextColor() {
+      if (colorMode === 'rainbow') {
+        hue = (hue + 1.2) % 360;
+        return `hsl(${hue}, 100%, 58%)`;
+      }
+      return colorMode; // solid or eraser handled separately
+    }
+
+    function updateBrushDot() {
+      if (colorMode === 'rainbow') {
+        brushDot.style.background = `hsl(${hue}, 100%, 58%)`;
+      } else if (colorMode === 'eraser') {
+        brushDot.style.background = '#555';
+      } else {
+        brushDot.style.background = colorMode;
+      }
+    }
+
+    // ── Color swatch buttons ──────────────────────────────────────────────
+    const COLOR_MAP = {
+      'color-rainbow': 'rainbow',
+      'color-red':     'hsl(0,100%,58%)',
+      'color-orange':  'hsl(25,100%,58%)',
+      'color-yellow':  'hsl(52,100%,55%)',
+      'color-lime':    'hsl(95,100%,50%)',
+      'color-green':   'hsl(140,100%,45%)',
+      'color-cyan':    'hsl(185,100%,50%)',
+      'color-blue':    'hsl(220,100%,62%)',
+      'color-purple':  'hsl(270,100%,65%)',
+      'color-pink':    'hsl(315,100%,60%)',
+      'color-white':   'hsl(0,0%,100%)',
+      'color-eraser':  'eraser',
+    };
+
+    Object.keys(COLOR_MAP).forEach(id => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        colorMode = COLOR_MAP[id];
+        updateBrushDot();
+      });
+    });
+
+    // ── Drawing state ─────────────────────────────────────────────────────
+    let drawing = false;
+    let lastX = 0, lastY = 0;
+
+    // bottom bar height is dynamic now — read it at draw time
+    function bottomBarH() {
+      return document.getElementById('bottom-bar').offsetHeight;
+    }
+
+    function startDraw(x, y) {
+      drawing = true;
+      lastX = x;
+      lastY = y;
+    }
+
+    function draw(x, y) {
+      if (!drawing) return;
+      if (y < TOP_BAR || y > canvas.height - bottomBarH()) {
+        lastX = x; lastY = y;
+        return;
+      }
+
+      ctx.save();
+      ctx.lineCap   = 'round';
+      ctx.lineJoin  = 'round';
+      ctx.lineWidth = brushRadius * 2;
+
+      if (colorMode === 'eraser') {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.strokeStyle = 'rgba(0,0,0,1)';
+        ctx.shadowBlur  = 0;
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = nextColor();
+        ctx.shadowBlur  = brushRadius * 1.8;
+        ctx.shadowColor = ctx.strokeStyle;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.restore();
+
+      if (colorMode === 'rainbow') { updateBrushDot(); playDrawTone(hue); }
+      else if (colorMode !== 'eraser') playDrawTone(null);
+      lastX = x;
+      lastY = y;
+    }
+
+    function endDraw() { drawing = false; }
+
+    // ── Mouse events ──────────────────────────────────────────────────────
+    canvas.addEventListener('mousedown', e => startDraw(e.clientX, e.clientY));
+    canvas.addEventListener('mousemove', e => draw(e.clientX, e.clientY));
+    canvas.addEventListener('mouseup',   endDraw);
+    canvas.addEventListener('mouseleave', endDraw);
+
+    // ── Touch events ──────────────────────────────────────────────────────
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const t = e.changedTouches[0];
+      startDraw(t.clientX, t.clientY);
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const t = e.changedTouches[0];
+      draw(t.clientX, t.clientY);
+    }, { passive: false });
+
+    canvas.addEventListener('touchend',   e => { e.preventDefault(); endDraw(); }, { passive: false });
+    canvas.addEventListener('touchcancel',e => { e.preventDefault(); endDraw(); }, { passive: false });
+
+    // ── Clear button ──────────────────────────────────────────────────────
+    document.getElementById('clear-btn').addEventListener('click', () => {
+      playClearSound();
+      fillBackground();
+    });
+
+    // ── Brush-size buttons ────────────────────────────────────────────────
+    const sizeMap = {
+      'btn-sm': BRUSH_SIZES.sm,
+      'btn-md': BRUSH_SIZES.md,
+      'btn-lg': BRUSH_SIZES.lg,
+    };
+
+    Object.keys(sizeMap).forEach(id => {
+      document.getElementById(id).addEventListener('click', () => {
+        document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        brushRadius = sizeMap[id];
+        const px = brushRadius * 2;
+        brushDot.style.width  = px + 'px';
+        brushDot.style.height = px + 'px';
+      });
+    });
+
+    // init brush-dot size
+    brushDot.style.width  = (brushRadius * 2) + 'px';
+    brushDot.style.height = (brushRadius * 2) + 'px';
+  })();
+  </script>
+
+</body>
+</html>

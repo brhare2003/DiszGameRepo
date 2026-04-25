@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Fish Friends</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #001428; touch-action: none;
+      user-select: none; -webkit-user-select: none;
+      overscroll-behavior: none;
+    }
+    #home-btn {
+      position: fixed; top: 12px; left: 12px; z-index: 500;
+      color: #2B2140; text-decoration: none; font-size: 0.88rem; font-weight: 700;
+      background: rgba(255,246,228,0.92); border: 2px solid #2B2140;
+      padding: 6px 14px; border-radius: 20px; letter-spacing: 1px;
+    }
+    .screen {
+      position: fixed; inset: 0;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .screen.active { display: flex; }
+
+    /* ── Screen 1 ── */
+    #s-select {
+      background: radial-gradient(ellipse at 50% 60%, #002a4a 0%, #000c1a 100%);
+    }
+    #s-select h2 {
+      font-family: 'Segoe UI', sans-serif;
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      color: #7EEDF4; letter-spacing: 3px; margin-bottom: 16px;
+      text-shadow: 0 0 20px rgba(126,237,244,0.5);
+    }
+    canvas { display: block; touch-action: none; }
+
+    /* ── Icon buttons ── */
+    .icon-btn {
+      width: 68px; height: 68px; border-radius: 50%; border: none;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 1.9rem; box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      transition: transform 0.1s; touch-action: manipulation;
+    }
+    .icon-btn:active { transform: scale(0.88); }
+    .icon-btn.go   { background: #22cc66; }
+    .icon-btn.nav  { background: rgba(255,255,255,0.15); color: #fff; font-size: 2rem; }
+    .btn-row { display: flex; gap: 28px; align-items: center; margin-top: 22px; }
+
+    /* ── Screen 2 ── */
+    #s-paint { background: radial-gradient(ellipse at 50% 60%, #002a4a 0%, #000c1a 100%); }
+    #palette {
+      display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+      max-width: 360px; margin-top: 14px;
+    }
+    .pal-btn {
+      width: 44px; height: 44px; border-radius: 50%; border: 3px solid transparent;
+      cursor: pointer; touch-action: manipulation; transition: transform 0.1s;
+    }
+    .pal-btn.active { border-color: #fff; transform: scale(1.18); }
+    .pal-btn:active { transform: scale(0.88); }
+    .swatch-row {
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+      align-items: center; max-width: 360px; margin-top: 10px;
+    }
+    .swatch-label { color: rgba(126,237,244,0.65); font-size: 0.72rem; letter-spacing: 0.08em; margin-right: 2px; }
+    .swatch-btn {
+      width: 28px; height: 28px; border-radius: 50%; border: 3px solid transparent;
+      cursor: pointer; touch-action: manipulation; transition: transform 0.1s;
+    }
+    .swatch-btn.active { border-color: #fff; transform: scale(1.18); }
+    .swatch-btn:active { transform: scale(0.88); }
+
+    /* ── Screen 3 ── */
+    #s-tank { background: #001428; }
+    #cv-tank { display: block; touch-action: none; }
+    #deco-bar {
+      position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 10px; align-items: center;
+      background: rgba(0,20,40,0.75); border-radius: 30px; padding: 8px 14px;
+      z-index: 100;
+    }
+    .deco-pick {
+      width: 48px; height: 48px; border-radius: 50%; border: 2px solid rgba(126,237,244,0.4);
+      background: rgba(0,40,80,0.7); font-size: 1.6rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      touch-action: manipulation; transition: transform 0.1s;
+    }
+    .deco-pick.selected { border-color: #7EEDF4; transform: scale(1.15); }
+    .deco-pick:active { transform: scale(0.88); }
+    .bar-divider { width: 1px; height: 36px; background: rgba(126,237,244,0.25); flex-shrink: 0; }
+    #deco-bar { overflow-x: auto; max-width: 100vw; scrollbar-width: none; }
+    #deco-bar::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body>
+<a href="../index.html" id="home-btn">&#8592; Home</a>
+
+<!-- SCREEN 1: PICK YOUR FISH -->
+<div class="screen active" id="s-select">
+  <h2>🐠 PICK YOUR FISH!</h2>
+  <canvas id="cv-sel"></canvas>
+  <div class="btn-row">
+    <button class="icon-btn nav" id="btn-prev">&#9664;</button>
+    <button class="icon-btn go"  id="btn-go1">&#10003;</button>
+    <button class="icon-btn nav" id="btn-next">&#9654;</button>
+  </div>
+</div>
+
+<!-- SCREEN 2: PAINT -->
+<div class="screen" id="s-paint">
+  <canvas id="cv-paint"></canvas>
+  <div id="palette"></div>
+  <div class="btn-row">
+    <button class="icon-btn nav" id="btn-back2">&#8592;</button>
+    <button class="icon-btn go"  id="btn-go2">&#10003;</button>
+  </div>
+</div>
+<!-- SCREEN 3: AQUARIUM -->
+<div class="screen" id="s-tank">
+  <canvas id="cv-tank"></canvas>
+  <div id="deco-bar">
+    <button class="deco-pick" data-tool="food" id="tool-food" title="Drop food"><svg width="22" height="20" viewBox="0 0 22 20" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="9" r="3.4" fill="#E8A030"/><circle cx="15" cy="7.5" r="2.8" fill="#C87820"/><circle cx="12" cy="15" r="3.1" fill="#D49428"/></svg></button>
+    <button class="deco-pick" data-tool="poke"   id="tool-poke"   title="Poke fish">&#128070;</button>
+    <span class="bar-divider"></span>
+    <button class="deco-pick" data-deco="kelp" title="Kelp"><svg width="20" height="22" viewBox="0 0 20 22" xmlns="http://www.w3.org/2000/svg"><path d="M10,21 C6,18 14,14 10,10 C6,6 14,3 10,1" stroke="#28A040" stroke-width="2.5" fill="none" stroke-linecap="round"/><ellipse cx="7" cy="11" rx="4" ry="1.8" fill="#28A040" transform="rotate(-35,7,11)"/><ellipse cx="13" cy="6.5" rx="4" ry="1.8" fill="#3CB855" transform="rotate(35,13,6.5)"/></svg></button>
+    <button class="deco-pick" data-deco="sand" title="Sand"><svg width="22" height="18" viewBox="0 0 22 18" xmlns="http://www.w3.org/2000/svg"><circle cx="3.5" cy="14" r="2.6" fill="#F0C040"/><circle cx="11" cy="14" r="2.6" fill="#E0A820"/><circle cx="18.5" cy="14" r="2.6" fill="#F0C040"/><circle cx="7" cy="8.5" r="2.1" fill="#E0A820"/><circle cx="15" cy="8.5" r="2.1" fill="#F0C040"/><circle cx="11" cy="3.5" r="1.9" fill="#D09818"/></svg></button>
+    <button class="deco-pick" data-deco="shell"   title="Shell">🐚</button>
+    <button class="deco-pick" data-deco="rock"    title="Rock">🪨</button>
+    <button class="deco-pick" data-deco="star"    title="Star">&#11088;</button>
+    <button class="deco-pick" data-deco="egg" title="Egg"><svg width="16" height="20" viewBox="0 0 16 20" xmlns="http://www.w3.org/2000/svg"><ellipse cx="8" cy="11.5" rx="6.5" ry="8.2" fill="rgba(255,252,230,0.95)" stroke="rgba(200,170,90,0.75)" stroke-width="1.5"/><ellipse cx="5.5" cy="8" rx="1.8" ry="2.8" fill="rgba(255,255,255,0.55)" transform="rotate(-15,5.5,8)"/></svg></button>
+    <span class="bar-divider"></span>
+    <button class="deco-pick" id="btn-add-fish"  title="New fish">&#43;</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ── Audio ────────────────────────────────────────────────────────────────
+  let _ac = null;
+  function ac() { if (!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+  function beep(f, d, t2) {
+    try {
+      const a = ac(), t = a.currentTime;
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = t2||'sine'; o.connect(g); g.connect(a.destination);
+      o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t+d);
+      o.start(t); o.stop(t+d);
+    } catch(e) {}
+  }
+  function playPop()   { beep(700, 0.1); }
+  function playChime() { [523,659,784].forEach((f,i) => setTimeout(() => beep(f,0.18), i*80)); }
+  function playPlop()  { beep(180, 0.18, 'sine'); setTimeout(() => beep(120, 0.12, 'sine'), 40); }
+  function playHatch() { [400,600,900,1300].forEach((f,i) => setTimeout(() => beep(f,0.12,'sine'), i*60)); }
+  function playGrow()  { [523,659,784,1047].forEach((f,i) => setTimeout(() => beep(f,0.14,'triangle'), i*70)); }
+
+  // ── Fish images ───────────────────────────────────────────────────────────
+  const FISH_NAMES = ['Danio','Guppy','Angelfish','Betta','Tetra','Nano Danio','Spotted','Goldfish','Discus','Clownfish'];
+  const FISH_FILES = ['fish_01_danio','fish_02_guppy','fish_03_angelfish','fish_04_betta','fish_05_tetra',
+                      'fish_06_danio2','fish_07_spotted','fish_08_goldfish','fish_09_discus','fish_10_clownfish'];
+  const FISH_IMAGES = FISH_FILES.map((f, i) => {
+    const img = new Image();
+    img.src = `Images/${f}.png`;
+    img.onload = () => { if (i === fishType && cvSel.width > 0) drawSelect(); };
+    return img;
+  });
+  const FISH_MASKS = FISH_FILES.map(f => {
+    const img = new Image();
+    img.src = `Images/${f}_mask.png`;
+    return img;
+  });
+  function imgReady(i) { const m = FISH_IMAGES[i]; return m && m.complete && m.naturalWidth > 0; }
+
+
+  // ── Shared state ──────────────────────────────────────────────────────────
+  let fishType = 0;
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ── Screen 1: Select ─────────────────────────────────────────────────────
+  const cvSel  = document.getElementById('cv-sel');
+  const ctxSel = cvSel.getContext('2d');
+
+  function resizeSel() {
+    const sz = Math.min(window.innerWidth * 0.86, window.innerHeight * 0.52, 360);
+    cvSel.width = sz; cvSel.height = Math.round(sz * 0.68);
+    drawSelect();
+  }
+
+  function drawSelect() {
+    const W = cvSel.width, H = cvSel.height;
+    ctxSel.clearRect(0, 0, W, H);
+
+    const grd = ctxSel.createRadialGradient(W/2, H/2, 10, W/2, H/2, W * 0.6);
+    grd.addColorStop(0, 'rgba(100,220,255,0.18)');
+    grd.addColorStop(1, 'rgba(100,220,255,0)');
+    ctxSel.fillStyle = grd; ctxSel.fillRect(0, 0, W, H);
+
+    if (imgReady(fishType)) {
+      const img = FISH_IMAGES[fishType];
+      const maxW = W * 0.84, maxH = (H - 30) * 0.88;
+      const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
+      const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
+      const dx = (W - dw) / 2, dy = (H - 30 - dh) / 2;
+      ctxSel.save();
+      // draw fish lines as solid cyan so they show on the dark background
+      ctxSel.drawImage(img, dx, dy, dw, dh);
+      ctxSel.globalCompositeOperation = 'source-atop';
+      ctxSel.fillStyle = '#7EEDF4';
+      ctxSel.fillRect(dx, dy, dw, dh);
+      ctxSel.restore();
+    }
+
+    // Fish name
+    ctxSel.fillStyle = '#7EEDF4';
+    ctxSel.font = `bold ${Math.round(H * 0.075)}px 'Segoe UI',sans-serif`;
+    ctxSel.textAlign = 'center';
+    ctxSel.fillText(FISH_NAMES[fishType].toUpperCase(), W / 2, H - 16);
+
+    // Pagination dots (10 fish)
+    const n = FISH_IMAGES.length;
+    for (let i = 0; i < n; i++) {
+      ctxSel.beginPath();
+      ctxSel.arc(W / 2 + (i - (n - 1) / 2) * 16, H - 6, i === fishType ? 5 : 3.5, 0, Math.PI * 2);
+      ctxSel.fillStyle = i === fishType ? '#7EEDF4' : 'rgba(126,237,244,0.3)';
+      ctxSel.fill();
+    }
+  }
+
+
+  document.getElementById('btn-prev').addEventListener('click', () => {
+    fishType = (fishType - 1 + FISH_IMAGES.length) % FISH_IMAGES.length;
+    playPop(); drawSelect();
+  });
+  document.getElementById('btn-next').addEventListener('click', () => {
+    fishType = (fishType + 1) % FISH_IMAGES.length;
+    playPop(); drawSelect();
+  });
+  document.getElementById('btn-go1').addEventListener('click', () => {
+    playChime();
+    window._ff.showScreen('s-paint'); // use wrapped version so Screen 2 clears off-canvas
+  });
+
+  // Swipe on canvas
+  let swipeX = null;
+  cvSel.addEventListener('touchstart', e => { swipeX = e.touches[0].clientX; }, {passive:true});
+  cvSel.addEventListener('touchend', e => {
+    if (swipeX === null) return;
+    const dx = e.changedTouches[0].clientX - swipeX;
+    if (Math.abs(dx) > 38) {
+      fishType = dx < 0
+        ? (fishType+1) % FISH_IMAGES.length
+        : (fishType-1+FISH_IMAGES.length) % FISH_IMAGES.length;
+      playPop(); drawSelect();
+    }
+    swipeX = null;
+  }, {passive:true});
+
+  window.addEventListener('resize', resizeSel);
+  resizeSel();
+
+  // expose for later screens
+  window._ff = { FISH_IMAGES, FISH_MASKS, FISH_NAMES, ac, beep, playPop, playChime, playPlop, playHatch, playGrow, fishType: () => fishType, showScreen, savedFish: [] };
+})();
+
+// ── Screen 2: Paint ──────────────────────────────────────────────────────────
+(function () {
+  const PALETTE = [
+    '#FF4D4D','#FF9A3C','#FFE24D','#7ED957','#4DC8FF',
+    '#A04DFF','#FF79C6','#FFFFFF','#8B4513','#3333AA'
+  ];
+  let paintColor = PALETTE[0];
+
+  const cvP  = document.getElementById('cv-paint');
+  const ctxP = cvP.getContext('2d');
+  const off  = document.createElement('canvas');
+  const offC = off.getContext('2d');
+
+  function resizePaint() {
+    const sz = Math.min(window.innerWidth * 0.94, window.innerHeight * 0.60, 480);
+    cvP.width  = sz; cvP.height = Math.round(sz * 0.88);
+    off.width  = cvP.width; off.height = cvP.height;
+    renderPaint();
+  }
+
+  // persistent temp canvas for mask-clipping paint
+  const paintTmp = document.createElement('canvas');
+  const paintTmpC = paintTmp.getContext('2d');
+
+  function renderPaint() {
+    const W = cvP.width, H = cvP.height;
+    const ff = window._ff;
+    const idx = ff.fishType();
+    ctxP.clearRect(0, 0, W, H);
+
+    // Scale helpers (same position for mask and line-art image)
+    function imgScale(img) {
+      return Math.min(W * 0.96 / img.naturalWidth, H * 0.96 / img.naturalHeight);
+    }
+
+    // Draw paint strokes clipped to the fish fill-mask
+    const mask = ff.FISH_MASKS && ff.FISH_MASKS[idx];
+    if (mask && mask.complete && mask.naturalWidth) {
+      paintTmp.width = W; paintTmp.height = H;
+      paintTmpC.clearRect(0, 0, W, H);
+      paintTmpC.drawImage(off, 0, 0);
+      const ms = imgScale(mask);
+      const mw = mask.naturalWidth * ms, mh = mask.naturalHeight * ms;
+      paintTmpC.globalCompositeOperation = 'destination-in';
+      paintTmpC.drawImage(mask, (W - mw) / 2, (H - mh) / 2, mw, mh);
+      paintTmpC.globalCompositeOperation = 'source-over';
+      ctxP.drawImage(paintTmp, 0, 0);
+    } else {
+      ctxP.drawImage(off, 0, 0);
+    }
+
+    // Overlay fish line-art on top
+    const img = ff.FISH_IMAGES && ff.FISH_IMAGES[idx];
+    if (img && img.complete && img.naturalWidth) {
+      const s = imgScale(img);
+      const dw = img.naturalWidth * s, dh = img.naturalHeight * s;
+      ctxP.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    }
+  }
+
+  const pal = document.getElementById('palette');
+  PALETTE.forEach((col, i) => {
+    const b = document.createElement('button');
+    b.className = 'pal-btn' + (i === 0 ? ' active' : '');
+    b.style.background = col;
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.pal-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      paintColor = col;
+      window._ff.playPop();
+    });
+    pal.appendChild(b);
+  });
+
+  function getPos(e) {
+    const rect = cvP.getBoundingClientRect();
+    const scaleX = cvP.width  / rect.width;
+    const scaleY = cvP.height / rect.height;
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
+  }
+
+  let painting = false;
+  function startPaint(e) {
+    e.preventDefault(); painting = true;
+    const p = getPos(e);
+    offC.beginPath(); offC.moveTo(p.x, p.y);
+    window._ff.beep(440 + Math.random() * 200, 0.05);
+  }
+  function movePaint(e) {
+    if (!painting) return; e.preventDefault();
+    const p = getPos(e);
+    offC.lineTo(p.x, p.y);
+    offC.strokeStyle = paintColor; offC.lineWidth = 22;
+    offC.lineCap = 'round'; offC.lineJoin = 'round';
+    offC.stroke();
+    offC.beginPath(); offC.moveTo(p.x, p.y);
+    renderPaint();
+  }
+  function endPaint() { painting = false; }
+
+  cvP.addEventListener('mousedown',  startPaint);
+  cvP.addEventListener('mousemove',  movePaint);
+  cvP.addEventListener('mouseup',    endPaint);
+  cvP.addEventListener('touchstart', startPaint, {passive:false});
+  cvP.addEventListener('touchmove',  movePaint,  {passive:false});
+  cvP.addEventListener('touchend',   endPaint,   {passive:true});
+
+  document.getElementById('btn-back2').addEventListener('click', () => {
+    window._ff.playPop(); window._ff.showScreen('s-select');
+  });
+  document.getElementById('btn-go2').addEventListener('click', () => {
+    window._ff.playChime();
+    const fishIdx = window._ff.fishType();
+    const img = window._ff.FISH_IMAGES[fishIdx];
+    const W = cvP.width, H = cvP.height;
+    // Crop to the exact fish region in the paint canvas and normalize to
+    // natural image dimensions so paint aligns with the mask in the aquarium
+    const sc = Math.min(W * 0.96 / img.naturalWidth, H * 0.96 / img.naturalHeight);
+    const dw = img.naturalWidth * sc, dh = img.naturalHeight * sc;
+    const dx = (W - dw) / 2, dy = (H - dh) / 2;
+    const saved = document.createElement('canvas');
+    saved.width = img.naturalWidth; saved.height = img.naturalHeight;
+    saved.getContext('2d').drawImage(off, dx, dy, dw, dh, 0, 0, img.naturalWidth, img.naturalHeight);
+    window._ff.savedFish.push({ fishType: fishIdx, paintOffCanvas: saved });
+    window._ff.paintedCanvas = saved;
+    window._ff.showScreen('s-tank');
+  });
+
+  const origShow = window._ff.showScreen;
+  window._ff.showScreen = function(id) {
+    if (id === 's-paint') {
+      off.width  = cvP.width  || 1;
+      off.height = cvP.height || 1;
+      offC.clearRect(0, 0, off.width, off.height);
+    }
+    origShow(id);
+    if (id === 's-paint') { resizePaint(); renderPaint(); }
+  };
+
+  window.addEventListener('resize', () => {
+    if (document.getElementById('s-paint').classList.contains('active')) resizePaint();
+  });
+  resizePaint();
+})();
+
+// ── Screen 3: Aquarium ───────────────────────────────────────────────────────
+(function () {
+  const cvT  = document.getElementById('cv-tank');
+  const ctxT = cvT.getContext('2d');
+
+  const fishList   = [];  // all hatched fish
+  const foods      = [];  // { x, y, vy }
+  const bubbles    = [];  // { x, y, r, vy }
+  const pops       = [];  // { x, y, r, age, maxAge } — pop burst animations
+  const decos      = [];  // { type, x, y, hatchTimer? }
+  let selectedDeco   = null;
+  let activeTool     = 'food';
+  let dragDeco = null, dragActive = false, pDownX = 0, pDownY = 0, pDownTime = 0;
+  let sandPainting   = false;  // true while finger/mouse is down with sand selected
+  let sandPointerX   = 0, sandPointerY = 0; // last pointer position while painting sand
+  const sandParticles = [];   // { x, y, vx, vy, r, col }
+
+  // Tool buttons — deselect any deco selection
+  document.querySelectorAll('[data-tool]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-tool],[data-deco]').forEach(b => b.classList.remove('selected'));
+      activeTool = btn.dataset.tool;
+      selectedDeco = null; sandPainting = false;
+      btn.classList.add('selected');
+      window._ff.playPop();
+    });
+  });
+
+  // Deco buttons — toggle: first click selects, second click same icon deselects
+  document.querySelectorAll('[data-deco]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const isSame = selectedDeco === btn.dataset.deco;
+      document.querySelectorAll('[data-tool],[data-deco]').forEach(b => b.classList.remove('selected'));
+      if (isSame) { selectedDeco = null; return; }
+      selectedDeco = btn.dataset.deco;
+      btn.classList.add('selected');
+      window._ff.playPop();
+    });
+  });
+
+  document.getElementById('btn-add-fish').addEventListener('click', () => {
+    window._ff.playPop(); window._ff.showScreen('s-select');
+  });
+
+  let W = 0, H = 0;
+  let sandHeights = null; // Float32Array: height in px of sand stack at each x column
+
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    cvT.width = W; cvT.height = H;
+    // Grow/shrink sandHeights, preserving existing values
+    const prev = sandHeights;
+    sandHeights = new Float32Array(W);
+    if (prev) sandHeights.set(prev.subarray(0, Math.min(W, prev.length)));
+  }
+
+  const SAND_COLS = ['#C2A46B','#D4B87A','#BFA05E','#E0C88A','#A88040'];
+  function spawnSandBurst(px, py) {
+    const count = 4 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < count; i++) {
+      sandParticles.push({
+        x: px + (Math.random() - 0.5) * 16,
+        y: py,
+        vx: (Math.random() - 0.5) * 1.6,
+        vy: 0.4 + Math.random() * 1.4, // downward only
+        r: 1.2 + Math.random() * 2.0,
+        col: SAND_COLS[Math.floor(Math.random() * SAND_COLS.length)],
+      });
+    }
+  }
+
+  function pourSand(px, py) {
+    const r = 40;
+    const x0 = Math.max(0, Math.floor(px - r));
+    const x1 = Math.min(W - 1, Math.ceil(px + r));
+    for (let x = x0; x <= x1; x++) {
+      const t = (x - px) / r;
+      const amt = Math.exp(-t * t * 3.5) * 1.2; // per-frame amount (called each frame)
+      sandHeights[x] = Math.min(sandHeights[x] + amt, H * 0.78);
+    }
+    spawnSandBurst(px, py);
+  }
+
+  function updateSandParticles() {
+    for (let i = sandParticles.length - 1; i >= 0; i--) {
+      const p = sandParticles[i];
+      p.vy += 0.32; // gravity
+      p.x  += p.vx;
+      p.y  += p.vy;
+      // wall bounce
+      if (p.x < 0) { p.x = 0; p.vx = Math.abs(p.vx) * 0.6; }
+      if (p.x > W) { p.x = W; p.vx = -Math.abs(p.vx) * 0.6; }
+      // check if landed on sand surface
+      const sx    = Math.max(0, Math.min(W - 1, Math.round(p.x)));
+      const floor = H - 10 - (sandHeights ? sandHeights[sx] : 0);
+      if (p.y >= floor) {
+        // deposit a tiny bit of sand where it lands, then remove
+        if (sandHeights) sandHeights[sx] = Math.min(sandHeights[sx] + p.r * 0.4, H * 0.78);
+        sandParticles.splice(i, 1);
+      }
+    }
+  }
+
+  function drawSandParticles() {
+    sandParticles.forEach(p => {
+      ctxT.beginPath();
+      ctxT.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctxT.fillStyle = p.col;
+      ctxT.fill();
+    });
+  }
+
+  function drawBg() {
+    const grd = ctxT.createLinearGradient(0, 0, 0, H);
+    grd.addColorStop(0, '#001428');
+    grd.addColorStop(1, '#003060');
+    ctxT.fillStyle = grd;
+    ctxT.fillRect(0, 0, W, H);
+  }
+
+  function drawOneFish(fish) {
+    const ff = window._ff;
+    const idx = fish.fishType != null ? fish.fishType : ff.fishType();
+    const img  = ff.FISH_IMAGES && ff.FISH_IMAGES[idx];
+    const mask = ff.FISH_MASKS  && ff.FISH_MASKS[idx];
+    if (!img || !img.complete || !img.naturalWidth) return;
+
+    const sz = fish.size;
+    const scale = sz / Math.max(img.naturalWidth, img.naturalHeight);
+    const dw = Math.round(img.naturalWidth * scale);
+    const dh = Math.round(img.naturalHeight * scale);
+    if (dw < 1 || dh < 1) return;
+
+    // Pre-render the fish at its exact display size and cache it on the fish
+    // object. Re-renders only when dw/dh changes, so pixels are bit-identical
+    // every frame → no sampling flicker.
+    if (!fish._cache || fish._cache.dw !== dw || fish._cache.dh !== dh) {
+      const c = document.createElement('canvas');
+      c.width = dw; c.height = dh;
+      const cc = c.getContext('2d');
+      if (fish.paintOffCanvas) {
+        cc.drawImage(fish.paintOffCanvas, 0, 0, dw, dh);
+        if (mask && mask.complete && mask.naturalWidth) {
+          cc.globalCompositeOperation = 'destination-in';
+          cc.drawImage(mask, 0, 0, dw, dh);
+          cc.globalCompositeOperation = 'source-over';
+        }
+      } else {
+        cc.fillStyle = 'rgba(100,200,255,0.18)';
+        cc.fillRect(0, 0, dw, dh);
+      }
+      cc.drawImage(img, 0, 0, dw, dh);
+      fish._cache = { dw, dh, canvas: c };
+    }
+
+    const cx = Math.round(fish.x), cy = Math.round(fish.y);
+    // Wobble disabled for small fish — at tiny sizes even a 1px shift looks
+    // like flickering, so only enable it once the fish is big enough.
+    const wobbleY = sz < 60 ? 0 : Math.round(Math.sin(fish.wobble) * sz * 0.04);
+
+    ctxT.save();
+    ctxT.translate(cx, cy);
+    if (fish.dir > 0) ctxT.scale(-1, 1);
+    if (wobbleY) ctxT.translate(0, wobbleY);
+    ctxT.drawImage(fish._cache.canvas, -(dw >> 1), -(dh >> 1));
+    ctxT.restore();
+  }
+
+  function drawFish() { fishList.forEach(drawOneFish); }
+
+  const DECO_EMOJI = { shell:'🐚', rock:'🪨', star:'⭐' };
+  function drawDecos() {
+    decos.forEach(d => {
+      ctxT.save();
+      if (d.type === 'egg') {
+        const eg = ctxT.createRadialGradient(d.x-2, d.y-3, 1, d.x, d.y, 7);
+        eg.addColorStop(0, 'rgba(255,255,255,0.95)');
+        eg.addColorStop(0.5, 'rgba(220,200,160,0.8)');
+        eg.addColorStop(1,   'rgba(180,140,80,0.3)');
+        ctxT.beginPath(); ctxT.arc(d.x, d.y, 7, 0, Math.PI*2);
+        ctxT.fillStyle = eg; ctxT.fill();
+        ctxT.strokeStyle = 'rgba(180,140,80,0.5)'; ctxT.lineWidth = 1; ctxT.stroke();
+      } else if (d.type === 'kelp') {
+        let bx = d.x, by = d.y;
+        ctxT.lineCap = 'round';
+        for (let s = 0; s < 6; s++) {
+          const ty = by - 28;
+          ctxT.strokeStyle = `rgba(20,160,50,${0.85 - s*0.1})`;
+          ctxT.lineWidth = 7 - s*0.7;
+          ctxT.beginPath(); ctxT.moveTo(bx, by);
+          ctxT.quadraticCurveTo(bx + (s%2===0 ? 18:-18), (by+ty)/2, bx, ty);
+          ctxT.stroke(); by = ty;
+        }
+      } else {
+        ctxT.font = '26px serif';
+        ctxT.textAlign = 'center'; ctxT.textBaseline = 'middle';
+        ctxT.fillStyle = '#ffffff';
+        ctxT.translate(d.x, d.y - 13); // centre of emoji (~half font size above bottom)
+        ctxT.rotate(d.angle || 0);
+        ctxT.fillText(DECO_EMOJI[d.type] || '?', 0, 0);
+      }
+      ctxT.restore();
+    });
+  }
+
+  function drawSand() {
+    if (!sandHeights) return;
+    const base = H - 10; // y-coordinate of the tank floor
+    const grad = ctxT.createLinearGradient(0, base - 120, 0, base);
+    grad.addColorStop(0, 'rgba(210,185,130,0.70)');
+    grad.addColorStop(0.45, 'rgba(194,164,107,0.88)');
+    grad.addColorStop(1,   'rgba(160,128,70,1)');
+    ctxT.fillStyle = grad;
+    ctxT.beginPath();
+    ctxT.moveTo(0, base);
+    ctxT.lineTo(0, base - sandHeights[0]);
+    for (let x = 1; x < W; x++) ctxT.lineTo(x, base - sandHeights[x]);
+    ctxT.lineTo(W, base);
+    ctxT.closePath();
+    ctxT.fill();
+  }
+
+  // Returns the y at which an object's "bottom" should rest (lowest = highest on screen)
+  function getFloorY(x, excludeDeco) {
+    const sx = Math.max(0, Math.min(W - 1, Math.round(x)));
+    let floor = sandHeights ? H - 10 - sandHeights[sx] : H - 10;
+    for (const d of decos) {
+      if (d === excludeDeco || !d.settled || d.type === 'egg') continue;
+      if (Math.abs(d.x - x) < 22) { // within stacking range
+        const top = d.y - getObjHeight(d.type);
+        if (top < floor) floor = top;
+      }
+    }
+    return floor;
+  }
+  function getObjHeight(type) {
+    return { shell:18, rock:20, star:16, kelp:0 }[type] ?? 16;
+  }
+
+  function updateSand() {
+    if (!sandHeights) return;
+    // Cellular automata: equalize adjacent columns — run twice per frame for speed
+    for (let pass = 0; pass < 2; pass++) {
+      for (let x = 0; x < W - 1; x++) {
+        const diff = sandHeights[x] - sandHeights[x + 1];
+        if (diff > 1.0) {
+          const t = (diff - 1.0) * 0.22;
+          sandHeights[x] -= t; sandHeights[x + 1] += t;
+        } else if (diff < -1.0) {
+          const t = (-diff - 1.0) * 0.22;
+          sandHeights[x] += t; sandHeights[x + 1] -= t;
+        }
+      }
+    }
+  }
+
+  function drawFoods() {
+    foods.forEach(f => {
+      const alpha = f.settled ? Math.max(0, 1 - (f.settleTimer - 3.5) / 1.5) : 1;
+      ctxT.fillStyle = `rgba(255,215,0,${alpha})`;
+      ctxT.beginPath(); ctxT.arc(f.x, f.y, 5, 0, Math.PI * 2); ctxT.fill();
+    });
+  }
+
+  function drawBubbles() {
+    bubbles.forEach(b => {
+      ctxT.strokeStyle = `rgba(126,237,244,${0.4 + b.r * 0.05})`;
+      ctxT.lineWidth = 1.5;
+      ctxT.beginPath(); ctxT.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctxT.stroke();
+    });
+  }
+
+  function spawnPop(x, y, r) {
+    pops.push({ x, y, r: Math.max(r, 5), age: 0, maxAge: 0.32 });
+  }
+
+  function drawPops() {
+    pops.forEach(p => {
+      const t = p.age / p.maxAge;          // 0 → 1
+      const alpha = (1 - t) * 0.9;
+      const ring = p.r * (1 + t * 1.8);   // ring expands outward
+      ctxT.save();
+      ctxT.strokeStyle = `rgba(180,240,255,${alpha})`;
+      ctxT.lineWidth = Math.max(0.5, 2 * (1 - t));
+      ctxT.beginPath(); ctxT.arc(p.x, p.y, ring, 0, Math.PI * 2); ctxT.stroke();
+      // 6 short radiating sparkle lines
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        const r1 = ring * 0.65, r2 = ring * 1.15;
+        ctxT.beginPath();
+        ctxT.moveTo(p.x + Math.cos(a) * r1, p.y + Math.sin(a) * r1);
+        ctxT.lineTo(p.x + Math.cos(a) * r2, p.y + Math.sin(a) * r2);
+        ctxT.stroke();
+      }
+      ctxT.restore();
+    });
+  }
+
+  function updateOneFish(fish, dt) {
+    fish.wobble += dt * 3;
+
+    // Digest countdown
+    if (fish.digestTimer > 0) fish.digestTimer -= dt;
+
+    // Slow passive growth (time-based, regardless of food)
+    fish.size = Math.min(fish.size + 0.009 * dt, W * 0.25);
+
+    // Seek food only when not digesting; still swim normally while digesting
+    const hungry = fish.digestTimer <= 0;
+    let target = null, best = 9999;
+    if (hungry) {
+      foods.forEach(f => {
+        const d = Math.hypot(f.x - fish.x, f.y - fish.y);
+        if (d < best) { best = d; target = f; }
+      });
+    }
+    if (target && best > 1) {
+      const dx = target.x - fish.x, dy = target.y - fish.y;
+      fish.vx += (dx / best * 2.2 - fish.vx) * 0.06;
+      fish.vy += (dy / best * 2.2 - fish.vy) * 0.06;
+    } else {
+      fish.vx += (Math.random() - 0.5) * 0.4;
+      fish.vy += (Math.random() - 0.5) * 0.2;
+      fish.vx *= 0.98; fish.vy *= 0.98;
+      const spd = Math.hypot(fish.vx, fish.vy);
+      if (spd > 1.5) { fish.vx = fish.vx/spd*1.5; fish.vy = fish.vy/spd*1.5; }
+    }
+    if (fish.vx > 0.2) fish.dir = 1; else if (fish.vx < -0.2) fish.dir = -1;
+    if (fish.boostTimer > 0) { fish.boostTimer -= dt; fish.vx *= 2.5; fish.vy *= 2.5; }
+    const spd = Math.hypot(fish.vx, fish.vy);
+    if (spd > 5.0) { fish.vx = fish.vx / spd * 5.0; fish.vy = fish.vy / spd * 5.0; }
+    fish.x += fish.vx; fish.y += fish.vy;
+    if (!isFinite(fish.x) || !isFinite(fish.y)) { fish.x = W/2; fish.y = H/2; fish.vx = 0; fish.vy = 0; }
+    const r = fish.size * 0.5;
+    if (fish.x < r) { fish.x = r; fish.vx = Math.abs(fish.vx); }
+    if (fish.x > W - r) { fish.x = W - r; fish.vx = -Math.abs(fish.vx); }
+    if (fish.y < r + 56) { fish.y = r + 56; fish.vy = Math.abs(fish.vy); }
+    const sx = Math.max(0, Math.min((sandHeights ? sandHeights.length : 1) - 1, Math.round(fish.x)));
+    const sandTop = sandHeights ? H - 10 - sandHeights[sx] : H - 10;
+    if (fish.y > sandTop - r) { fish.y = sandTop - r; fish.vy = -Math.abs(fish.vy); }
+
+    // Eat food (only when hungry)
+    if (hungry) {
+      for (let i = foods.length - 1; i >= 0; i--) {
+        if (Math.hypot(foods[i].x - fish.x, foods[i].y - fish.y) < r + 8) {
+          fish.eatCount = (fish.eatCount || 0) + 1;
+          const prevSize = fish.size;
+          fish.size = Math.min(fish.size + 2.4, W * 0.25);
+          foods.splice(i, 1);
+          fish.eating = 0.4;
+          window._ff.beep(700, 0.15, 'sine');
+          if (Math.floor(fish.size/20) > Math.floor(prevSize/20)) window._ff.playGrow();
+          for (let b = 0; b < 3; b++) bubbles.push({ x: fish.x+(Math.random()-0.5)*20, y: fish.y, r: 4+Math.random()*6, vy: -0.8-Math.random() });
+          // Start digesting after eating enough pieces (3–6 per meal)
+          if (fish.eatCount >= fish.eatLimit) {
+            fish.digestTimer = 10 + Math.random() * 20; // 10–30 s digest
+            fish.eatCount = 0;
+            fish.eatLimit = 3 + Math.floor(Math.random() * 4); // next meal limit
+          }
+          break; // eat at most one piece per frame
+        }
+      }
+    }
+    if (fish.eating > 0) fish.eating -= dt;
+  }
+
+  function updateDecos(dt) {
+    decos.forEach(d => {
+      if (d.type === 'egg') {
+        // Gentle random drift — eggs float in the water column
+        d.vx = ((d.vx || 0) + (Math.random()-0.5)*0.25) * 0.97;
+        d.vy_drift = ((d.vy_drift || 0) + (Math.random()-0.5)*0.15) * 0.97;
+        d.x += d.vx; d.y += d.vy_drift;
+        if (d.x < 14) { d.x = 14; d.vx = Math.abs(d.vx); }
+        if (d.x > W-14) { d.x = W-14; d.vx = -Math.abs(d.vx); }
+        if (d.y < 40) { d.y = 40; d.vy_drift = Math.abs(d.vy_drift); }
+        if (d.y > H-40) { d.y = H-40; d.vy_drift = -Math.abs(d.vy_drift); }
+        return;
+      }
+      if (d.settled || d === dragDeco) return; // don't fall while being dragged
+      d.vy = (d.vy || 0) + 280 * dt;
+      d.y  += d.vy * dt;
+      const floor = getFloorY(d.x, d);
+      if (d.y >= floor) { d.y = floor; d.vy = 0; d.settled = true; }
+    });
+  }
+
+  function update(dt) {
+    fishList.forEach(f => updateOneFish(f, dt));
+    updateDecos(dt);
+    if (sandPainting && sandHeights) pourSand(sandPointerX, sandPointerY);
+    updateSand();
+    updateSandParticles();
+
+    // Advance food gravity
+    for (let i = foods.length - 1; i >= 0; i--) {
+      const f = foods[i];
+      if (f.settled) {
+        f.settleTimer += dt;
+        if (f.settleTimer > 5) foods.splice(i, 1);
+        continue;
+      }
+      f.vy = Math.min(f.vy + 0.5 * dt, 1.4); // gentle gravity, cap speed
+      f.y += f.vy;
+      const sx = Math.max(0, Math.min(W - 1, Math.round(f.x)));
+      const floor = (sandHeights ? H - 10 - sandHeights[sx] : H - 10) - 5;
+      if (f.y >= floor) {
+        f.y = floor;
+        f.vy = 0;
+        f.settled = true;
+        f.settleTimer = 0;
+      }
+    }
+
+    // Update bubbles
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+      bubbles[i].y += bubbles[i].vy;
+      bubbles[i].x += (Math.random() - 0.5) * 0.6;
+      if (bubbles[i].y < 0) bubbles.splice(i, 1);
+    }
+
+    // Update pop animations
+    for (let i = pops.length - 1; i >= 0; i--) {
+      pops[i].age += dt;
+      if (pops[i].age >= pops[i].maxAge) pops.splice(i, 1);
+    }
+    if (Math.random() < 0.015) {
+      const bx = Math.random()*W;
+      const bsx = Math.max(0, Math.min(W-1, Math.round(bx)));
+      const bFloor = sandHeights ? H - 10 - sandHeights[bsx] : H - 30;
+      bubbles.push({ x: bx, y: bFloor - 4, r: 3+Math.random()*8, vy: -0.6-Math.random()*0.6 });
+    }
+
+    // Egg hatching
+    for (let i = decos.length - 1; i >= 0; i--) {
+      const d = decos[i];
+      if (d.type !== 'egg' || d.hatchTimer == null) continue;
+      d.hatchTimer -= dt;
+      if (d.hatchTimer <= 0) {
+        decos.splice(i, 1);
+        const sf = window._ff.savedFish[d.fishIndex != null ? d.fishIndex : window._ff.savedFish.length-1];
+        fishList.push({
+          x: d.x, y: d.y - 20, vx: (Math.random()-0.5)*1.5, vy: -1,
+          dir: 1, wobble: 0, size: 34, eating: 0, boostTimer: 0,
+          eatCount: 0, eatLimit: 3 + Math.floor(Math.random()*4), digestTimer: 0,
+          fishType: sf ? sf.fishType : 0,
+          paintOffCanvas: sf ? sf.paintOffCanvas : null
+        });
+        window._ff.playHatch();
+        for (let b = 0; b < 6; b++) bubbles.push({ x: d.x+(Math.random()-0.5)*30, y: d.y, r: 3+Math.random()*5, vy: -1-Math.random() });
+      }
+    }
+  }
+
+  let last = 0;
+  function loop(ts) {
+    const dt = Math.min((ts - last) / 1000, 0.05);
+    last = ts;
+    if (!document.getElementById('s-tank').classList.contains('active')) { requestAnimationFrame(loop); return; }
+    ctxT.clearRect(0, 0, W, H);
+    drawBg();
+    drawSand();
+    drawSandParticles();
+    drawDecos();
+    drawFoods();
+    drawBubbles();
+    drawPops();
+    drawFish();
+    requestAnimationFrame(loop);
+    update(dt);
+  }
+
+  function handleTap(cx, cy) {
+    if (selectedDeco === 'sand') return; // sand is painted via hold/drag
+    if (selectedDeco) {
+      if (selectedDeco === 'egg' && window._ff.savedFish.length === 0) {
+        const btn = document.getElementById('btn-add-fish');
+        btn.style.boxShadow = '0 0 0 3px #FF4D4D';
+        setTimeout(() => { btn.style.boxShadow = ''; }, 900);
+        return;
+      }
+      // Always place a brand-new item on each tap
+      const d = { type: selectedDeco, x: cx, y: cy, vy: 0, settled: false };
+      if (['shell','rock','star'].includes(selectedDeco))
+        d.angle = Math.random() * Math.PI * 2;
+      if (selectedDeco === 'egg') {
+        d.hatchTimer = 5 + Math.random() * 5;
+        d.fishIndex  = window._ff.savedFish.length - 1;
+        d.vx = 0; d.vy_drift = 0; d.settled = true;
+      }
+      if (selectedDeco === 'kelp') d.hitH = 168;
+      decos.push(d);
+      window._ff.playChime();
+      return;
+    }
+    if (activeTool === 'food') {
+      foods.push({ x: cx, y: cy, vy: 0.4, settled: false, settleTimer: 0 });
+      window._ff.playPlop();
+    } else if (activeTool === 'bubble') {
+      bubbles.push({ x: cx, y: cy, r: 6 + Math.random()*6, vy: -0.7 - Math.random()*0.5 });
+      window._ff.playPop();
+    } else if (activeTool === 'poke') {
+      let best = 60, nearest = null;
+      fishList.forEach(f => {
+        const d = Math.hypot(f.x-cx, f.y-cy);
+        if (d < best) { best = d; nearest = f; }
+      });
+      // Also check bubbles — poke pops the nearest one
+      for (let i = bubbles.length - 1; i >= 0; i--) {
+        const db = Math.hypot(bubbles[i].x - cx, bubbles[i].y - cy);
+        if (db < bubbles[i].r + 22) { spawnPop(bubbles[i].x, bubbles[i].y, bubbles[i].r); bubbles.splice(i, 1); window._ff.playPop(); break; }
+      }
+      if (nearest) {
+        nearest.boostTimer = 2.5;
+        nearest.digestTimer = 0;  // poke makes fish hungry again
+        nearest.eatCount = 0;
+        nearest.eatLimit = Math.max((nearest.eatLimit || 3), 5); // can eat a bigger meal
+        window._ff.beep(900, 0.12, 'sine');
+      }
+    }
+  }
+
+  cvT.addEventListener('pointerdown', e => {
+    e.preventDefault(); cvT.setPointerCapture(e.pointerId);
+    const rect = cvT.getBoundingClientRect();
+    const px = e.clientX - rect.left, py = e.clientY - rect.top;
+    if (selectedDeco === 'sand') { sandPainting = true; sandPointerX = px; sandPointerY = py; return; }
+    pDownX = px; pDownY = py; pDownTime = performance.now(); dragActive = false; dragDeco = null;
+    if (activeTool === 'poke' && !selectedDeco) {
+      let best = 40, found = null;
+      decos.forEach(d => {
+        const dist = d.type === 'kelp'
+          ? Math.hypot(d.x - px, Math.max(0, py - (d.y - (d.hitH||168))))
+          : Math.hypot(d.x - px, d.y - py);
+        if (dist < best) { best = dist; found = d; }
+      });
+      dragDeco = found;
+    }
+  }, { passive: false });
+
+  cvT.addEventListener('pointermove', e => {
+    const rect = cvT.getBoundingClientRect();
+    const px = e.clientX - rect.left, py = e.clientY - rect.top;
+    if (sandPainting) { sandPointerX = px; sandPointerY = py; return; }
+    if (!dragDeco) return;
+    if (Math.hypot(px - pDownX, py - pDownY) > 8 && performance.now() - pDownTime > 160) dragActive = true;
+    if (dragActive) { dragDeco.x = px; dragDeco.y = py; }
+  });
+
+  cvT.addEventListener('pointerup', e => {
+    if (sandPainting) { sandPainting = false; return; }
+    const rect = cvT.getBoundingClientRect();
+    if (!dragActive) {
+      handleTap(e.clientX - rect.left, e.clientY - rect.top);
+    } else if (dragDeco && dragDeco.type !== 'egg') {
+      dragDeco.settled = false; // re-fall after manual drag-and-drop
+    }
+    dragDeco = null; dragActive = false;
+  });
+
+  // Only clear the tank on the very first entry; preserve state when adding more fish
+  let tankReady = false;
+  const origShow = window._ff.showScreen;
+  window._ff.showScreen = function(id) {
+    origShow(id);
+    if (id === 's-tank') {
+      resize();
+      if (!tankReady) {
+        fishList.length = 0;
+        foods.length = 0; bubbles.length = 0; decos.length = 0; pops.length = 0; sandParticles.length = 0;
+        if (sandHeights) sandHeights.fill(0);
+        tankReady = true;
+      }
+    }
+  };
+
+  document.getElementById('tool-food').classList.add('selected');
+
+  window.addEventListener('resize', () => { if (document.getElementById('s-tank').classList.contains('active')) resize(); });
+  resize();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

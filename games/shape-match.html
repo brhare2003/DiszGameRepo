@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Shape Match</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #FFF6E4;
+      touch-action: none;
+      user-select: none;
+    }
+
+    #bg { position: fixed; inset: 0; z-index: 0; }
+
+    #top-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      background: rgba(0,0,0,0.50);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      z-index: 20;
+    }
+
+    #home-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #ccc;
+      font-size: 0.85rem;
+      letter-spacing: 2px;
+      padding: 7px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    #home-btn:hover { background: rgba(255,255,255,0.16); color: #fff; }
+
+    #game-title {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: #ffdd44;
+      text-shadow: 0 0 12px rgba(255,220,68,0.6);
+    }
+
+    #play-again-btn {
+      background: rgba(255,220,68,0.12);
+      border: 1px solid rgba(255,220,68,0.35);
+      color: #ffdd44;
+      font-size: 0.78rem;
+      letter-spacing: 2px;
+      padding: 7px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: inherit;
+      font-weight: 700;
+    }
+    #play-again-btn:hover { background: rgba(255,220,68,0.25); }
+
+    /* ── Arena ── */
+    #arena {
+      position: fixed;
+      top: 52px; bottom: 0; left: 0; right: 0;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 8px 14px;
+      gap: clamp(6px, 1.8vh, 18px);
+    }
+
+    .section-label {
+      font-size: 0.6rem;
+      letter-spacing: 4px;
+      color: rgba(255,255,255,0.28);
+      font-weight: 700;
+    }
+
+    /* ── Slots ── */
+    #slots {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: clamp(5px, 1.4vw, 9px);
+      width: 100%;
+    }
+
+    .slot-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .slot {
+      width: clamp(54px, 11vw, 70px);
+      height: clamp(54px, 11vw, 70px);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      transition: filter 0.2s;
+    }
+    .slot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .slot.highlight { filter: drop-shadow(0 0 8px #fff); }
+
+    .slot-label {
+      font-size: clamp(0.42rem, 1.1vw, 0.58rem);
+      letter-spacing: 1px;
+      font-weight: 700;
+      opacity: 0.7;
+      white-space: nowrap;
+    }
+
+    /* ── Pieces ── */
+    #pieces {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: clamp(5px, 1.4vw, 9px);
+      width: 100%;
+    }
+
+    .piece {
+      width: clamp(48px, 9.5vw, 62px);
+      height: clamp(48px, 9.5vw, 62px);
+      display: flex; align-items: center; justify-content: center;
+      cursor: grab;
+      position: relative;
+      touch-action: none;
+      filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));
+      transition: filter 0.12s;
+    }
+    .piece:active { cursor: grabbing; }
+    .piece svg { width: 100%; height: 100%; display: block; }
+    .piece.dragging { opacity: 0; }
+    .piece.matched  { visibility: hidden; }
+
+    /* ── Ghost ── */
+    #ghost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 100;
+      display: none;
+      width: clamp(48px, 9.5vw, 62px);
+      height: clamp(48px, 9.5vw, 62px);
+      transform: translate(-50%, -50%) scale(1.22);
+      filter: drop-shadow(0 6px 18px rgba(0,0,0,0.8));
+    }
+    #ghost svg { width: 100%; height: 100%; }
+
+    /* ── Win overlay ── */
+    #win-overlay {
+      position: fixed; inset: 0; z-index: 50;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center; gap: 18px;
+      background: rgba(0,0,0,0.55); backdrop-filter: blur(6px);
+    }
+    #win-overlay.show { display: flex; }
+
+    #win-text {
+      font-size: clamp(2rem, 8vw, 3.5rem); font-weight: 900;
+      letter-spacing: 6px; color: #ffdd44;
+      text-shadow: 0 0 30px #ff8800, 0 0 60px rgba(255,136,0,0.4);
+      animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.4); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    #win-stars {
+      font-size: 2.8rem; letter-spacing: 8px;
+      animation: popIn 0.4s 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    #play-again-big {
+      margin-top: 8px; padding: 14px 40px; border-radius: 28px;
+      background: #ffdd44; color: #000;
+      font-size: 1rem; font-weight: 900; letter-spacing: 3px;
+      border: none; cursor: pointer;
+      box-shadow: 0 0 24px rgba(255,220,68,0.55);
+      animation: popIn 0.4s 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      font-family: inherit; transition: transform 0.12s;
+    }
+    #play-again-big:active { transform: scale(0.95); }
+
+    #fx-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 49; }
+
+    @keyframes snapIn {
+      0%   { transform: scale(1.3); }
+      60%  { transform: scale(0.88); }
+      100% { transform: scale(1); }
+    }
+    .snap-anim { animation: snapIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-8px); }
+      40%     { transform: translateX(8px); }
+      60%     { transform: translateX(-5px); }
+      80%     { transform: translateX(5px); }
+    }
+    .shake { animation: shake 0.35s ease both; }
+
+    .slot-fill {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .slot-fill svg { width: 78%; height: 78%; }
+  </style>
+  <script>
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    (function() {
+      var lt = 0;
+      document.addEventListener('touchend', function(e) {
+        var now = Date.now();
+        if (now - lt < 300) e.preventDefault();
+        lt = now;
+      }, false);
+    })();
+    document.addEventListener('gesturestart',  function(e) { e.preventDefault(); }, false);
+    document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, false);
+    window.addEventListener('wheel', function(e) {
+      if (e.ctrlKey) e.preventDefault();
+    }, { passive: false });
+  </script>
+</head>
+<body>
+
+  <canvas id="bg"></canvas>
+  <canvas id="fx-canvas"></canvas>
+
+  <div id="top-bar">
+    <a href="../index.html" id="home-btn">&#8592; HOME</a>
+    <div id="game-title">SHAPE MATCH</div>
+    <button id="play-again-btn" onclick="resetGame()">RESET</button>
+  </div>
+
+  <div id="arena">
+    <div class="section-label">MATCH THE SHAPES</div>
+    <div id="slots"></div>
+    <div class="section-label">DRAG TO MATCH &#8212; COLORS ARE MISLEADING</div>
+    <div id="pieces"></div>
+  </div>
+
+  <div id="ghost"></div>
+
+  <div id="win-overlay">
+    <div id="win-stars">&#11088; &#11088; &#11088;</div>
+    <div id="win-text">PERFECT!</div>
+    <button id="play-again-big" onclick="resetGame()">PLAY AGAIN</button>
+  </div>
+
+  <script>
+  (function () {
+
+    // ── Audio ──────────────────────────────────────────────────────────────
+    let _ac = null;
+    function getAC() { if (!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+    function playSound(type) {
+      try {
+        const a = getAC(), t = a.currentTime;
+        if (type === 'match') {
+          const o = a.createOscillator(), g = a.createGain();
+          o.connect(g); g.connect(a.destination);
+          o.frequency.setValueAtTime(660, t); o.frequency.exponentialRampToValueAtTime(1050, t+0.12);
+          g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.18);
+          o.start(t); o.stop(t+0.18);
+        } else if (type === 'wrong') {
+          const o = a.createOscillator(), g = a.createGain();
+          o.type = 'sawtooth';
+          o.connect(g); g.connect(a.destination);
+          o.frequency.setValueAtTime(260, t); o.frequency.exponentialRampToValueAtTime(140, t+0.18);
+          g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.2);
+          o.start(t); o.stop(t+0.2);
+        } else if (type === 'win') {
+          [523,659,784,1047,1319].forEach((f,i) => {
+            const o=a.createOscillator(), g=a.createGain();
+            o.connect(g); g.connect(a.destination);
+            o.frequency.setValueAtTime(f, t+i*0.09);
+            g.gain.setValueAtTime(0.18, t+i*0.09); g.gain.exponentialRampToValueAtTime(0.001, t+i*0.09+0.22);
+            o.start(t+i*0.09); o.stop(t+i*0.09+0.22);
+          });
+        }
+      } catch(e) {}
+    }
+
+    // ── Starfield ──────────────────────────────────────────────────────────
+    (function () {
+      const c = document.getElementById('bg'), ctx = c.getContext('2d');
+      const stars = Array.from({ length: 140 }, () => ({
+        rx: Math.random(), ry: Math.random(),
+        r: Math.random() * 1.5 + 0.2, a: Math.random() * 0.5 + 0.3,
+      }));
+      function draw() {
+        const W = c.width = window.innerWidth, H = c.height = window.innerHeight;
+        ctx.fillStyle = '#0a0a1e'; ctx.fillRect(0, 0, W, H);
+        stars.forEach(s => {
+          ctx.beginPath(); ctx.arc(s.rx * W, s.ry * H, s.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,255,${s.a})`; ctx.fill();
+        });
+      }
+      draw(); window.addEventListener('resize', draw);
+    })();
+
+    // ── FX particles ───────────────────────────────────────────────────────
+    const fxCanvas = document.getElementById('fx-canvas');
+    const fx = fxCanvas.getContext('2d');
+    let particles = [];
+    function resizeFx() { fxCanvas.width = window.innerWidth; fxCanvas.height = window.innerHeight; }
+    resizeFx(); window.addEventListener('resize', resizeFx);
+
+    function spawnStars(x, y, color) {
+      for (let i = 0; i < 28; i++) {
+        const a = Math.random() * Math.PI * 2, sp = Math.random() * 7 + 2;
+        particles.push({ x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp - 2,
+          r: Math.random()*5+2, color, life: 1, decay: Math.random()*0.022+0.016, isStar: Math.random()<0.4 });
+      }
+      for (let i = 0; i < 5; i++) {
+        const a = Math.random() * Math.PI * 2;
+        particles.push({ x, y, vx: Math.cos(a)*(Math.random()*4+1), vy: Math.sin(a)*(Math.random()*4+1)-3,
+          r: Math.random()*9+6, color: '#ffe044', life: 1, decay: Math.random()*0.016+0.012,
+          isStar: true, rot: Math.random()*Math.PI*2, rotV: (Math.random()-0.5)*0.15 });
+      }
+    }
+
+    function drawStar5(ctx, x, y, r, rot) {
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const a = rot + (i * Math.PI) / 5 - Math.PI / 2;
+        const d = i % 2 === 0 ? r : r * 0.42;
+        i === 0 ? ctx.moveTo(x+d*Math.cos(a), y+d*Math.sin(a))
+                : ctx.lineTo(x+d*Math.cos(a), y+d*Math.sin(a));
+      }
+      ctx.closePath();
+    }
+
+    let fxRunning = false;
+    function fxLoop() {
+      if (!particles.length) { fxRunning = false; return; }
+      fxRunning = true; requestAnimationFrame(fxLoop);
+      fx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy; p.vy += 0.18; p.life -= p.decay;
+        if (p.life <= 0) { particles.splice(i, 1); continue; }
+        fx.save(); fx.globalAlpha = p.life; fx.fillStyle = p.color;
+        fx.shadowBlur = 10; fx.shadowColor = p.color;
+        if (p.isStar) { p.rot = (p.rot||0)+(p.rotV||0); drawStar5(fx,p.x,p.y,p.r,p.rot); fx.fill(); }
+        else { fx.beginPath(); fx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2); fx.fill(); }
+        fx.restore();
+      }
+    }
+
+    // ── Shape definitions ──────────────────────────────────────────────────
+    const SHAPE_DATA = [
+      { id: 'square',      label: 'SQUARE'      },
+      { id: 'circle',      label: 'CIRCLE'      },
+      { id: 'triangle',    label: 'TRIANGLE'    },
+      { id: 'diamond',     label: 'DIAMOND'     },
+      { id: 'pentagon',    label: 'PENTAGON'    },
+      { id: 'hexagon',     label: 'HEXAGON'     },
+      { id: 'star',        label: 'STAR'        },
+      { id: 'heart',       label: 'HEART'       },
+      { id: 'cross',       label: 'CROSS'       },
+      { id: 'arrow',       label: 'ARROW'       },
+    ];
+
+    // 8 vivid colours — assigned randomly, piece ≠ slot for same shape
+    const COLOR_POOL = [
+      '#ff3355', '#ff8c00', '#ffe020', '#44ee55',
+      '#33bbff', '#cc44ff', '#ff66bb', '#00ddcc'
+    ];
+
+    function shapeEl(id, attr) {
+      const shapes = {
+        square:   `<rect x="8" y="8" width="84" height="84" rx="8" ${attr}/>`,
+        circle:   `<circle cx="50" cy="50" r="42" ${attr}/>`,
+        triangle: `<polygon points="50,7 93,87 7,87" ${attr}/>`,
+        diamond:  `<polygon points="50,5 94,50 50,95 6,50" ${attr}/>`,
+        pentagon: `<polygon points="50,8 90,37 75,84 25,84 10,37" ${attr}/>`,
+        hexagon:  `<polygon points="50,6 88,28 88,72 50,94 12,72 12,28" ${attr}/>`,
+        star:     `<polygon points="50,6 61,35 92,36 67,56 76,86 50,68 24,86 33,56 8,36 39,35" ${attr}/>`,
+        heart:    `<path d="M50,82 C20,65 8,48 8,32 C8,18 20,8 32,14 C39,18 45,24 50,30 C55,24 61,18 68,14 C80,8 92,18 92,32 C92,48 80,65 50,82 Z" ${attr}/>`,
+        cross:    `<polygon points="35,8 65,8 65,35 92,35 92,65 65,65 65,92 35,92 35,65 8,65 8,35 35,35" ${attr}/>`,
+        arrow:    `<polygon points="5,36 58,36 58,16 95,50 58,84 58,64 5,64" ${attr}/>`,
+      };
+      return shapes[id] || '';
+    }
+
+    const SHEENS = {
+      square:   `<ellipse cx="32" cy="26" rx="16" ry="8" fill="rgba(255,255,255,0.22)"/>`,
+      circle:   `<ellipse cx="35" cy="32" rx="14" ry="7" fill="rgba(255,255,255,0.28)"/>`,
+      triangle: `<ellipse cx="46" cy="37" rx="12" ry="5" transform="rotate(-15,46,37)" fill="rgba(255,255,255,0.22)"/>`,
+      diamond:  `<ellipse cx="50" cy="26" rx="12" ry="5" fill="rgba(255,255,255,0.22)"/>`,
+      pentagon: `<ellipse cx="50" cy="28" rx="14" ry="6" fill="rgba(255,255,255,0.20)"/>`,
+      hexagon:  `<ellipse cx="50" cy="24" rx="16" ry="7" fill="rgba(255,255,255,0.20)"/>`,
+      star:     `<ellipse cx="50" cy="32" rx="11" ry="5" fill="rgba(255,255,255,0.22)"/>`,
+      heart:    `<ellipse cx="34" cy="28" rx="10" ry="5" transform="rotate(-20,34,28)" fill="rgba(255,255,255,0.22)"/>`,
+      cross:    `<ellipse cx="50" cy="24" rx="10" ry="5" fill="rgba(255,255,255,0.20)"/>`,
+      arrow:    `<ellipse cx="30" cy="44" rx="14" ry="5" fill="rgba(255,255,255,0.20)"/>`,
+    };
+
+    function outlineSVG(id, color) {
+      const a = `fill="none" stroke="${color}" stroke-width="3.5" stroke-dasharray="8 5" opacity="0.8"`;
+      return `<svg viewBox="0 0 100 100">${shapeEl(id, a)}</svg>`;
+    }
+
+    function filledSVG(id, color) {
+      return `<svg viewBox="0 0 100 100">
+        ${shapeEl(id, `fill="${color}"`)}
+        ${shapeEl(id, 'fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2"')}
+        ${SHEENS[id] || ''}
+      </svg>`;
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // ── Game state ─────────────────────────────────────────────────────────
+    const SHAPES = SHAPE_DATA.map(s => s.id);
+    let matched = new Set();
+    let slotColors = {}, pieceColors = {};
+
+    function pickColors() {
+      SHAPES.forEach(id => {
+        slotColors[id] = COLOR_POOL[Math.floor(Math.random() * COLOR_POOL.length)];
+        let pc;
+        do { pc = COLOR_POOL[Math.floor(Math.random() * COLOR_POOL.length)]; }
+        while (pc === slotColors[id]);
+        pieceColors[id] = pc;
+      });
+    }
+
+    function buildSlots() {
+      const container = document.getElementById('slots');
+      container.innerHTML = '';
+      SHAPES.forEach(id => {
+        const label = SHAPE_DATA.find(s => s.id === id).label;
+        const unit = document.createElement('div');
+        unit.className = 'slot-unit';
+
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.id = 'slot-' + id;
+        slot.dataset.shape = id;
+        slot.innerHTML = outlineSVG(id, slotColors[id]);
+
+        const lbl = document.createElement('span');
+        lbl.className = 'slot-label';
+        lbl.style.color = slotColors[id];
+        lbl.textContent = label;
+
+        unit.appendChild(slot);
+        unit.appendChild(lbl);
+        container.appendChild(unit);
+      });
+    }
+
+    function buildPieces() {
+      const container = document.getElementById('pieces');
+      container.innerHTML = '';
+      shuffle([...SHAPES]).forEach(id => {
+        const div = document.createElement('div');
+        div.className = 'piece';
+        div.id = 'piece-' + id;
+        div.dataset.shape = id;
+        div.dataset.color = pieceColors[id];
+        div.innerHTML = filledSVG(id, pieceColors[id]);
+        div.addEventListener('mousedown',  onDragStart);
+        div.addEventListener('touchstart', onDragStart, { passive: false });
+        container.appendChild(div);
+      });
+    }
+
+    function resetGame() {
+      matched = new Set();
+      document.getElementById('win-overlay').classList.remove('show');
+      particles = [];
+      fx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+      pickColors();
+      buildSlots();
+      buildPieces();
+    }
+
+    // ── Drag logic ─────────────────────────────────────────────────────────
+    const ghost = document.getElementById('ghost');
+    let dragging = null;
+
+    function getPos(e) {
+      return e.touches
+        ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+        : { x: e.clientX, y: e.clientY };
+    }
+
+    function onDragStart(e) {
+      const piece = e.currentTarget;
+      if (piece.classList.contains('matched')) return;
+      e.preventDefault();
+      dragging = { el: piece, shape: piece.dataset.shape };
+      piece.classList.add('dragging');
+      ghost.innerHTML = piece.innerHTML;
+      ghost.style.display = 'block';
+      moveGhost(getPos(e));
+    }
+
+    function moveGhost({ x, y }) {
+      ghost.style.left = x + 'px';
+      ghost.style.top  = y + 'px';
+      SHAPES.forEach(s => {
+        const slot = document.getElementById('slot-' + s);
+        if (slot) slot.classList.toggle('highlight', isOverSlot(slot, x, y) && !matched.has(s));
+      });
+    }
+
+    function isOverSlot(slot, cx, cy) {
+      const r = slot.getBoundingClientRect(), m = 16;
+      return cx >= r.left-m && cx <= r.right+m && cy >= r.top-m && cy <= r.bottom+m;
+    }
+
+    function onDragMove(e) {
+      if (!dragging) return;
+      e.preventDefault();
+      moveGhost(getPos(e));
+    }
+
+    function onDragEnd(e) {
+      if (!dragging) return;
+      e.preventDefault();
+      const pos = e.changedTouches
+        ? { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY }
+        : { x: e.clientX, y: e.clientY };
+
+      ghost.style.display = 'none';
+      SHAPES.forEach(s => { const sl = document.getElementById('slot-'+s); if (sl) sl.classList.remove('highlight'); });
+
+      const { el, shape } = dragging;
+      dragging = null;
+      el.classList.remove('dragging');
+
+      SHAPES.forEach(s => {
+        const slot = document.getElementById('slot-' + s);
+        if (slot && isOverSlot(slot, pos.x, pos.y) && !matched.has(s)) {
+          if (s === shape) {
+            doMatch(el, slot, shape);
+          } else {
+            playSound('wrong');
+            slot.classList.add('shake');
+            setTimeout(() => slot.classList.remove('shake'), 400);
+          }
+        }
+      });
+    }
+
+    function doMatch(pieceEl, slotEl, shape) {
+      matched.add(shape);
+      pieceEl.classList.add('matched');
+
+      const fill = document.createElement('div');
+      fill.className = 'slot-fill snap-anim';
+      fill.innerHTML = pieceEl.innerHTML;
+      slotEl.appendChild(fill);
+      slotEl.querySelector('svg').style.opacity = '0';
+
+      const r = slotEl.getBoundingClientRect();
+      spawnStars(r.left + r.width/2, r.top + r.height/2, pieceEl.dataset.color);
+      if (!fxRunning) fxLoop();
+
+      playSound('match');
+      if (matched.size === SHAPES.length) setTimeout(showWin, 500);
+    }
+
+    function showWin() {
+      playSound('win');
+      spawnStars(window.innerWidth/2, window.innerHeight/2, '#ffe044');
+      spawnStars(window.innerWidth/2, window.innerHeight/2, '#ff88cc');
+      spawnStars(window.innerWidth/2, window.innerHeight/2, '#44eeff');
+      if (!fxRunning) fxLoop();
+      document.getElementById('win-overlay').classList.add('show');
+    }
+
+    document.addEventListener('mousemove',   onDragMove);
+    document.addEventListener('touchmove',   onDragMove, { passive: false });
+    document.addEventListener('mouseup',     onDragEnd);
+    document.addEventListener('touchend',    onDragEnd);
+    document.addEventListener('touchcancel', onDragEnd);
+
+    resetGame();
+    window.resetGame = resetGame;
+
+  })();
+  </script>
+
+</body>
+</html>

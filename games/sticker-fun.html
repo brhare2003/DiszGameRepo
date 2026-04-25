@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sticker Fun</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;touch-action:manipulation;}
+body{background:#1a0a2e;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none;}
+
+.screen{display:none;width:100vw;height:100vh;}
+.screen.active{display:flex;}
+
+/* ── Pick screen ── */
+#screen-pick{flex-direction:column;align-items:center;justify-content:flex-start;gap:16px;background:linear-gradient(160deg,#1a0a2e,#2e1060);overflow-y:auto;padding:60px 16px 24px;}
+#screen-pick h1{color:#FFD53E;font-size:2rem;text-shadow:0 2px 8px #000a;flex-shrink:0;}
+.bg-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;width:100%;max-width:520px;}
+.bg-thumb{width:100%;aspect-ratio:7/5;border-radius:16px;border:4px solid #fff4;cursor:pointer;overflow:hidden;transition:transform .15s,border-color .15s;}
+.bg-thumb:hover,.bg-thumb:focus{transform:scale(1.04);border-color:#FFD53E;outline:none;}
+.bg-thumb canvas{width:100%;height:100%;display:block;}
+.bg-thumb-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.45);color:#fff;font-size:13px;font-weight:600;text-align:center;padding:4px 0;border-radius:0 0 12px 12px;}
+.bg-thumb{position:relative;}
+
+/* ── Play screen ── */
+#screen-play{flex-direction:column;position:relative;}
+#scene-canvas{display:block;flex:1;width:100%;}
+#tray-wrap{display:flex;align-items:stretch;background:rgba(0,0,0,0.55);border-top:3px solid #fff3;}
+#tray-label{writing-mode:vertical-rl;transform:rotate(180deg);color:#FFD53E;font-size:12px;font-weight:700;padding:8px 6px;letter-spacing:1px;flex-shrink:0;}
+#tray{height:96px;display:flex;align-items:center;overflow-x:auto;overflow-y:hidden;padding:6px 4px;scrollbar-width:none;flex:1;}
+#tray::-webkit-scrollbar{display:none;}
+.tray-arrow{flex-shrink:0;width:44px;height:96px;background:rgba(0,0,0,0.4);border:none;color:#FFD53E;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.tray-arrow:hover{background:rgba(255,213,62,0.18);}
+.tray-arrow:active{background:rgba(255,213,62,0.35);}
+.sticker-btn{flex-shrink:0;width:72px;height:72px;font-size:38px;background:rgba(255,255,255,0.08);border:3px solid #fff2;border-radius:14px;cursor:grab;display:flex;align-items:center;justify-content:center;transition:transform .12s,border-color .12s;margin-right:6px;touch-action:none;}
+.sticker-btn:hover{transform:scale(1.18);border-color:#FFD53E;}
+
+/* top buttons */
+#home-btn{position:fixed;top:12px;left:12px;z-index:300;color:#2B2140;text-decoration:none;font-size:0.88rem;font-weight:700;background:rgba(255,246,228,0.92);border:2px solid #2B2140;padding:6px 14px;border-radius:20px;letter-spacing:1px;}
+#back-btn{position:absolute;top:50px;left:12px;background:rgba(0,0,0,0.5);color:#fff;border:2px solid #fff5;border-radius:10px;padding:6px 14px;font-size:15px;cursor:pointer;z-index:10;}
+#back-btn:hover{background:rgba(0,0,0,0.75);}
+#top-right{position:absolute;top:10px;right:10px;display:flex;gap:8px;z-index:10;}
+.top-btn{background:rgba(0,0,0,0.5);color:#fff;border:2px solid #fff5;border-radius:10px;padding:6px 14px;font-size:15px;cursor:pointer;}
+.top-btn:hover{background:rgba(80,80,180,0.85);}
+#clear-btn{background:rgba(220,50,50,0.7);}
+#clear-btn:hover{background:rgba(220,50,50,0.95);}
+
+/* drag ghost */
+#drag-ghost{position:fixed;pointer-events:none;display:none;font-size:56px;line-height:1;transform:translate(-50%,-50%);z-index:9999;filter:drop-shadow(0 4px 8px #0008);transition:transform .05s;}
+
+/* selected sticker controls */
+#sticker-controls{position:absolute;display:none;background:rgba(0,0,0,0.7);border:2px solid #FFD53E;border-radius:14px;padding:5px 8px;gap:6px;align-items:center;z-index:20;backdrop-filter:blur(4px);}
+#sticker-controls.visible{display:flex;}
+.ctrl-btn{width:36px;height:36px;font-size:18px;background:rgba(255,255,255,0.12);border:2px solid #fff3;border-radius:8px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.ctrl-btn:hover{background:rgba(255,213,62,0.3);border-color:#FFD53E;}
+.ctrl-sep{width:1px;height:28px;background:#fff3;}
+</style>
+</head>
+<body>
+
+<a href="../index.html" id="home-btn">&#8592; Home</a>
+
+<div id="screen-pick" class="screen active">
+  <h1>🎨 Pick a Scene!</h1>
+  <div class="bg-grid" id="bg-grid"></div>
+</div>
+
+<div id="screen-play" class="screen">
+  <button id="back-btn">← Back</button>
+  <div id="top-right">
+    <button class="top-btn" id="undo-btn">↩ Undo</button>
+    <button class="top-btn" id="clear-btn">🗑 Clear</button>
+  </div>
+  <canvas id="scene-canvas"></canvas>
+  <div id="sticker-controls">
+    <button class="ctrl-btn" id="ctrl-rotl" title="Rotate left">↺</button>
+    <button class="ctrl-btn" id="ctrl-rotr" title="Rotate right">↻</button>
+    <div class="ctrl-sep"></div>
+    <button class="ctrl-btn" id="ctrl-shrink" title="Smaller">−</button>
+    <button class="ctrl-btn" id="ctrl-grow" title="Bigger">＋</button>
+    <div class="ctrl-sep"></div>
+    <button class="ctrl-btn" id="ctrl-del" title="Delete">🗑</button>
+  </div>
+  <div id="tray-wrap">
+    <div id="tray-label">Drag →</div>
+    <button class="tray-arrow" id="tray-left">&#8249;</button>
+    <div id="tray"></div>
+    <button class="tray-arrow" id="tray-right">&#8250;</button>
+  </div>
+</div>
+
+<div id="drag-ghost"></div>
+
+<script>
+/* ═══════════════════════════════════════════
+   BACKGROUNDS
+═══════════════════════════════════════════ */
+const BACKGROUNDS = [
+  { name:'Sunny Meadow',   draw: drawMeadow   },
+  { name:'Spooky Forest',  draw: drawForest   },
+  { name:'Cozy Bedroom',   draw: drawBedroom  },
+  { name:'Outer Space',    draw: drawSpace    },
+  { name:'Under the Sea',  draw: drawOcean    },
+  { name:'Snowy Mountain', draw: drawMountain },
+  { name:'Rainy City',     draw: drawCity     },
+  { name:'Desert Sunset',  draw: drawDesert   },
+];
+
+function drawMeadow(ctx,w,h){
+  ctx.fillStyle='#87CEEB'; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#5DBB63'; ctx.fillRect(0,h*0.55,w,h*0.45);
+  ctx.fillStyle='#FFD53E';
+  ctx.beginPath(); ctx.arc(w*0.8,h*0.2,h*0.15,0,Math.PI*2); ctx.fill();
+}
+function drawForest(ctx,w,h){
+  ctx.fillStyle='#2d5a1b'; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#1a3a0a'; ctx.fillRect(0,h*0.6,w,h*0.4);
+  [[0.15,0.55],[0.5,0.45],[0.82,0.6]].forEach(([x,y])=>{
+    ctx.fillStyle='#3a7a28';
+    ctx.beginPath(); ctx.moveTo(w*x,h*y); ctx.lineTo(w*(x-0.12),h*0.95); ctx.lineTo(w*(x+0.12),h*0.95); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(w*x,h*(y-0.15)); ctx.lineTo(w*(x-0.1),h*(y+0.1)); ctx.lineTo(w*(x+0.1),h*(y+0.1)); ctx.fill();
+  });
+}
+function drawBedroom(ctx,w,h){
+  ctx.fillStyle='#f5e6d3'; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#c9a87c'; ctx.fillRect(0,h*0.75,w,h*0.25);
+  ctx.fillStyle='#e8b4b8'; ctx.fillRect(w*0.1,h*0.35,w*0.35,h*0.4);
+  ctx.fillStyle='#fff'; ctx.fillRect(w*0.12,h*0.37,w*0.31,h*0.25);
+  ctx.fillStyle='#7b5ea7'; ctx.fillRect(w*0.6,h*0.2,w*0.3,h*0.55); ctx.fillRect(w*0.62,h*0.22,w*0.26,h*0.5);
+  ctx.fillStyle='#c9a87c'; ctx.fillRect(w*0.58,h*0.73,w*0.34,h*0.04);
+}
+function drawSpace(ctx,w,h){
+  ctx.fillStyle='#0a0a2e'; ctx.fillRect(0,0,w,h);
+  for(let i=0;i<40;i++){
+    ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.8+0.2})`;
+    ctx.beginPath(); ctx.arc(Math.random()*w,Math.random()*h,Math.random()*1.5,0,Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle='#c084fc';
+  ctx.beginPath(); ctx.arc(w*0.2,h*0.25,h*0.18,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#a855f7';
+  ctx.beginPath(); ctx.arc(w*0.2,h*0.25,h*0.14,0,Math.PI*2); ctx.fill();
+}
+function drawOcean(ctx,w,h){
+  ctx.fillStyle='#1a6b8a'; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#2196a0'; ctx.fillRect(0,h*0.15,w,h*0.85);
+  ctx.fillStyle='#e8d5a3'; ctx.fillRect(0,h*0.82,w,h*0.18);
+  [0.2,0.5,0.75].forEach(x=>{
+    ctx.fillStyle='#f4a261';
+    ctx.beginPath(); ctx.arc(w*x,h*0.84,h*0.08,Math.PI,0); ctx.fill();
+  });
+}
+function drawMountain(ctx,w,h){
+  ctx.fillStyle='#b3d9ff'; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#6b93b0';
+  ctx.beginPath(); ctx.moveTo(0,h); ctx.lineTo(w*0.35,h*0.3); ctx.lineTo(w*0.7,h); ctx.fill();
+  ctx.fillStyle='#8aabcc';
+  ctx.beginPath(); ctx.moveTo(w*0.3,h); ctx.lineTo(w*0.65,h*0.45); ctx.lineTo(w,h); ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.moveTo(w*0.35,h*0.3); ctx.lineTo(w*0.25,h*0.48); ctx.lineTo(w*0.45,h*0.48); ctx.fill();
+}
+
+// Pre-generated random data so drawCity is stable across redraws
+const _cityWindows = Array.from({length:300}, () => Math.random() > 0.35);
+const _cityRain    = Array.from({length:40},  () => [Math.random(), Math.random()]);
+function drawCity(ctx,w,h){
+  ctx.fillStyle='#2a3a4a'; ctx.fillRect(0,0,w,h);
+  const winW = w*0.032, winH = w*0.044, winVStep = w*0.072, winHStep = w*0.06;
+  let wi = 0;
+  [[0,0.45,0.18,0.55],[0.16,0.35,0.22,0.65],[0.36,0.28,0.18,0.72],[0.52,0.4,0.2,0.6],[0.7,0.32,0.16,0.68],[0.84,0.42,0.16,0.58]].forEach(([x,y,bw,bh])=>{
+    ctx.fillStyle='#3a4a5a'; ctx.fillRect(w*x,h*y,w*bw,h*bh);
+    ctx.fillStyle='rgba(255,240,150,0.6)';
+    for(let wy=h*y+winVStep*0.6; wy<h*(y+bh)-winH; wy+=winVStep)
+      for(let wx=w*(x+0.03); wx<w*(x+bw)-winW; wx+=winHStep)
+        if(_cityWindows[wi++ % _cityWindows.length]) ctx.fillRect(wx,wy,winW,winH);
+  });
+  ctx.fillStyle='#222'; ctx.fillRect(0,h*0.85,w,h*0.15);
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  for(let rx=0;rx<w;rx+=w*0.12) ctx.fillRect(rx,h*0.915,w*0.07,h*0.02);
+  ctx.strokeStyle='rgba(180,210,255,0.35)'; ctx.lineWidth=1;
+  _cityRain.forEach(([rx,ry])=>{
+    const x=rx*w, y=ry*h*0.85;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-3,y+h*0.06); ctx.stroke();
+  });
+}
+function drawDesert(ctx,w,h){
+  // Gradient sky
+  const sky=ctx.createLinearGradient(0,0,0,h*0.65);
+  sky.addColorStop(0,'#1a0033'); sky.addColorStop(0.4,'#ff5500'); sky.addColorStop(1,'#ffaa00');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,w,h);
+  // Sun on horizon
+  ctx.fillStyle='#FFD53E';
+  ctx.beginPath(); ctx.arc(w*0.5,h*0.62,h*0.1,0,Math.PI*2); ctx.fill();
+  // Sand dunes
+  ctx.fillStyle='#c8914a';
+  ctx.beginPath(); ctx.moveTo(0,h); ctx.bezierCurveTo(w*0.2,h*0.62,w*0.45,h*0.75,w*0.6,h*0.65); ctx.bezierCurveTo(w*0.75,h*0.56,w*0.9,h*0.7,w,h*0.65); ctx.lineTo(w,h); ctx.fill();
+  ctx.fillStyle='#e0a85a';
+  ctx.beginPath(); ctx.moveTo(0,h); ctx.bezierCurveTo(w*0.15,h*0.72,w*0.35,h*0.82,w*0.55,h*0.74); ctx.bezierCurveTo(w*0.7,h*0.67,w*0.85,h*0.78,w,h*0.73); ctx.lineTo(w,h); ctx.fill();
+  // Cacti
+  [[0.15,0.68],[0.78,0.72]].forEach(([cx,cy])=>{
+    ctx.fillStyle='#2d7a2d'; ctx.strokeStyle='#1a4a1a'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.roundRect(w*cx-w*0.02,h*cy,w*0.04,h*0.22,2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.roundRect(w*cx-w*0.055,h*(cy+0.06),w*0.035,h*0.08,2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.roundRect(w*cx+w*0.02,h*(cy+0.08),w*0.035,h*0.07,2); ctx.fill(); ctx.stroke();
+  });
+}
+
+/* ── Thumbnail grid ── */
+const grid = document.getElementById('bg-grid');
+BACKGROUNDS.forEach((bg, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'bg-thumb'; btn.title = bg.name;
+  const c = document.createElement('canvas');
+  c.width = 350; c.height = 250;
+  bg.draw(c.getContext('2d'), 350, 250);
+  btn.appendChild(c);
+  const lbl = document.createElement('div');
+  lbl.className = 'bg-thumb-label'; lbl.textContent = bg.name;
+  btn.appendChild(lbl);
+  btn.addEventListener('click', () => startPlay(i));
+  grid.appendChild(btn);
+});
+
+/* ═══════════════════════════════════════════
+   STICKERS
+═══════════════════════════════════════════ */
+const STICKERS = [
+  '⭐','🌈','☀️','🌙','❄️','🔥','💧','🌸','🌻','🍄',
+  '🦋','🐶','🐱','🐸','🦄','🐠','🦊','🐧','🦁','🐼',
+  '🎈','🎉','🎀','💎','🍭','🍦','🍕','🎮','🏆','🎸',
+  '❤️','💜','💛','🌟','✨','💫','🎵','🎨','🚀','🌍',
+];
+
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let activeBg   = null;
+let placed     = [];   // {id,emoji,x,y,size,rotation}
+let nextId     = 0;
+let selectedId = null; // id of selected placed sticker
+let canvasDrag = null; // {id, ox, oy} — moving a sticker on canvas
+let trayDrag   = null; // {emoji} — dragging from tray
+
+const canvas   = document.getElementById('scene-canvas');
+const ctx      = canvas.getContext('2d');
+const ghost    = document.getElementById('drag-ghost');
+const controls = document.getElementById('sticker-controls');
+
+/* ═══════════════════════════════════════════
+   CANVAS
+═══════════════════════════════════════════ */
+function resizeCanvas() {
+  const play = document.getElementById('screen-play');
+  const trayWrap = document.getElementById('tray-wrap');
+  canvas.width  = play.clientWidth;
+  canvas.height = play.clientHeight - trayWrap.offsetHeight;
+  redraw();
+}
+
+function redraw() {
+  if (!activeBg) return;
+  activeBg.draw(ctx, canvas.width, canvas.height);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  placed.forEach(s => {
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.rotation * Math.PI / 180);
+    ctx.font = s.size + 'px serif';
+    ctx.fillText(s.emoji, 0, 0);
+    if (s.id === selectedId) {
+      const r = s.size * 0.55;
+      ctx.strokeStyle = '#FFD53E';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+  });
+  positionControls();
+}
+
+function positionControls() {
+  if (selectedId === null) { controls.classList.remove('visible'); return; }
+  const s = placed.find(p => p.id === selectedId);
+  if (!s) { controls.classList.remove('visible'); return; }
+  const r = canvas.getBoundingClientRect();
+  const cx = r.left + s.x;
+  const cy = r.top  + s.y;
+  const offset = s.size * 0.6 + 26;
+  controls.style.left = (cx - controls.offsetWidth / 2) + 'px';
+  controls.style.top  = Math.max(r.top + 4, cy - offset - controls.offsetHeight) + 'px';
+  controls.classList.add('visible');
+}
+
+/* ═══════════════════════════════════════════
+   HIT TEST — returns topmost placed sticker id
+═══════════════════════════════════════════ */
+function hitTest(x, y) {
+  for (let i = placed.length - 1; i >= 0; i--) {
+    const s = placed[i];
+    const dx = x - s.x, dy = y - s.y;
+    if (Math.sqrt(dx*dx + dy*dy) < s.size * 0.55) return s.id;
+  }
+  return null;
+}
+
+/* ═══════════════════════════════════════════
+   CANVAS POINTER EVENTS (move + select)
+═══════════════════════════════════════════ */
+canvas.addEventListener('pointerdown', e => {
+  if (trayDrag) return; // tray drag in progress
+  const r = canvas.getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  const id = hitTest(x, y);
+  if (id !== null) {
+    selectedId = id;
+    const s = placed.find(p => p.id === id);
+    canvasDrag = { id, ox: x - s.x, oy: y - s.y };
+    canvas.setPointerCapture(e.pointerId);
+    canvas.style.cursor = 'grabbing';
+    redraw();
+  } else {
+    selectedId = null;
+    redraw();
+  }
+});
+
+canvas.addEventListener('pointermove', e => {
+  if (!canvasDrag) {
+    const r = canvas.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    canvas.style.cursor = hitTest(x, y) !== null ? 'grab' : 'default';
+    return;
+  }
+  const r = canvas.getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  const s = placed.find(p => p.id === canvasDrag.id);
+  if (s) { s.x = x - canvasDrag.ox; s.y = y - canvasDrag.oy; redraw(); }
+});
+
+canvas.addEventListener('pointerup', e => {
+  if (canvasDrag) {
+    canvas.releasePointerCapture(e.pointerId);
+    canvas.style.cursor = 'grab';
+    canvasDrag = null;
+  }
+});
+
+/* ═══════════════════════════════════════════
+   TRAY DRAG
+═══════════════════════════════════════════ */
+const tray = document.getElementById('tray');
+STICKERS.forEach(em => {
+  const btn = document.createElement('button');
+  btn.className = 'sticker-btn';
+  btn.textContent = em;
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    trayDrag = { emoji: em };
+    ghost.textContent = em;
+    ghost.style.display = 'block';
+    ghost.style.left = e.clientX + 'px';
+    ghost.style.top  = e.clientY + 'px';
+    btn.setPointerCapture(e.pointerId);
+  });
+  btn.addEventListener('pointermove', e => {
+    if (!trayDrag) return;
+    ghost.style.left = e.clientX + 'px';
+    ghost.style.top  = e.clientY + 'px';
+  });
+  btn.addEventListener('pointerup', e => {
+    if (!trayDrag) return;
+    ghost.style.display = 'none';
+    const r = canvas.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    if (x >= 0 && y >= 0 && x <= canvas.width && y <= canvas.height) {
+      const s = { id: nextId++, emoji: trayDrag.emoji, x, y, size: 60, rotation: 0 };
+      placed.push(s);
+      selectedId = s.id;
+      playPop();
+      redraw();
+    }
+    trayDrag = null;
+  });
+  tray.appendChild(btn);
+});
+
+/* ═══════════════════════════════════════════
+   SELECTED STICKER CONTROLS
+═══════════════════════════════════════════ */
+document.getElementById('ctrl-rotl').addEventListener('click', () => {
+  const s = placed.find(p => p.id === selectedId); if (s) { s.rotation -= 15; redraw(); }
+});
+document.getElementById('ctrl-rotr').addEventListener('click', () => {
+  const s = placed.find(p => p.id === selectedId); if (s) { s.rotation += 15; redraw(); }
+});
+document.getElementById('ctrl-shrink').addEventListener('click', () => {
+  const s = placed.find(p => p.id === selectedId); if (s) { s.size = Math.max(20, s.size - 10); redraw(); }
+});
+document.getElementById('ctrl-grow').addEventListener('click', () => {
+  const s = placed.find(p => p.id === selectedId); if (s) { s.size = Math.min(200, s.size + 10); redraw(); }
+});
+document.getElementById('ctrl-del').addEventListener('click', () => {
+  placed = placed.filter(p => p.id !== selectedId);
+  selectedId = null; playWhoosh(); redraw();
+});
+
+/* ═══════════════════════════════════════════
+   SOUNDS
+═══════════════════════════════════════════ */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function ensureAudio() { if (!audioCtx) audioCtx = new AudioCtx(); }
+
+function playPop() {
+  ensureAudio();
+  const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.12);
+  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.18);
+}
+
+function playJingle() {
+  ensureAudio();
+  [523,659,784,1047].forEach((freq,i) => {
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'triangle';
+    const t = audioCtx.currentTime + i*0.12;
+    osc.frequency.setValueAtTime(freq,t);
+    gain.gain.setValueAtTime(0,t); gain.gain.linearRampToValueAtTime(0.18,t+0.02); gain.gain.exponentialRampToValueAtTime(0.001,t+0.22);
+    osc.start(t); osc.stop(t+0.22);
+  });
+}
+
+function playWhoosh() {
+  ensureAudio();
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate*0.15, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
+  const src = audioCtx.createBufferSource(); src.buffer = buf;
+  const filt = audioCtx.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=800;
+  const gain = audioCtx.createGain(); gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+  src.connect(filt); filt.connect(gain); gain.connect(audioCtx.destination);
+  src.start();
+}
+
+/* ═══════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════ */
+document.getElementById('back-btn').addEventListener('click', () => {
+  document.getElementById('screen-play').classList.remove('active');
+  document.getElementById('screen-pick').classList.add('active');
+  placed=[]; selectedId=null; controls.classList.remove('visible');
+});
+document.getElementById('undo-btn').addEventListener('click', () => {
+  if (!placed.length) return;
+  const last = placed[placed.length-1];
+  if (selectedId === last.id) selectedId = null;
+  placed.pop(); playWhoosh(); redraw();
+});
+document.getElementById('clear-btn').addEventListener('click', () => {
+  placed=[]; selectedId=null; playWhoosh(); redraw();
+});
+
+/* ── Tray arrow buttons ── */
+(function(){
+  const STEP = 220;
+  let leftTimer, rightTimer;
+  function scrollTray(dir) { tray.scrollBy({ left: dir * STEP, behavior: 'smooth' }); }
+  function startScroll(dir, btn) {
+    scrollTray(dir);
+    const id = setInterval(() => scrollTray(dir), 300);
+    btn._scrollId = id;
+  }
+  function stopScroll(btn) { clearInterval(btn._scrollId); }
+  ['left','right'].forEach(side => {
+    const btn = document.getElementById('tray-' + side);
+    const dir = side === 'right' ? 1 : -1;
+    btn.addEventListener('pointerdown', e => { e.preventDefault(); startScroll(dir, btn); btn.setPointerCapture(e.pointerId); });
+    btn.addEventListener('pointerup',   () => stopScroll(btn));
+    btn.addEventListener('pointercancel', () => stopScroll(btn));
+  });
+})();
+
+/* ═══════════════════════════════════════════
+   START
+═══════════════════════════════════════════ */
+function startPlay(bgIdx) {
+  activeBg = BACKGROUNDS[bgIdx];
+  placed=[]; nextId=0; selectedId=null; canvasDrag=null; trayDrag=null;
+  controls.classList.remove('visible');
+  document.getElementById('screen-pick').classList.remove('active');
+  document.getElementById('screen-play').classList.add('active');
+  resizeCanvas();
+  playJingle();
+}
+window.addEventListener('resize', () => { if (activeBg) resizeCanvas(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+/* Shared styles across the hub + game pages */
+
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@600;700;800&display=swap');
+
+:root {
+  --cream: #FFF6E4;
+  --cream-deep: #FFEBC7;
+  --ink: #2B2140;
+  --ink-soft: #5A4A7A;
+
+  --yellow: #FFD53E;
+  --yellow-deep: #F4B400;
+  --pink: #FF87B2;
+  --pink-deep: #E85A92;
+  --blue: #5BB8FF;
+  --blue-deep: #2E8FE0;
+  --mint: #6FE3B4;
+  --mint-deep: #2FB886;
+  --grape: #B48BFF;
+  --grape-deep: #7E54D6;
+  --tangerine: #FF9A4D;
+  --tangerine-deep: #E8701E;
+  --red: #FF6B6B;
+  --red-deep: #D84343;
+
+  --shadow-card: 0 6px 0 rgba(43, 33, 64, 0.18), 0 14px 28px rgba(43, 33, 64, 0.14);
+  --shadow-btn: 0 5px 0 rgba(43, 33, 64, 0.25);
+
+  --radius-card: 28px;
+  --radius-pill: 999px;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Fredoka', system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--cream);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+body {
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ---- Shared playful background ---- */
+.bg-scene {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 20% 0%, #FFE8A8 0%, transparent 55%),
+    radial-gradient(ellipse at 90% 15%, #FFD6E4 0%, transparent 50%),
+    radial-gradient(ellipse at 10% 90%, #CCE9FF 0%, transparent 55%),
+    radial-gradient(ellipse at 95% 95%, #D9F3E4 0%, transparent 55%),
+    var(--cream);
+  overflow: hidden;
+}
+.bg-scene::before,
+.bg-scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 12% 22%, rgba(255,255,255,0.55) 0 10px, transparent 11px),
+    radial-gradient(circle at 85% 30%, rgba(255,255,255,0.45) 0 14px, transparent 15px),
+    radial-gradient(circle at 70% 78%, rgba(255,255,255,0.5) 0 8px, transparent 9px),
+    radial-gradient(circle at 25% 85%, rgba(255,255,255,0.5) 0 12px, transparent 13px),
+    radial-gradient(circle at 50% 45%, rgba(255,255,255,0.35) 0 6px, transparent 7px);
+}
+
+.bg-shapes {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.bg-shape {
+  position: absolute;
+  animation: float 8s ease-in-out infinite;
+  opacity: 0.9;
+}
+.bg-shape:nth-child(2) { animation-delay: -2s; animation-duration: 10s; }
+.bg-shape:nth-child(3) { animation-delay: -4s; animation-duration: 9s; }
+.bg-shape:nth-child(4) { animation-delay: -1s; animation-duration: 11s; }
+.bg-shape:nth-child(5) { animation-delay: -3s; animation-duration: 8.5s; }
+.bg-shape:nth-child(6) { animation-delay: -5s; animation-duration: 12s; }
+.bg-shape:nth-child(7) { animation-delay: -2.5s; animation-duration: 9.5s; }
+.bg-shape:nth-child(8) { animation-delay: -6s; animation-duration: 10.5s; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-18px) rotate(calc(var(--r, 0deg) + 8deg)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-shape { animation: none; }
+}
+
+/* ---- Shared button styles ---- */
+.kid-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 14px 26px;
+  font-family: 'Baloo 2', 'Fredoka', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  color: white;
+  background: var(--pink);
+  border: 4px solid var(--ink);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-btn);
+  cursor: pointer;
+  text-decoration: none;
+  user-select: none;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.12);
+}
+.kid-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 rgba(43, 33, 64, 0.25);
+}
+
+/* Back button used on game pages */
+.back-btn {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  width: 64px;
+  height: 64px;
+  min-height: 64px;
+  padding: 0;
+  background: white;
+  color: var(--ink);
+  border: 4px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: var(--shadow-btn);
+  font-size: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+}
+.back-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(43, 33, 64, 0.25); }
+
+/* Utility: big readable text */
+.kid-title {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}

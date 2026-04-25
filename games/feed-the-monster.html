@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Feed the Monster</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { overflow: hidden; overscroll-behavior: none; }
+    body {
+      background: #FFF6E4;
+      overflow: hidden;
+      touch-action: none;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #bg-canvas {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+    }
+
+    #game-wrap {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center;
+      z-index: 1;
+    }
+
+    /* ── HUD ── */
+    #hud {
+      width: 100%; max-width: 480px;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 20px 0;
+    }
+    .hud-box {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 6px 16px;
+      font-size: 0.9rem; font-weight: 700;
+      letter-spacing: 1px; color: #fff;
+    }
+    #score-lbl { color: #ffe066; }
+    #timer-bar-wrap {
+      flex: 1; margin: 0 14px; height: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 5px; overflow: hidden;
+    }
+    #timer-bar {
+      height: 100%; width: 100%;
+      background: linear-gradient(90deg, #ff4466, #ff9933);
+      border-radius: 5px;
+      transition: width 0.1s linear, background 0.3s;
+    }
+
+    /* ── Monster area ── */
+    #monster-wrap {
+      position: relative;
+      margin-top: 10px;
+      width: 200px; height: 200px;
+      flex-shrink: 0;
+    }
+    #monster-canvas {
+      width: 200px; height: 200px;
+      display: block;
+    }
+
+    /* Color label */
+    #color-label {
+      text-align: center;
+      font-size: 1.05rem; font-weight: 800;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 6px;
+      text-shadow: 0 0 14px currentColor;
+      transition: color 0.3s;
+    }
+
+    /* ── Food tray ── */
+    #food-tray {
+      width: 100%; max-width: 480px;
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 18px;
+      padding: 12px 20px;
+    }
+
+    .food-item {
+      width: 70px; height: 70px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+      cursor: grab;
+      border: 3px solid rgba(255,255,255,0.35);
+      box-shadow: 0 0 18px rgba(0,0,0,0.5);
+      transition: transform 0.12s, box-shadow 0.12s;
+      position: relative;
+    }
+    .food-item:active { cursor: grabbing; }
+    .food-item.dragging {
+      opacity: 0.55;
+      transform: scale(0.9);
+    }
+
+    /* ── Drag ghost ── */
+    #drag-ghost {
+      position: fixed;
+      width: 70px; height: 70px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+      pointer-events: none;
+      z-index: 999;
+      transform: translate(-50%, -50%);
+      border: 3px solid rgba(255,255,255,0.5);
+      box-shadow: 0 0 24px rgba(255,255,255,0.3);
+      display: none;
+    }
+
+    /* ── Feedback flash ── */
+    #feedback {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2.4rem; font-weight: 900;
+      letter-spacing: 3px;
+      pointer-events: none;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.15s;
+      text-shadow: 0 0 20px currentColor;
+    }
+
+    /* ── Overlay screens ── */
+    .screen {
+      position: fixed; inset: 0;
+      background: rgba(0,0,10,0.88);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 200;
+      gap: 18px;
+      text-align: center;
+      padding: 20px;
+    }
+    .screen h2 {
+      font-size: 2rem; font-weight: 900;
+      letter-spacing: 4px; color: #fff;
+      text-shadow: 0 0 20px rgba(255,255,100,0.6);
+    }
+    .screen p { color: #bbb; font-size: 1rem; line-height: 1.6; max-width: 320px; }
+    .screen .big-score {
+      font-size: 3.5rem; font-weight: 900;
+      color: #ffe066;
+      text-shadow: 0 0 30px rgba(255,220,60,0.7);
+    }
+    .btn {
+      background: #ff4466;
+      color: #fff; border: none;
+      padding: 14px 40px;
+      border-radius: 30px;
+      font-size: 1rem; font-weight: 700;
+      letter-spacing: 2px;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(255,60,90,0.55);
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .btn:hover { transform: scale(1.06); box-shadow: 0 0 28px rgba(255,60,90,0.75); }
+    .btn:active { transform: scale(0.97); }
+    .btn.green { background: #33cc66; box-shadow: 0 0 20px rgba(40,200,100,0.55); }
+    .btn.green:hover { box-shadow: 0 0 28px rgba(40,200,100,0.75); }
+
+    /* home button */
+    #home-btn {
+      position: fixed; top: 14px; left: 14px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #ccc; text-decoration: none;
+      font-size: 0.8rem; font-weight: 700;
+      letter-spacing: 2px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      z-index: 300;
+      transition: background 0.15s, color 0.15s;
+    }
+    #home-btn:hover { background: rgba(255,255,255,0.18); color: #fff; }
+  </style>
+  <script>
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    (function() {
+      var lt = 0;
+      document.addEventListener('touchend', function(e) {
+        var now = Date.now();
+        if (now - lt < 300) e.preventDefault();
+        lt = now;
+      }, false);
+    })();
+    document.addEventListener('gesturestart',  function(e) { e.preventDefault(); }, false);
+    document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, false);
+    window.addEventListener('wheel', function(e) {
+      if (e.ctrlKey) e.preventDefault();
+    }, { passive: false });
+  </script>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<a href="../index.html" id="home-btn">&#8592; HOME</a>
+
+<div id="game-wrap">
+  <div id="hud">
+    <div class="hud-box" id="score-lbl">0</div>
+    <div id="timer-bar-wrap"><div id="timer-bar"></div></div>
+    <div class="hud-box" id="time-lbl">&#9201; 15</div>
+  </div>
+
+  <div id="monster-wrap">
+    <canvas id="monster-canvas" width="200" height="200"></canvas>
+  </div>
+  <div id="color-label">?</div>
+
+  <div id="food-tray"></div>
+</div>
+
+<div id="drag-ghost"></div>
+<div id="feedback"></div>
+
+<!-- Start screen -->
+<div class="screen" id="start-screen">
+  <h2>FEED THE MONSTER</h2>
+  <p>Feed the monster as many times as possible in 15 seconds! Drag the food that matches its color into its mouth.</p>
+  <button class="btn green" id="start-btn">PLAY</button>
+</div>
+
+<!-- Game over screen -->
+<div class="screen" id="over-screen" style="display:none">
+  <h2>GAME OVER</h2>
+  <div class="big-score" id="final-score">0</div>
+  <p id="over-msg">Nice try!</p>
+  <button class="btn green" id="restart-btn">PLAY AGAIN</button>
+</div>
+
+<script>
+// ── Background starfield ──────────────────────────────────────────────────────
+(function () {
+  var cv = document.getElementById('bg-canvas');
+  var c  = cv.getContext('2d');
+  var W, H, stars = [], planets = [];
+
+  function resize() {
+    W = cv.width  = window.innerWidth;
+    H = cv.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (var i = 0; i < 160; i++) {
+    stars.push({
+      x: Math.random(), y: Math.random(),
+      r: Math.random() * 1.4 + 0.3,
+      a: Math.random() * 0.7 + 0.2,
+      spd: Math.random() * 0.00008 + 0.00002
+    });
+  }
+  var pcols = ['#4466ff','#ff6644','#66ccff','#cc44ff','#ffcc44'];
+  for (var p = 0; p < 4; p++) {
+    planets.push({
+      x: Math.random(), y: Math.random(),
+      r: Math.random() * 22 + 10,
+      col: pcols[p % pcols.length],
+      spd: Math.random() * 0.00002 + 0.000005
+    });
+  }
+
+  function draw(ts) {
+    requestAnimationFrame(draw);
+    var g = c.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.75);
+    g.addColorStop(0, '#000040'); g.addColorStop(1, '#000010');
+    c.fillStyle = g; c.fillRect(0,0,W,H);
+    stars.forEach(function(s) {
+      s.y -= s.spd; if (s.y < 0) { s.y = 1; s.x = Math.random(); }
+      c.beginPath();
+      c.arc(s.x*W, s.y*H, s.r, 0, Math.PI*2);
+      c.fillStyle = 'rgba(255,255,255,' + s.a + ')';
+      c.fill();
+    });
+    planets.forEach(function(pl) {
+      pl.y -= pl.spd; if (pl.y < -0.1) pl.y = 1.1;
+      var pg = c.createRadialGradient(pl.x*W - pl.r*0.3, pl.y*H - pl.r*0.3, 0, pl.x*W, pl.y*H, pl.r);
+      pg.addColorStop(0, 'rgba(255,255,255,0.18)');
+      pg.addColorStop(0.3, pl.col + 'cc');
+      pg.addColorStop(1, pl.col + '22');
+      c.beginPath();
+      c.arc(pl.x*W, pl.y*H, pl.r, 0, Math.PI*2);
+      c.fillStyle = pg; c.fill();
+    });
+  }
+  requestAnimationFrame(draw);
+})();
+
+// ── Game constants ────────────────────────────────────────────────────────────
+// ── Audio ─────────────────────────────────────────────────────────────────────
+var _ac = null;
+function getAC() { if (!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+function playSound(type) {
+  try {
+    var a = getAC(), t = a.currentTime;
+    if (type === 'correct') {
+      [523,784,1047].forEach(function(f,i){
+        var o=a.createOscillator(), g=a.createGain();
+        o.connect(g); g.connect(a.destination);
+        o.frequency.setValueAtTime(f, t+i*0.09);
+        g.gain.setValueAtTime(0.18, t+i*0.09); g.gain.exponentialRampToValueAtTime(0.001, t+i*0.09+0.18);
+        o.start(t+i*0.09); o.stop(t+i*0.09+0.18);
+      });
+    } else if (type === 'wrong') {
+      var o=a.createOscillator(), g=a.createGain();
+      o.type='sawtooth'; o.connect(g); g.connect(a.destination);
+      o.frequency.setValueAtTime(240, t); o.frequency.exponentialRampToValueAtTime(110, t+0.22);
+      g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.25);
+      o.start(t); o.stop(t+0.25);
+    } else if (type === 'gameover') {
+      [440,370,300,220].forEach(function(f,i){
+        var o=a.createOscillator(), g=a.createGain();
+        o.connect(g); g.connect(a.destination);
+        o.frequency.setValueAtTime(f, t+i*0.14);
+        g.gain.setValueAtTime(0.18, t+i*0.14); g.gain.exponentialRampToValueAtTime(0.001, t+i*0.14+0.18);
+        o.start(t+i*0.14); o.stop(t+i*0.14+0.18);
+      });
+    } else if (type === 'timeout') {
+      var o=a.createOscillator(), g=a.createGain();
+      o.type='triangle'; o.connect(g); g.connect(a.destination);
+      o.frequency.setValueAtTime(350, t); o.frequency.exponentialRampToValueAtTime(180, t+0.3);
+      g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.35);
+      o.start(t); o.stop(t+0.35);
+    }
+  } catch(e) {}
+}
+
+var COLORS = [
+  { name: 'RED',    hex: '#ff3355', bg: '#ff335533', emoji: '🍎' },
+  { name: 'BLUE',   hex: '#3399ff', bg: '#3399ff33', emoji: '🫐' },
+  { name: 'GREEN',  hex: '#33dd66', bg: '#33dd6633', emoji: '🥦' },
+  { name: 'YELLOW', hex: '#ffdd33', bg: '#ffdd3333', emoji: '🍋' },
+  { name: 'PURPLE', hex: '#cc44ff', bg: '#cc44ff33', emoji: '🍇' },
+  { name: 'ORANGE', hex: '#ff8833', bg: '#ff883333', emoji: '🥕' },
+];
+
+var GAME_TIME   = 15000;  // total game duration in ms
+var FOOD_COUNT  = 4;      // food items shown per round
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var score      = 0;
+var targetIdx  = 0;        // current required color index
+var gameEndTime = 0;
+var gameTimerId = null;
+var mouthOpen  = false;
+var animating  = false;
+var gameActive = false;
+
+// Monster canvas
+var mc  = document.getElementById('monster-canvas');
+var mctx = mc.getContext('2d');
+
+// ── Draw monster ──────────────────────────────────────────────────────────────
+function drawMonster(colorHex, open, expression) {
+  // expression: 'normal' | 'happy' | 'sad'
+  mctx.clearRect(0, 0, 200, 200);
+  var cx = 100, cy = 96, rx = 72, ry = 64;
+
+  // Glow
+  var glow = mctx.createRadialGradient(cx, cy, 20, cx, cy, rx);
+  glow.addColorStop(0, colorHex + 'aa');
+  glow.addColorStop(1, colorHex + '00');
+  mctx.fillStyle = glow;
+  mctx.fillRect(0, 0, 200, 200);
+
+  // Body
+  mctx.save();
+  mctx.shadowBlur = 18; mctx.shadowColor = colorHex;
+  mctx.fillStyle = colorHex;
+  mctx.beginPath();
+  mctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
+  mctx.fill();
+  mctx.restore();
+
+  // Texture bumps
+  mctx.fillStyle = 'rgba(255,255,255,0.12)';
+  [[cx-28, cy-20, 10], [cx+22, cy-30, 8], [cx-10, cy+18, 7]].forEach(function(b) {
+    mctx.beginPath(); mctx.arc(b[0], b[1], b[2], 0, Math.PI*2); mctx.fill();
+  });
+
+  // Horns
+  mctx.fillStyle = darken(colorHex, 0.7);
+  drawHorn(mctx, cx-32, cy-58, -18);
+  drawHorn(mctx, cx+32, cy-58,  18);
+
+  // Eyes
+  var eyeY = cy - 14;
+  drawEye(mctx, cx-24, eyeY, expression);
+  drawEye(mctx, cx+24, eyeY, expression);
+
+  // Mouth
+  if (open) {
+    // open mouth — target zone
+    mctx.fillStyle = '#110008';
+    mctx.beginPath();
+    mctx.ellipse(cx, cy+30, 34, 22, 0, 0, Math.PI*2);
+    mctx.fill();
+    // teeth — follow the top arc of the mouth ellipse (rx=34, ry=22, center cy+30)
+    mctx.fillStyle = '#fff';
+    var mouthCY = cy + 30, mouthRX = 34, mouthRY = 22;
+    for (var t = -2; t <= 2; t++) {
+      var tx = t * 13;
+      if (Math.abs(tx) >= mouthRX) continue;
+      // y on the top arc of the ellipse at this x-offset
+      var yBase = mouthCY - mouthRY * Math.sqrt(1 - (tx / mouthRX) * (tx / mouthRX));
+      mctx.beginPath();
+      mctx.moveTo(cx + tx - 6, yBase);
+      mctx.lineTo(cx + tx,     yBase + 11);
+      mctx.lineTo(cx + tx + 6, yBase);
+      mctx.closePath();
+      mctx.fill();
+    }
+    // tongue
+    mctx.fillStyle = '#ff558a';
+    mctx.beginPath();
+    mctx.ellipse(cx, cy+38, 16, 10, 0, 0, Math.PI*2);
+    mctx.fill();
+  } else {
+    // closed smile / frown
+    mctx.strokeStyle = '#000';
+    mctx.lineWidth = 3.5;
+    mctx.lineCap = 'round';
+    mctx.beginPath();
+    if (expression === 'happy') {
+      mctx.arc(cx, cy+22, 22, 0.2*Math.PI, 0.8*Math.PI);
+    } else if (expression === 'sad') {
+      mctx.arc(cx, cy+50, 22, 1.2*Math.PI, 1.8*Math.PI);
+    } else {
+      mctx.arc(cx, cy+22, 22, 0.2*Math.PI, 0.8*Math.PI);
+    }
+    mctx.stroke();
+  }
+}
+
+function darken(hex, factor) {
+  var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return 'rgb('+Math.round(r*factor)+','+Math.round(g*factor)+','+Math.round(b*factor)+')';
+}
+
+function drawHorn(ctx, x, y, angle) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle * Math.PI/180);
+  ctx.beginPath();
+  ctx.moveTo(-7, 0); ctx.lineTo(0, -28); ctx.lineTo(7, 0);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawEye(ctx, x, y, expression) {
+  // white
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.ellipse(x, y, 13, 14, 0, 0, Math.PI*2); ctx.fill();
+  // pupil
+  ctx.fillStyle = '#111';
+  var py = expression === 'sad' ? y+3 : y;
+  ctx.beginPath(); ctx.ellipse(x+1, py, 6, 7, 0, 0, Math.PI*2); ctx.fill();
+  // shine
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.beginPath(); ctx.ellipse(x+3, py-3, 3, 3, 0, 0, Math.PI*2); ctx.fill();
+  if (expression === 'sad') {
+    // bushy brow angled down
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x-10, y-18); ctx.lineTo(x+10, y-13); ctx.stroke();
+  }
+}
+
+// ── Build food tray ───────────────────────────────────────────────────────────
+function buildTray(targetIdx) {
+  var tray = document.getElementById('food-tray');
+  tray.innerHTML = '';
+
+  // Always include the correct color, fill rest with unique wrong colors
+  var indices = [targetIdx];
+  var pool = COLORS.map(function(_,i){ return i; }).filter(function(i){ return i !== targetIdx; });
+  shuffle(pool);
+  for (var i = 0; i < FOOD_COUNT - 1; i++) indices.push(pool[i]);
+  shuffle(indices);
+
+  indices.forEach(function(ci) {
+    var col = COLORS[ci];
+    var el = document.createElement('div');
+    el.className = 'food-item';
+    el.style.background = col.bg;
+    el.style.borderColor = col.hex;
+    el.style.boxShadow   = '0 0 16px ' + col.hex + '55';
+    el.textContent = col.emoji;
+    el.dataset.colorIdx = ci;
+    attachDrag(el);
+    tray.appendChild(el);
+  });
+}
+
+function shuffle(arr) {
+  for (var i = arr.length-1; i > 0; i--) {
+    var j = Math.floor(Math.random()*(i+1));
+    var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+}
+
+// ── Dragging ──────────────────────────────────────────────────────────────────
+var ghost    = document.getElementById('drag-ghost');
+var dragging = null;  // { el, colorIdx }
+
+function attachDrag(el) {
+  el.addEventListener('mousedown',  onDragStart, { passive: false });
+  el.addEventListener('touchstart', onDragStart, { passive: false });
+}
+
+function onDragStart(e) {
+  if (!gameActive || animating) return;
+  e.preventDefault();
+  var el = e.currentTarget;
+  dragging = { el: el, colorIdx: parseInt(el.dataset.colorIdx) };
+  el.classList.add('dragging');
+
+  var col = COLORS[dragging.colorIdx];
+  ghost.textContent = col.emoji;
+  ghost.style.background = col.bg;
+  ghost.style.borderColor = col.hex;
+  ghost.style.boxShadow   = '0 0 24px ' + col.hex;
+  ghost.style.display = 'flex';
+
+  moveGhost(e);
+
+  document.addEventListener('mousemove',  onDragMove, { passive: false });
+  document.addEventListener('touchmove',  onDragMove, { passive: false });
+  document.addEventListener('mouseup',    onDragEnd,  { passive: false });
+  document.addEventListener('touchend',   onDragEnd,  { passive: false });
+}
+
+function moveGhost(e) {
+  var x, y;
+  if (e.touches) { x = e.touches[0].clientX; y = e.touches[0].clientY; }
+  else { x = e.clientX; y = e.clientY; }
+  ghost.style.left = x + 'px';
+  ghost.style.top  = y + 'px';
+}
+
+function onDragMove(e) { e.preventDefault(); moveGhost(e); }
+
+function onDragEnd(e) {
+  e.preventDefault();
+  document.removeEventListener('mousemove',  onDragMove);
+  document.removeEventListener('touchmove',  onDragMove);
+  document.removeEventListener('mouseup',    onDragEnd);
+  document.removeEventListener('touchend',   onDragEnd);
+
+  ghost.style.display = 'none';
+  if (!dragging) return;
+  dragging.el.classList.remove('dragging');
+
+  // Check if dropped on monster mouth
+  var x, y;
+  if (e.changedTouches) { x = e.changedTouches[0].clientX; y = e.changedTouches[0].clientY; }
+  else { x = e.clientX; y = e.clientY; }
+
+  if (overMonsterMouth(x, y)) {
+    handleFeed(dragging.colorIdx);
+  }
+  dragging = null;
+}
+
+function overMonsterMouth(x, y) {
+  var rect = mc.getBoundingClientRect();
+  var cx = rect.left + rect.width  * 0.5;
+  var cy = rect.top  + rect.height * 0.62; // mouth is ~62% down
+  var dx = x - cx, dy = y - cy;
+  return Math.sqrt(dx*dx + dy*dy) < 55;
+}
+
+// ── Feed logic ────────────────────────────────────────────────────────────────
+function handleFeed(colorIdx) {
+  if (animating || !gameActive) return;
+  animating = true;
+
+  if (colorIdx === targetIdx) {
+    score += 10;
+    updateHUD();
+    playSound('correct');
+    showFeedback('+10', '#33ff99');
+    drawMonster(COLORS[targetIdx].hex, false, 'happy');
+    setTimeout(nextRound, 500);
+  } else {
+    playSound('wrong');
+    showFeedback('WRONG!', '#ff3355');
+    drawMonster(COLORS[targetIdx].hex, true, 'sad');
+    setTimeout(function() {
+      animating = false;
+      drawMonster(COLORS[targetIdx].hex, true, 'normal');
+    }, 500);
+  }
+}
+
+// ── Round management ──────────────────────────────────────────────────────────
+function nextRound() {
+  animating = false;
+  pickTarget();
+  buildTray(targetIdx);
+  drawMonster(COLORS[targetIdx].hex, true, 'normal');
+  document.getElementById('color-label').textContent = COLORS[targetIdx].name;
+  document.getElementById('color-label').style.color = COLORS[targetIdx].hex;
+}
+
+function pickTarget() {
+  var prev = targetIdx;
+  do { targetIdx = Math.floor(Math.random() * COLORS.length); } while (targetIdx === prev && COLORS.length > 1);
+}
+
+function updateHUD() {
+  document.getElementById('score-lbl').textContent = score;
+  var secsLeft = Math.max(0, Math.ceil((gameEndTime - Date.now()) / 1000));
+  document.getElementById('time-lbl').textContent = '\u23F1 ' + secsLeft;
+}
+
+function startGameTimer() {
+  gameEndTime = Date.now() + GAME_TIME;
+  var bar = document.getElementById('timer-bar');
+  bar.style.transition = 'none';
+  bar.style.width = '100%';
+  bar.style.background = 'linear-gradient(90deg,#ff4466,#ff9933)';
+  void bar.offsetWidth;
+  bar.style.transition = 'width ' + GAME_TIME/1000 + 's linear';
+  bar.style.width = '0%';
+
+  clearInterval(gameTimerId);
+  gameTimerId = setInterval(function() {
+    updateHUD();
+    if (Date.now() >= gameEndTime) {
+      clearInterval(gameTimerId);
+      gameOver();
+    }
+  }, 200);
+}
+
+// ── Feedback flash ────────────────────────────────────────────────────────────
+var fbTimer = null;
+function showFeedback(msg, color) {
+  var fb = document.getElementById('feedback');
+  fb.textContent = msg;
+  fb.style.color = color;
+  fb.style.opacity = '1';
+  clearTimeout(fbTimer);
+  fbTimer = setTimeout(function() { fb.style.opacity = '0'; }, 600);
+}
+
+// ── Start / Game Over ─────────────────────────────────────────────────────────
+function startGame() {
+  score = 0;
+  gameActive = true; animating = false;
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('over-screen').style.display  = 'none';
+  nextRound();
+  updateHUD();
+  startGameTimer();
+}
+
+function gameOver() {
+  gameActive = false;
+  playSound('gameover');
+  clearInterval(gameTimerId);
+  ghost.style.display = 'none';
+  document.getElementById('final-score').textContent = score;
+  var msg = score >= 150 ? 'Monster-feeding legend!' :
+            score >= 80  ? 'The monster is satisfied!' :
+            score >= 40  ? 'Keep practicing!' : 'The monster is still hungry…';
+  document.getElementById('over-msg').textContent = msg;
+  document.getElementById('over-screen').style.display = 'flex';
+  drawMonster(COLORS[targetIdx].hex, false, 'sad');
+}
+
+// ── Button wiring ─────────────────────────────────────────────────────────────
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('restart-btn').addEventListener('click', startGame);
+
+// Initial idle draw
+drawMonster('#cc44ff', true, 'normal');
+document.getElementById('color-label').style.color = '#cc44ff';
+document.getElementById('color-label').textContent = '?';
+</script>
+</body>
+</html>
