@@ -134,20 +134,22 @@ function useDefault(){
    DRAWING SCREEN
 ══════════════════════════════════════ */
 const COLORS = ['#222222','#e74c3c','#e67e22','#f1c40f','#2ecc71','#3498db','#9b59b6','#fff'];
-let drawTool = { color: COLORS[0], size: 4, mode: 'draw' };
+let drawTool = { color: COLORS[0], size: 6, mode: 'draw' };
 let rainbowHue = 0;
 let isDrawing = false;
 let lastX = 0, lastY = 0;
 
-const drawCanvas = document.getElementById('draw-canvas');
-const drawCtx    = drawCanvas.getContext('2d');
+const drawCanvas   = document.getElementById('draw-canvas');
+const drawCtx      = drawCanvas.getContext('2d');
+const drawBackdrop = document.getElementById('draw-backdrop');
+const bdCtx        = drawBackdrop.getContext('2d');
 
 /* build color swatches */
 const swatchRow = document.getElementById('color-swatches');
 COLORS.forEach(c => {
   const s = document.createElement('div');
   s.className = 'color-swatch' + (c === COLORS[0] ? ' active' : '');
-  s.style.background = c; s.style.border = c==='#fff' ? '3px solid #888' : '';
+  s.style.background = c; if(c==='#fff') s.style.border='3px solid #888';
   s.addEventListener('click', () => {
     document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('active'));
     s.classList.add('active');
@@ -157,7 +159,6 @@ COLORS.forEach(c => {
   swatchRow.appendChild(s);
 });
 
-/* tool buttons */
 function setToolActive(id){ document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active')); document.getElementById(id).classList.add('active'); }
 document.getElementById('btn-thin').addEventListener('click',()=>{ drawTool.size=3; });
 document.getElementById('btn-thick').addEventListener('click',()=>{ drawTool.size=14; });
@@ -166,12 +167,29 @@ document.getElementById('btn-eraser').addEventListener('click',()=>{ drawTool.mo
 document.getElementById('btn-clear').addEventListener('click',()=>{ drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height); });
 
 function resizeDrawCanvas(){
+  const area = document.getElementById('draw-area');
+  const w = area.clientWidth, h = area.clientHeight;
+  // preserve current strokes
   const tmp = document.createElement('canvas');
   tmp.width=drawCanvas.width; tmp.height=drawCanvas.height;
   tmp.getContext('2d').drawImage(drawCanvas,0,0);
-  drawCanvas.width  = drawCanvas.clientWidth  || window.innerWidth;
-  drawCanvas.height = drawCanvas.clientHeight || (window.innerHeight - 120);
-  drawCtx.drawImage(tmp,0,0);
+  drawCanvas.width = drawBackdrop.width = w;
+  drawCanvas.height = drawBackdrop.height = h;
+  drawCtx.drawImage(tmp,0,0,w,h);
+  refreshBackdrop();
+}
+
+/* backdrop: all saved parts except current, at 0.22 opacity */
+function refreshBackdrop(){
+  const w=drawBackdrop.width, h=drawBackdrop.height;
+  bdCtx.clearRect(0,0,w,h);
+  bdCtx.globalAlpha = 0.22;
+  PARTS.forEach((p,i)=>{
+    if(i===currentPartIdx) return;
+    const pc=partCanvases[p];
+    if(pc) bdCtx.drawImage(pc,0,0,w,h);
+  });
+  bdCtx.globalAlpha = 1;
 }
 
 function getPos(e){
@@ -180,82 +198,72 @@ function getPos(e){
   return [src.clientX - r.left, src.clientY - r.top];
 }
 
-function startStroke(e){
-  e.preventDefault();
-  [lastX, lastY] = getPos(e);
-  isDrawing = true;
-}
+function startStroke(e){ e.preventDefault(); [lastX,lastY]=getPos(e); isDrawing=true; }
 function moveStroke(e){
-  if (!isDrawing) return;
-  e.preventDefault();
-  const [x,y] = getPos(e);
-  drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
-  if (drawTool.mode === 'erase'){
-    drawCtx.globalCompositeOperation = 'destination-out';
-    drawCtx.lineWidth = 28;
-    drawCtx.strokeStyle = 'rgba(0,0,0,1)';
+  if(!isDrawing) return; e.preventDefault();
+  const [x,y]=getPos(e);
+  drawCtx.lineCap='round'; drawCtx.lineJoin='round';
+  if(drawTool.mode==='erase'){
+    drawCtx.globalCompositeOperation='destination-out';
+    drawCtx.lineWidth=28; drawCtx.strokeStyle='rgba(0,0,0,1)';
   } else {
-    drawCtx.globalCompositeOperation = 'source-over';
-    drawCtx.lineWidth = drawTool.size;
-    if (drawTool.mode === 'rainbow'){
-      rainbowHue = (rainbowHue + 4) % 360;
-      drawCtx.strokeStyle = `hsl(${rainbowHue},100%,55%)`;
-    } else {
-      drawCtx.strokeStyle = drawTool.color;
-    }
+    drawCtx.globalCompositeOperation='source-over';
+    drawCtx.lineWidth=drawTool.size;
+    drawCtx.strokeStyle=drawTool.mode==='rainbow'
+      ? `hsl(${rainbowHue=(rainbowHue+4)%360},100%,55%)`
+      : drawTool.color;
   }
   drawCtx.beginPath(); drawCtx.moveTo(lastX,lastY); drawCtx.lineTo(x,y); drawCtx.stroke();
-  [lastX, lastY] = [x,y];
+  [lastX,lastY]=[x,y];
 }
-function endStroke(){ isDrawing = false; drawCtx.globalCompositeOperation='source-over'; }
+function endStroke(){ isDrawing=false; drawCtx.globalCompositeOperation='source-over'; }
 
 drawCanvas.addEventListener('pointerdown', startStroke);
 drawCanvas.addEventListener('pointermove', moveStroke);
 drawCanvas.addEventListener('pointerup',   endStroke);
 drawCanvas.addEventListener('pointerleave',endStroke);
 
-/* part nav pips */
-const partsNav = document.getElementById('draw-parts-nav');
+/* right-side parts list */
+const partsList = document.getElementById('draw-parts-list');
 PARTS.forEach((p,i)=>{
-  const pip = document.createElement('div');
-  pip.className='part-pip'; pip.title=p;
-  pip.textContent = p.replace('Left ','L.').replace('Right ','R.');
-  pip.dataset.idx = i;
-  pip.addEventListener('click',()=>{ saveCurrentPart(); loadPart(i); });
-  partsNav.appendChild(pip);
+  const row = document.createElement('div');
+  row.className='part-row'; row.dataset.idx=i;
+  row.innerHTML=`<span class="part-arrow">▶</span><input type="checkbox" class="part-check" disabled/><span class="part-name">${p}</span>`;
+  row.addEventListener('click',()=>{ saveCurrentPart(); loadPart(i); });
+  partsList.appendChild(row);
 });
 
-function updatePips(){
-  document.querySelectorAll('.part-pip').forEach((p,i)=>{
-    p.classList.toggle('done', !!partCanvases[PARTS[i]]);
-    p.classList.toggle('current', i===currentPartIdx);
+function updatePartsList(){
+  document.querySelectorAll('.part-row').forEach((row,i)=>{
+    const done = !!partCanvases[PARTS[i]];
+    row.classList.toggle('current', i===currentPartIdx);
+    row.classList.toggle('done', done);
+    row.querySelector('.part-check').checked = done;
   });
-  document.getElementById('draw-part-label').textContent = 'Drawing: ' + PARTS[currentPartIdx];
+  document.getElementById('draw-part-label').textContent = 'Drawing: '+PARTS[currentPartIdx];
 }
 
 function saveCurrentPart(){
-  const off = document.createElement('canvas');
+  const off=document.createElement('canvas');
   off.width=drawCanvas.width; off.height=drawCanvas.height;
   off.getContext('2d').drawImage(drawCanvas,0,0);
-  partCanvases[PARTS[currentPartIdx]] = off;
+  partCanvases[PARTS[currentPartIdx]]=off;
 }
 
 function loadPart(idx){
-  currentPartIdx = idx;
+  currentPartIdx=idx;
   drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
-  const saved = partCanvases[PARTS[idx]];
-  if (saved) drawCtx.drawImage(saved,0,0,drawCanvas.width,drawCanvas.height);
-  updatePips();
+  const saved=partCanvases[PARTS[idx]];
+  if(saved) drawCtx.drawImage(saved,0,0,drawCanvas.width,drawCanvas.height);
+  refreshBackdrop();
+  updatePartsList();
 }
 
 document.getElementById('btn-part-done').addEventListener('click',()=>{
   saveCurrentPart();
-  const nextIdx = currentPartIdx + 1;
-  if (nextIdx < PARTS.length){
-    loadPart(nextIdx);
-  } else {
-    show('screen-word');
-  }
+  const next=currentPartIdx+1;
+  if(next<PARTS.length){ loadPart(next); }
+  else { show('screen-word'); }
 });
 
 /* ══════════════════════════════════════
@@ -418,7 +426,8 @@ function startDrawing(){
   setTimeout(()=>{
     resizeDrawCanvas();
     drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
-    updatePips();
+    refreshBackdrop();
+    updatePartsList();
   },50);
 }
 </script>
