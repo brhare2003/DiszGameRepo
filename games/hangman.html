@@ -486,6 +486,57 @@ function drawGallows(){
   gCtx.closePath();
   gCtx.fillStyle='#3da03d'; gCtx.fill();
 
+  // ── Grass blades along the hill surface ──────────────────────────────────
+  // helper: y on the hill bezier curve at a given x fraction (0-1)
+  function hillSurfaceY(xf){
+    // approximate with linear interpolation of the bezier at a few key x points
+    // bezier control: P0=(0,0.70) P1=(0.25,0.64) P2=(0.55,0.78) P3=(1,0.82)
+    // use De Casteljau with t≈xf (good enough for uniform x spacing on a gentle curve)
+    const t=xf;
+    const y = (1-t)**3*0.70 + 3*(1-t)**2*t*0.64 + 3*(1-t)*t**2*0.78 + t**3*0.82;
+    return y*h;
+  }
+
+  // fixed blade positions (deterministic, no Math.random per frame)
+  const bladeData = [];
+  const bladeCount = 38;
+  // simple LCG for stable pseudo-random positions
+  let lcg = 5381;
+  const rnd = ()=>{ lcg=(lcg*1664525+1013904223)&0xffffffff; return (lcg>>>0)/0xffffffff; };
+  for(let i=0;i<bladeCount;i++){
+    bladeData.push({ xf: rnd(), jitter: rnd()*0.012-0.006, h1: 0.028+rnd()*0.022, h2: 0.026+rnd()*0.020, lean: (rnd()-0.5)*0.018, style: Math.floor(rnd()*3) });
+  }
+
+  gCtx.lineCap='round';
+  bladeData.forEach(({xf, jitter, h1, h2, lean, style})=>{
+    const bx  = xf * w;
+    const by  = hillSurfaceY(Math.min(1, Math.max(0, xf+jitter)));
+    const bh1 = h*h1;
+    const bh2 = h*h2;
+    const lx  = lean*w;
+
+    if(style===0){
+      // single tall blade with slight curve
+      gCtx.strokeStyle='#2a8a2a'; gCtx.lineWidth=Math.max(1.2,w*0.004);
+      gCtx.beginPath(); gCtx.moveTo(bx,by); gCtx.quadraticCurveTo(bx+lx*0.5,by-bh1*0.6, bx+lx,by-bh1); gCtx.stroke();
+      // lighter highlight blade
+      gCtx.strokeStyle='#5abf5a'; gCtx.lineWidth=Math.max(0.8,w*0.002);
+      gCtx.beginPath(); gCtx.moveTo(bx+w*0.003,by); gCtx.quadraticCurveTo(bx+lx*0.5+w*0.003,by-bh1*0.55, bx+lx+w*0.003,by-bh1*0.9); gCtx.stroke();
+    } else if(style===1){
+      // two shorter blades splaying apart
+      gCtx.strokeStyle='#339933'; gCtx.lineWidth=Math.max(1,w*0.003);
+      gCtx.beginPath(); gCtx.moveTo(bx,by); gCtx.quadraticCurveTo(bx-w*0.008,by-bh2*0.5, bx-w*0.014,by-bh2); gCtx.stroke();
+      gCtx.beginPath(); gCtx.moveTo(bx,by); gCtx.quadraticCurveTo(bx+w*0.008,by-bh2*0.5, bx+w*0.012,by-bh2); gCtx.stroke();
+    } else {
+      // three fine blades — centre + two sides
+      gCtx.strokeStyle='#3aaa3a'; gCtx.lineWidth=Math.max(0.9,w*0.0025);
+      gCtx.beginPath(); gCtx.moveTo(bx,by); gCtx.lineTo(bx+lx,by-bh1); gCtx.stroke();
+      gCtx.strokeStyle='#2d8c2d';
+      gCtx.beginPath(); gCtx.moveTo(bx,by); gCtx.lineTo(bx+lx-w*0.01,by-bh2); gCtx.stroke();
+      gCtx.beginPath(); gCtx.moveTo(bx,by); gCtx.lineTo(bx+lx+w*0.01,by-bh2*0.9); gCtx.stroke();
+    }
+  });
+
   // ── Gallows (wooden timber) ───────────────────────────────────────────────
   gCtx.save();
   gCtx.translate(0, h*0.07); // shift gallows + character down
