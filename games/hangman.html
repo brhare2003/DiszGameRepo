@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Hangman</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;touch-action:manipulation;}
+body{background:#1a0a2e;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none;color:#fff;}
+.screen{display:none;width:100vw;height:100vh;flex-direction:column;align-items:center;justify-content:center;}
+.screen.active{display:flex;}
+#home-btn{position:fixed;top:12px;left:12px;z-index:300;color:#2B2140;text-decoration:none;font-size:0.88rem;font-weight:700;background:rgba(255,246,228,0.92);border:2px solid #2B2140;padding:6px 14px;border-radius:20px;letter-spacing:1px;}
+.big-btn{background:#7b5ea7;color:#fff;border:3px solid #2B2140;border-radius:18px;padding:14px 32px;font-size:1.2rem;font-weight:700;cursor:pointer;margin:8px;transition:transform .1s,background .1s;}
+.big-btn:hover{transform:scale(1.05);background:#9b7ec7;}
+.big-btn.green{background:#3a9a3a;} .big-btn.green:hover{background:#4dbb4d;}
+.big-btn.red{background:#c0392b;} .big-btn.red:hover{background:#e74c3c;}
+h1{color:#FFD53E;font-size:2rem;text-shadow:0 2px 8px #000a;margin-bottom:16px;}
+h2{color:#FFD53E;font-size:1.4rem;margin-bottom:12px;}
+.tool-btn{width:38px;height:38px;background:rgba(255,255,255,0.1);border:2px solid #fff3;border-radius:8px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tool-btn:hover,.tool-btn.active{background:rgba(255,213,62,0.3);border-color:#FFD53E;}
+.color-swatch{width:30px;height:30px;border-radius:50%;border:3px solid #fff4;cursor:pointer;flex-shrink:0;}
+.color-swatch.active{border-color:#FFD53E;transform:scale(1.2);}
+.part-pip{width:26px;height:26px;border-radius:6px;border:2px solid #fff4;background:rgba(255,255,255,0.08);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.part-pip.done{background:rgba(100,200,100,0.3);border-color:#4dbb4d;}
+.part-pip.current{border-color:#FFD53E;background:rgba(255,213,62,0.2);}
+</style>
+</head>
+<body>
+<a href="../index.html" id="home-btn">&#8592; Home</a>
+
+<!-- INTRO -->
+<div id="screen-intro" class="screen active" style="background:linear-gradient(160deg,#1a0a2e,#2e1060);">
+  <h1>🪢 Hangman</h1>
+  <p style="color:#ccc;margin-bottom:28px;font-size:1.1rem;">A drawing word-guessing game for 2 players</p>
+  <button class="big-btn green" onclick="show('screen-choose')">▶ Start Game</button>
+</div>
+
+<!-- CHOOSE PERSON -->
+<div id="screen-choose" class="screen" style="background:linear-gradient(160deg,#1a0a2e,#2e1060);gap:12px;">
+  <h1>👤 Your Hangman Person</h1>
+  <p style="color:#ccc;text-align:center;max-width:320px;margin-bottom:8px;">
+    Draw your own person part by part, or use a default stick figure.
+  </p>
+  <button class="big-btn" id="btn-draw-person" onclick="startDrawing()">✏️ Draw My Person</button>
+  <button class="big-btn green" onclick="useDefault()">🙂 Use Default</button>
+</div>
+<!-- DRAWING SCREEN -->
+<div id="screen-draw" class="screen" style="background:#111;flex-direction:column;padding:0;">
+  <div id="draw-header" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#1a0a2e;flex-shrink:0;flex-wrap:wrap;">
+    <span id="draw-part-label" style="color:#FFD53E;font-weight:700;font-size:1rem;min-width:110px;"></span>
+    <div id="draw-parts-nav" style="display:flex;gap:4px;flex-wrap:wrap;flex:1;"></div>
+    <button class="big-btn green" id="btn-part-done" style="padding:8px 18px;font-size:0.95rem;margin:0;">✔ Done</button>
+  </div>
+  <canvas id="draw-canvas" style="flex:1;display:block;cursor:crosshair;touch-action:none;width:100%;"></canvas>
+  <div id="draw-toolbar" style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:#1a0a2e;flex-shrink:0;overflow-x:auto;">
+    <!-- color swatches -->
+    <div id="color-swatches" style="display:flex;gap:4px;flex-shrink:0;"></div>
+    <div style="width:1px;height:32px;background:#fff3;flex-shrink:0;margin:0 4px;"></div>
+    <!-- size -->
+    <button class="tool-btn" id="btn-thin"  title="Thin">─</button>
+    <button class="tool-btn" id="btn-thick" title="Thick">━</button>
+    <div style="width:1px;height:32px;background:#fff3;flex-shrink:0;margin:0 4px;"></div>
+    <!-- special -->
+    <button class="tool-btn" id="btn-rainbow" title="Rainbow">🌈</button>
+    <button class="tool-btn" id="btn-eraser"  title="Eraser">⬜</button>
+    <button class="tool-btn" id="btn-clear"   title="Clear" style="color:#f55;">🗑</button>
+  </div>
+</div>
+<!-- WORD ENTRY -->
+<div id="screen-word" class="screen" style="background:linear-gradient(160deg,#1a0a2e,#2e1060);gap:16px;">
+  <h1>🔤 Enter a Word</h1>
+  <p style="color:#ccc;text-align:center;max-width:300px;">Type a word for the other player to guess. Make sure they look away!</p>
+  <input id="word-input" type="text" autocomplete="off" autocorrect="off" spellcheck="false"
+    style="font-size:1.6rem;padding:12px 20px;border-radius:14px;border:3px solid #7b5ea7;background:#2a1a4e;color:#fff;text-align:center;letter-spacing:4px;width:90%;max-width:360px;text-transform:uppercase;"
+    placeholder="TYPE WORD HERE"/>
+  <button class="big-btn green" id="btn-word-done">✔ Ready to Play!</button>
+  <p id="word-err" style="color:#f55;font-size:0.9rem;display:none;">Please enter at least 2 letters.</p>
+</div>
+<!-- PLAY SCREEN -->
+<div id="screen-play" class="screen" style="background:#0d0d1a;flex-direction:column;padding:8px;gap:8px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:480px;">
+    <span id="play-wrong-label" style="color:#f55;font-weight:700;font-size:1rem;"></span>
+    <span style="color:#aaa;font-size:0.85rem;">Guess the word!</span>
+  </div>
+  <canvas id="gallows-canvas" style="border-radius:12px;background:#1a1a2e;max-width:480px;width:100%;"></canvas>
+  <div id="play-word-display" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;"></div>
+  <div id="play-guessed" style="color:#aaa;font-size:0.85rem;min-height:20px;"></div>
+  <div id="play-keyboard" style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:480px;width:100%;"></div>
+</div>
+<!-- RESULT SCREEN -->
+<div id="screen-result" class="screen" style="background:linear-gradient(160deg,#1a0a2e,#2e1060);gap:14px;">
+  <div id="result-emoji" style="font-size:4rem;"></div>
+  <h1 id="result-title"></h1>
+  <p id="result-word" style="color:#ccc;font-size:1.1rem;"></p>
+  <button class="big-btn green" id="btn-play-again">▶ Play Again (same drawing)</button>
+  <button class="big-btn" id="btn-new-drawing">✏️ New Drawing + New Word</button>
+  <button class="big-btn red" id="btn-main-menu" onclick="show('screen-intro')">🏠 Main Menu</button>
+</div>
+
+<script>
+/* ── shared state ── */
+const PARTS = ['Head','Torso','Left Arm','Right Arm','Left Hand','Right Hand','Left Leg','Right Leg','Left Foot','Right Foot'];
+let partCanvases = {};   // partName → offscreen canvas (drawn art)
+let currentPartIdx = 0;
+let useDefaultPerson = false;
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function useDefault(){
+  useDefaultPerson = true;
+  partCanvases = {};
+  show('screen-word');
+}
+
+/* ══════════════════════════════════════
+   DRAWING SCREEN
+══════════════════════════════════════ */
+const COLORS = ['#222222','#e74c3c','#e67e22','#f1c40f','#2ecc71','#3498db','#9b59b6','#fff'];
+let drawTool = { color: COLORS[0], size: 4, mode: 'draw' };
+let rainbowHue = 0;
+let isDrawing = false;
+let lastX = 0, lastY = 0;
+
+const drawCanvas = document.getElementById('draw-canvas');
+const drawCtx    = drawCanvas.getContext('2d');
+
+/* build color swatches */
+const swatchRow = document.getElementById('color-swatches');
+COLORS.forEach(c => {
+  const s = document.createElement('div');
+  s.className = 'color-swatch' + (c === COLORS[0] ? ' active' : '');
+  s.style.background = c; s.style.border = c==='#fff' ? '3px solid #888' : '';
+  s.addEventListener('click', () => {
+    document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('active'));
+    s.classList.add('active');
+    drawTool.color = c; drawTool.mode = 'draw';
+    document.querySelectorAll('.tool-btn').forEach(x=>x.classList.remove('active'));
+  });
+  swatchRow.appendChild(s);
+});
+
+/* tool buttons */
+function setToolActive(id){ document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+document.getElementById('btn-thin').addEventListener('click',()=>{ drawTool.size=3; });
+document.getElementById('btn-thick').addEventListener('click',()=>{ drawTool.size=14; });
+document.getElementById('btn-rainbow').addEventListener('click',()=>{ drawTool.mode='rainbow'; setToolActive('btn-rainbow'); });
+document.getElementById('btn-eraser').addEventListener('click',()=>{ drawTool.mode='erase'; setToolActive('btn-eraser'); });
+document.getElementById('btn-clear').addEventListener('click',()=>{ drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height); });
+
+function resizeDrawCanvas(){
+  const tmp = document.createElement('canvas');
+  tmp.width=drawCanvas.width; tmp.height=drawCanvas.height;
+  tmp.getContext('2d').drawImage(drawCanvas,0,0);
+  drawCanvas.width  = drawCanvas.clientWidth  || window.innerWidth;
+  drawCanvas.height = drawCanvas.clientHeight || (window.innerHeight - 120);
+  drawCtx.drawImage(tmp,0,0);
+}
+
+function getPos(e){
+  const r = drawCanvas.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return [src.clientX - r.left, src.clientY - r.top];
+}
+
+function startStroke(e){
+  e.preventDefault();
+  [lastX, lastY] = getPos(e);
+  isDrawing = true;
+}
+function moveStroke(e){
+  if (!isDrawing) return;
+  e.preventDefault();
+  const [x,y] = getPos(e);
+  drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
+  if (drawTool.mode === 'erase'){
+    drawCtx.globalCompositeOperation = 'destination-out';
+    drawCtx.lineWidth = 28;
+    drawCtx.strokeStyle = 'rgba(0,0,0,1)';
+  } else {
+    drawCtx.globalCompositeOperation = 'source-over';
+    drawCtx.lineWidth = drawTool.size;
+    if (drawTool.mode === 'rainbow'){
+      rainbowHue = (rainbowHue + 4) % 360;
+      drawCtx.strokeStyle = `hsl(${rainbowHue},100%,55%)`;
+    } else {
+      drawCtx.strokeStyle = drawTool.color;
+    }
+  }
+  drawCtx.beginPath(); drawCtx.moveTo(lastX,lastY); drawCtx.lineTo(x,y); drawCtx.stroke();
+  [lastX, lastY] = [x,y];
+}
+function endStroke(){ isDrawing = false; drawCtx.globalCompositeOperation='source-over'; }
+
+drawCanvas.addEventListener('pointerdown', startStroke);
+drawCanvas.addEventListener('pointermove', moveStroke);
+drawCanvas.addEventListener('pointerup',   endStroke);
+drawCanvas.addEventListener('pointerleave',endStroke);
+
+/* part nav pips */
+const partsNav = document.getElementById('draw-parts-nav');
+PARTS.forEach((p,i)=>{
+  const pip = document.createElement('div');
+  pip.className='part-pip'; pip.title=p;
+  pip.textContent = p.replace('Left ','L.').replace('Right ','R.');
+  pip.dataset.idx = i;
+  pip.addEventListener('click',()=>{ saveCurrentPart(); loadPart(i); });
+  partsNav.appendChild(pip);
+});
+
+function updatePips(){
+  document.querySelectorAll('.part-pip').forEach((p,i)=>{
+    p.classList.toggle('done', !!partCanvases[PARTS[i]]);
+    p.classList.toggle('current', i===currentPartIdx);
+  });
+  document.getElementById('draw-part-label').textContent = 'Drawing: ' + PARTS[currentPartIdx];
+}
+
+function saveCurrentPart(){
+  const off = document.createElement('canvas');
+  off.width=drawCanvas.width; off.height=drawCanvas.height;
+  off.getContext('2d').drawImage(drawCanvas,0,0);
+  partCanvases[PARTS[currentPartIdx]] = off;
+}
+
+function loadPart(idx){
+  currentPartIdx = idx;
+  drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+  const saved = partCanvases[PARTS[idx]];
+  if (saved) drawCtx.drawImage(saved,0,0,drawCanvas.width,drawCanvas.height);
+  updatePips();
+}
+
+document.getElementById('btn-part-done').addEventListener('click',()=>{
+  saveCurrentPart();
+  const nextIdx = currentPartIdx + 1;
+  if (nextIdx < PARTS.length){
+    loadPart(nextIdx);
+  } else {
+    show('screen-word');
+  }
+});
+
+/* ══════════════════════════════════════
+   WORD ENTRY
+══════════════════════════════════════ */
+let secretWord = '';
+
+document.getElementById('btn-word-done').addEventListener('click', submitWord);
+document.getElementById('word-input').addEventListener('keydown', e=>{ if(e.key==='Enter') submitWord(); });
+
+function submitWord(){
+  const val = document.getElementById('word-input').value.trim().toUpperCase().replace(/[^A-Z]/g,'');
+  const err = document.getElementById('word-err');
+  if (val.length < 2){ err.style.display='block'; return; }
+  err.style.display='none';
+  secretWord = val;
+  document.getElementById('word-input').value = '';
+  startGame();
+}
+
+/* ══════════════════════════════════════
+   GAME LOGIC
+══════════════════════════════════════ */
+const MAX_WRONG = PARTS.length; // 10 wrong guesses
+let wrongGuesses = 0;
+let guessedLetters = new Set();
+
+const gallows = document.getElementById('gallows-canvas');
+const gCtx    = gallows.getContext('2d');
+
+function startGame(){
+  wrongGuesses = 0;
+  guessedLetters = new Set();
+  show('screen-play');
+  setTimeout(()=>{
+    gallows.width  = gallows.clientWidth;
+    gallows.height = gallows.clientWidth * 0.7;
+    buildKeyboard();
+    renderGame();
+  }, 50);
+}
+
+/* draw gallows + body parts revealed so far */
+function drawGallows(){
+  const w = gallows.width, h = gallows.height;
+  gCtx.clearRect(0,0,w,h);
+  gCtx.strokeStyle='#ccc'; gCtx.lineWidth=3; gCtx.lineCap='round';
+  // base, pole, beam, rope
+  gCtx.beginPath(); gCtx.moveTo(w*0.1,h*0.92); gCtx.lineTo(w*0.55,h*0.92); gCtx.stroke();
+  gCtx.beginPath(); gCtx.moveTo(w*0.22,h*0.92); gCtx.lineTo(w*0.22,h*0.08); gCtx.stroke();
+  gCtx.beginPath(); gCtx.moveTo(w*0.22,h*0.08); gCtx.lineTo(w*0.52,h*0.08); gCtx.stroke();
+  gCtx.beginPath(); gCtx.moveTo(w*0.52,h*0.08); gCtx.lineTo(w*0.52,h*0.18); gCtx.stroke();
+
+  const cx=w*0.52, headR=h*0.08;
+  const torsoY1=h*0.26+headR, torsoY2=h*0.55;
+
+  if (useDefaultPerson){
+    // default stick figure drawn part by part
+    const shown = wrongGuesses;
+    if(shown>=1){gCtx.strokeStyle='#FFD53E';gCtx.lineWidth=3;gCtx.beginPath();gCtx.arc(cx,h*0.26,headR,0,Math.PI*2);gCtx.stroke();}
+    if(shown>=2){gCtx.beginPath();gCtx.moveTo(cx,torsoY1);gCtx.lineTo(cx,torsoY2);gCtx.stroke();}
+    if(shown>=3){gCtx.beginPath();gCtx.moveTo(cx,torsoY1+h*0.05);gCtx.lineTo(cx-w*0.1,torsoY1+h*0.15);gCtx.stroke();}
+    if(shown>=4){gCtx.beginPath();gCtx.moveTo(cx,torsoY1+h*0.05);gCtx.lineTo(cx+w*0.1,torsoY1+h*0.15);gCtx.stroke();}
+    if(shown>=5){gCtx.beginPath();gCtx.moveTo(cx-w*0.1,torsoY1+h*0.15);gCtx.lineTo(cx-w*0.12,torsoY1+h*0.25);gCtx.stroke();}
+    if(shown>=6){gCtx.beginPath();gCtx.moveTo(cx+w*0.1,torsoY1+h*0.15);gCtx.lineTo(cx+w*0.12,torsoY1+h*0.25);gCtx.stroke();}
+    if(shown>=7){gCtx.beginPath();gCtx.moveTo(cx,torsoY2);gCtx.lineTo(cx-w*0.1,torsoY2+h*0.18);gCtx.stroke();}
+    if(shown>=8){gCtx.beginPath();gCtx.moveTo(cx,torsoY2);gCtx.lineTo(cx+w*0.1,torsoY2+h*0.18);gCtx.stroke();}
+    if(shown>=9){gCtx.beginPath();gCtx.moveTo(cx-w*0.1,torsoY2+h*0.18);gCtx.lineTo(cx-w*0.08,torsoY2+h*0.26);gCtx.stroke();}
+    if(shown>=10){gCtx.beginPath();gCtx.moveTo(cx+w*0.1,torsoY2+h*0.18);gCtx.lineTo(cx+w*0.08,torsoY2+h*0.26);gCtx.stroke();}
+  } else {
+    // composite of drawn part canvases
+    const partW=w*0.35, partH=h*0.75;
+    const offX=cx-partW/2, offY=h*0.14;
+    for(let i=0;i<wrongGuesses;i++){
+      const pc=partCanvases[PARTS[i]];
+      if(pc) gCtx.drawImage(pc,offX,offY,partW,partH);
+    }
+  }
+}
+
+function renderGame(){
+  drawGallows();
+  // word display
+  const wd = document.getElementById('play-word-display');
+  wd.innerHTML='';
+  [...secretWord].forEach(ch=>{
+    const box=document.createElement('div');
+    box.style.cssText='width:36px;height:44px;border-bottom:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:#FFD53E;';
+    box.textContent = guessedLetters.has(ch) ? ch : '';
+    wd.appendChild(box);
+  });
+  // wrong count
+  document.getElementById('play-wrong-label').textContent=`Wrong: ${wrongGuesses}/${MAX_WRONG}`;
+  // guessed letters
+  document.getElementById('play-guessed').textContent = guessedLetters.size ? 'Tried: '+[...guessedLetters].join(' ') : '';
+  // keyboard state
+  document.querySelectorAll('.key-btn').forEach(btn=>{
+    const l=btn.dataset.letter;
+    const used=guessedLetters.has(l);
+    const correct=used&&secretWord.includes(l);
+    btn.disabled=used;
+    btn.style.background=used?(correct?'#2ecc71':'#c0392b'):'rgba(255,255,255,0.12)';
+    btn.style.opacity=used?'0.5':'1';
+  });
+}
+
+function buildKeyboard(){
+  const kb=document.getElementById('play-keyboard');
+  kb.innerHTML='';
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l=>{
+    const btn=document.createElement('button');
+    btn.className='key-btn';
+    btn.dataset.letter=l;
+    btn.textContent=l;
+    btn.style.cssText='width:36px;height:36px;border-radius:8px;border:2px solid #fff3;color:#fff;font-weight:700;font-size:0.95rem;cursor:pointer;';
+    btn.addEventListener('click',()=>guessLetter(l));
+    kb.appendChild(btn);
+  });
+  // also handle physical keyboard
+  document.onkeydown = e=>{
+    const l=e.key.toUpperCase();
+    if(/^[A-Z]$/.test(l)&&!guessedLetters.has(l)) guessLetter(l);
+  };
+}
+
+function guessLetter(l){
+  guessedLetters.add(l);
+  if(!secretWord.includes(l)) wrongGuesses++;
+  renderGame();
+  const won=[...secretWord].every(c=>guessedLetters.has(c));
+  const lost=wrongGuesses>=MAX_WRONG;
+  if(won||lost) setTimeout(()=>endGame(won),600);
+}
+
+/* ══════════════════════════════════════
+   RESULT SCREEN
+══════════════════════════════════════ */
+function endGame(won){
+  document.onkeydown = null;
+  document.getElementById('result-emoji').textContent  = won ? '🎉' : '💀';
+  document.getElementById('result-title').textContent  = won ? 'You Win!' : 'You Lose!';
+  document.getElementById('result-word').textContent   = `The word was: ${secretWord}`;
+  show('screen-result');
+}
+
+document.getElementById('btn-play-again').addEventListener('click',()=>{
+  document.getElementById('word-input').value='';
+  show('screen-word');
+});
+document.getElementById('btn-new-drawing').addEventListener('click',()=>{
+  document.getElementById('word-input').value='';
+  show('screen-choose');
+});
+
+function startDrawing(){
+  useDefaultPerson = false;
+  currentPartIdx = 0;
+  partCanvases = {};
+  show('screen-draw');
+  setTimeout(()=>{
+    resizeDrawCanvas();
+    drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+    updatePips();
+  },50);
+}
+</script>
+</body>
+</html>
