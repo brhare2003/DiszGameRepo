@@ -323,18 +323,7 @@ function drawGallows(){
   const torsoY1=h*0.26+headR, torsoY2=h*0.55;
 
   if (useDefaultPerson){
-    // default stick figure drawn part by part
-    const shown = wrongGuesses;
-    if(shown>=1){gCtx.strokeStyle='#FFD53E';gCtx.lineWidth=3;gCtx.beginPath();gCtx.arc(cx,h*0.26,headR,0,Math.PI*2);gCtx.stroke();}
-    if(shown>=2){gCtx.beginPath();gCtx.moveTo(cx,torsoY1);gCtx.lineTo(cx,torsoY2);gCtx.stroke();}
-    if(shown>=3){gCtx.beginPath();gCtx.moveTo(cx,torsoY1+h*0.05);gCtx.lineTo(cx-w*0.1,torsoY1+h*0.15);gCtx.stroke();}
-    if(shown>=4){gCtx.beginPath();gCtx.moveTo(cx,torsoY1+h*0.05);gCtx.lineTo(cx+w*0.1,torsoY1+h*0.15);gCtx.stroke();}
-    if(shown>=5){gCtx.beginPath();gCtx.moveTo(cx-w*0.1,torsoY1+h*0.15);gCtx.lineTo(cx-w*0.12,torsoY1+h*0.25);gCtx.stroke();}
-    if(shown>=6){gCtx.beginPath();gCtx.moveTo(cx+w*0.1,torsoY1+h*0.15);gCtx.lineTo(cx+w*0.12,torsoY1+h*0.25);gCtx.stroke();}
-    if(shown>=7){gCtx.beginPath();gCtx.moveTo(cx,torsoY2);gCtx.lineTo(cx-w*0.1,torsoY2+h*0.18);gCtx.stroke();}
-    if(shown>=8){gCtx.beginPath();gCtx.moveTo(cx,torsoY2);gCtx.lineTo(cx+w*0.1,torsoY2+h*0.18);gCtx.stroke();}
-    if(shown>=9){gCtx.beginPath();gCtx.moveTo(cx-w*0.1,torsoY2+h*0.18);gCtx.lineTo(cx-w*0.08,torsoY2+h*0.26);gCtx.stroke();}
-    if(shown>=10){gCtx.beginPath();gCtx.moveTo(cx+w*0.1,torsoY2+h*0.18);gCtx.lineTo(cx+w*0.08,torsoY2+h*0.26);gCtx.stroke();}
+    drawDefaultCharacter(wrongGuesses, cx, headR, w, h);
   } else {
     // composite of drawn part canvases
     const partW=w*0.35, partH=h*0.75;
