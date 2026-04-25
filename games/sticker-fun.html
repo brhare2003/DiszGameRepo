@@ -158,27 +158,27 @@ function drawMountain(ctx,w,h){
   ctx.beginPath(); ctx.moveTo(w*0.35,h*0.3); ctx.lineTo(w*0.25,h*0.48); ctx.lineTo(w*0.45,h*0.48); ctx.fill();
 }
 
+// Pre-generated random data so drawCity is stable across redraws
+const _cityWindows = Array.from({length:300}, () => Math.random() > 0.35);
+const _cityRain    = Array.from({length:40},  () => [Math.random(), Math.random()]);
 function drawCity(ctx,w,h){
-  // Rainy dark sky
   ctx.fillStyle='#2a3a4a'; ctx.fillRect(0,0,w,h);
-  // Buildings
+  let wi = 0;
   [[0,0.45,0.18,0.55],[0.16,0.35,0.22,0.65],[0.36,0.28,0.18,0.72],[0.52,0.4,0.2,0.6],[0.7,0.32,0.16,0.68],[0.84,0.42,0.16,0.58]].forEach(([x,y,bw,bh])=>{
     ctx.fillStyle='#3a4a5a'; ctx.fillRect(w*x,h*y,w*bw,h*bh);
     ctx.fillStyle='rgba(255,240,150,0.6)';
     for(let wy=h*(y+0.06);wy<h*(y+bh)-8;wy+=h*0.1)
       for(let wx=w*(x+0.03);wx<w*(x+bw)-6;wx+=w*0.06)
-        if(Math.random()>0.35) ctx.fillRect(wx,wy,w*0.03,h*0.06);
+        if(_cityWindows[wi++ % _cityWindows.length]) ctx.fillRect(wx,wy,w*0.03,h*0.06);
   });
-  // Road
   ctx.fillStyle='#222'; ctx.fillRect(0,h*0.85,w,h*0.15);
   ctx.fillStyle='rgba(255,255,255,0.5)';
   for(let rx=0;rx<w;rx+=w*0.12) ctx.fillRect(rx,h*0.915,w*0.07,h*0.02);
-  // Rain streaks
   ctx.strokeStyle='rgba(180,210,255,0.35)'; ctx.lineWidth=1;
-  for(let i=0;i<40;i++){
-    const rx=Math.random()*w, ry=Math.random()*h*0.85;
-    ctx.beginPath(); ctx.moveTo(rx,ry); ctx.lineTo(rx-3,ry+h*0.06); ctx.stroke();
-  }
+  _cityRain.forEach(([rx,ry])=>{
+    const x=rx*w, y=ry*h*0.85;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-3,y+h*0.06); ctx.stroke();
+  });
 }
 function drawDesert(ctx,w,h){
   // Gradient sky
