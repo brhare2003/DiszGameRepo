@@ -59,21 +59,23 @@ h2{color:#FFD53E;font-size:1.4rem;margin-bottom:12px;}
 </div>
 <!-- DRAWING SCREEN -->
 <div id="screen-draw" class="screen" style="background:#111;flex-direction:column;padding:0;">
-  <div id="draw-header" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#1a0a2e;flex-shrink:0;flex-wrap:wrap;">
-    <span id="draw-part-label" style="color:#FFD53E;font-weight:700;font-size:1rem;min-width:110px;"></span>
-    <div id="draw-parts-nav" style="display:flex;gap:4px;flex-wrap:wrap;flex:1;"></div>
+  <div id="draw-header" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#1a0a2e;flex-shrink:0;">
+    <span id="draw-part-label" style="color:#FFD53E;font-weight:700;font-size:1rem;flex:1;"></span>
     <button class="big-btn green" id="btn-part-done" style="padding:8px 18px;font-size:0.95rem;margin:0;">✔ Done</button>
   </div>
-  <canvas id="draw-canvas" style="flex:1;display:block;cursor:crosshair;touch-action:none;width:100%;"></canvas>
-  <div id="draw-toolbar" style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:#1a0a2e;flex-shrink:0;overflow-x:auto;">
-    <!-- color swatches -->
+  <div id="draw-main">
+    <div id="draw-area">
+      <canvas id="draw-backdrop"></canvas>
+      <canvas id="draw-canvas"></canvas>
+    </div>
+    <div id="draw-parts-list"></div>
+  </div>
+  <div id="draw-toolbar">
     <div id="color-swatches" style="display:flex;gap:4px;flex-shrink:0;"></div>
     <div style="width:1px;height:32px;background:#fff3;flex-shrink:0;margin:0 4px;"></div>
-    <!-- size -->
     <button class="tool-btn" id="btn-thin"  title="Thin">─</button>
     <button class="tool-btn" id="btn-thick" title="Thick">━</button>
     <div style="width:1px;height:32px;background:#fff3;flex-shrink:0;margin:0 4px;"></div>
-    <!-- special -->
     <button class="tool-btn" id="btn-rainbow" title="Rainbow">🌈</button>
     <button class="tool-btn" id="btn-eraser"  title="Eraser">⬜</button>
     <button class="tool-btn" id="btn-clear"   title="Clear" style="color:#f55;">🗑</button>
