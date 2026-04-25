@@ -23,7 +23,9 @@ body{background:#1a0a2e;font-family:'Segoe UI',sans-serif;overflow:hidden;user-s
 /* ── Play screen ── */
 #screen-play{flex-direction:column;position:relative;}
 #scene-canvas{display:block;flex:1;width:100%;cursor:crosshair;}
-#tray{height:100px;background:rgba(0,0,0,0.55);border-top:3px solid #fff3;display:flex;align-items:center;gap:0;overflow-x:auto;overflow-y:hidden;padding:6px 8px;scrollbar-width:thin;}
+#tray-wrap{display:flex;align-items:stretch;background:rgba(0,0,0,0.55);border-top:3px solid #fff3;}
+#tray-label{writing-mode:vertical-rl;transform:rotate(180deg);color:#FFD53E;font-size:12px;font-weight:700;padding:8px 6px;letter-spacing:1px;flex-shrink:0;}
+#tray{height:96px;display:flex;align-items:center;gap:0;overflow-x:auto;overflow-y:hidden;padding:6px 8px;scrollbar-width:thin;flex:1;}
 #tray::-webkit-scrollbar{height:5px;}#tray::-webkit-scrollbar-thumb{background:#fff4;border-radius:4px;}
 .sticker-btn{flex-shrink:0;width:72px;height:72px;font-size:38px;background:rgba(255,255,255,0.08);border:3px solid transparent;border-radius:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .12s,border-color .12s;margin-right:6px;}
 .sticker-btn:hover{transform:scale(1.18);border-color:#FFD53E;}
@@ -49,7 +51,10 @@ body{background:#1a0a2e;font-family:'Segoe UI',sans-serif;overflow:hidden;user-s
   <span id="hint">Pick a sticker below, then tap the scene!</span>
   <button id="clear-btn">🗑 Clear</button>
   <canvas id="scene-canvas"></canvas>
-  <div id="tray"></div>
+  <div id="tray-wrap">
+    <div id="tray-label">Stickers →</div>
+    <div id="tray"></div>
+  </div>
 </div>
 
 <script>
@@ -146,9 +151,9 @@ const ctx = canvas.getContext('2d');
 
 function resizeCanvas() {
   const play = document.getElementById('screen-play');
-  const tray = document.getElementById('tray');
+  const trayWrap = document.getElementById('tray-wrap');
   canvas.width  = play.clientWidth;
-  canvas.height = play.clientHeight - tray.offsetHeight;
+  canvas.height = play.clientHeight - trayWrap.offsetHeight;
   redraw();
 }
 
@@ -179,6 +184,64 @@ STICKERS.forEach(em => {
   tray.appendChild(btn);
 });
 
+/* ── Sounds ── */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function ensureAudio() { if (!audioCtx) audioCtx = new AudioCtx(); }
+
+function playPop() {
+  ensureAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.12);
+  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.18);
+}
+
+function playWhoosh() {
+  ensureAudio();
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.15, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * (1 - i/d.length);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass'; filter.frequency.value = 800;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+  src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+  src.start();
+}
+
+/* ── Floating sticker animation ── */
+let floaters = [];
+function spawnFloater(emoji, x, y) {
+  floaters.push({ emoji, x, y, age: 0, vy: -2, scale: 0.2, alpha: 1 });
+  if (!floatRunning) animateFloaters();
+}
+let floatRunning = false;
+function animateFloaters() {
+  floatRunning = true;
+  floaters.forEach(f => { f.age++; f.vy *= 0.93; f.y += f.vy; f.scale = Math.min(1, f.scale + 0.08); f.alpha = Math.max(0, 1 - f.age/30); });
+  floaters = floaters.filter(f => f.alpha > 0);
+  redraw();
+  // draw floaters on top
+  floaters.forEach(f => {
+    ctx.save();
+    ctx.globalAlpha = f.alpha;
+    ctx.font = Math.round(60 * f.scale) + 'px serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(f.emoji, f.x, f.y);
+    ctx.restore();
+  });
+  if (floaters.length) requestAnimationFrame(animateFloaters);
+  else floatRunning = false;
+}
+
 /* ── Place sticker on tap/click ── */
 canvas.addEventListener('click', e => {
   if (!selectedSticker) return;
@@ -186,6 +249,8 @@ canvas.addEventListener('click', e => {
   const x = e.clientX - r.left;
   const y = e.clientY - r.top;
   placed.push({ emoji: selectedSticker, x, y, size: 60 });
+  playPop();
+  spawnFloater(selectedSticker, x, y - 30);
   redraw();
 });
 
