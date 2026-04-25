@@ -87,7 +87,15 @@ h2{color:#FFD53E;font-size:1.4rem;margin-bottom:12px;}
   <div id="play-guessed" style="color:#aaa;font-size:0.85rem;min-height:20px;"></div>
   <div id="play-keyboard" style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:480px;width:100%;"></div>
 </div>
-<div id="screen-result"  class="screen"></div>
+<!-- RESULT SCREEN -->
+<div id="screen-result" class="screen" style="background:linear-gradient(160deg,#1a0a2e,#2e1060);gap:14px;">
+  <div id="result-emoji" style="font-size:4rem;"></div>
+  <h1 id="result-title"></h1>
+  <p id="result-word" style="color:#ccc;font-size:1.1rem;"></p>
+  <button class="big-btn green" id="btn-play-again">▶ Play Again (same drawing)</button>
+  <button class="big-btn" id="btn-new-drawing">✏️ New Drawing + New Word</button>
+  <button class="big-btn red" id="btn-main-menu" onclick="show('screen-intro')">🏠 Main Menu</button>
+</div>
 
 <script>
 /* ── shared state ── */
@@ -366,6 +374,26 @@ function guessLetter(l){
   const lost=wrongGuesses>=MAX_WRONG;
   if(won||lost) setTimeout(()=>endGame(won),600);
 }
+
+/* ══════════════════════════════════════
+   RESULT SCREEN
+══════════════════════════════════════ */
+function endGame(won){
+  document.onkeydown = null;
+  document.getElementById('result-emoji').textContent  = won ? '🎉' : '💀';
+  document.getElementById('result-title').textContent  = won ? 'You Win!' : 'You Lose!';
+  document.getElementById('result-word').textContent   = `The word was: ${secretWord}`;
+  show('screen-result');
+}
+
+document.getElementById('btn-play-again').addEventListener('click',()=>{
+  document.getElementById('word-input').value='';
+  show('screen-word');
+});
+document.getElementById('btn-new-drawing').addEventListener('click',()=>{
+  document.getElementById('word-input').value='';
+  show('screen-choose');
+});
 
 function startDrawing(){
   useDefaultPerson = false;
