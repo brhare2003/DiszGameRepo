@@ -66,7 +66,16 @@ h2{color:#FFD53E;font-size:1.4rem;margin-bottom:12px;}
     <button class="tool-btn" id="btn-clear"   title="Clear" style="color:#f55;">🗑</button>
   </div>
 </div>
-<div id="screen-word"    class="screen"></div>
+<!-- WORD ENTRY -->
+<div id="screen-word" class="screen" style="background:linear-gradient(160deg,#1a0a2e,#2e1060);gap:16px;">
+  <h1>🔤 Enter a Word</h1>
+  <p style="color:#ccc;text-align:center;max-width:300px;">Type a word for the other player to guess. Make sure they look away!</p>
+  <input id="word-input" type="text" autocomplete="off" autocorrect="off" spellcheck="false"
+    style="font-size:1.6rem;padding:12px 20px;border-radius:14px;border:3px solid #7b5ea7;background:#2a1a4e;color:#fff;text-align:center;letter-spacing:4px;width:90%;max-width:360px;text-transform:uppercase;"
+    placeholder="TYPE WORD HERE"/>
+  <button class="big-btn green" id="btn-word-done">✔ Ready to Play!</button>
+  <p id="word-err" style="color:#f55;font-size:0.9rem;display:none;">Please enter at least 2 letters.</p>
+</div>
 <div id="screen-play"    class="screen"></div>
 <div id="screen-result"  class="screen"></div>
 
@@ -215,6 +224,24 @@ document.getElementById('btn-part-done').addEventListener('click',()=>{
     show('screen-word');
   }
 });
+
+/* ══════════════════════════════════════
+   WORD ENTRY
+══════════════════════════════════════ */
+let secretWord = '';
+
+document.getElementById('btn-word-done').addEventListener('click', submitWord);
+document.getElementById('word-input').addEventListener('keydown', e=>{ if(e.key==='Enter') submitWord(); });
+
+function submitWord(){
+  const val = document.getElementById('word-input').value.trim().toUpperCase().replace(/[^A-Z]/g,'');
+  const err = document.getElementById('word-err');
+  if (val.length < 2){ err.style.display='block'; return; }
+  err.style.display='none';
+  secretWord = val;
+  document.getElementById('word-input').value = '';
+  startGame();
+}
 
 function startDrawing(){
   useDefaultPerson = false;
