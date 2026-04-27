@@ -113,6 +113,7 @@
 <div class="screen" id="s-paint">
   <canvas id="cv-paint"></canvas>
   <div id="palette"></div>
+  <div id="line-palette" class="swatch-row"></div>
   <div class="btn-row">
     <button class="icon-btn nav" id="btn-back2">&#8592;</button>
     <button class="icon-btn go"  id="btn-go2">&#10003;</button>
@@ -275,7 +276,9 @@
     '#FF4D4D','#FF9A3C','#FFE24D','#7ED957','#4DC8FF',
     '#A04DFF','#FF79C6','#FFFFFF','#8B4513','#3333AA'
   ];
+  const LINE_PALETTE = ['#FFFFFF','#000000','#7EEDF4','#FF4D4D','#FFE24D','#7ED957','#FF79C6','#A04DFF'];
   let paintColor = PALETTE[0];
+  let lineColor  = '#ffffff';
 
   const cvP  = document.getElementById('cv-paint');
   const ctxP = cvP.getContext('2d');
@@ -320,12 +323,20 @@
       ctxP.drawImage(off, 0, 0);
     }
 
-    // Overlay fish line-art on top
+    // Overlay fish line-art on top, tinted with lineColor
     const img = ff.FISH_IMAGES && ff.FISH_IMAGES[idx];
     if (img && img.complete && img.naturalWidth) {
       const s = imgScale(img);
       const dw = img.naturalWidth * s, dh = img.naturalHeight * s;
-      ctxP.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      const dx = (W - dw) / 2, dy = (H - dh) / 2;
+      const lt = document.createElement('canvas');
+      lt.width = Math.ceil(dw); lt.height = Math.ceil(dh);
+      const ltc = lt.getContext('2d');
+      ltc.drawImage(img, 0, 0, lt.width, lt.height);
+      ltc.globalCompositeOperation = 'source-atop';
+      ltc.fillStyle = lineColor;
+      ltc.fillRect(0, 0, lt.width, lt.height);
+      ctxP.drawImage(lt, dx, dy);
     }
   }
 
@@ -341,6 +352,26 @@
       window._ff.playPop();
     });
     pal.appendChild(b);
+  });
+
+  const linePal = document.getElementById('line-palette');
+  const lineLbl = document.createElement('span');
+  lineLbl.className = 'swatch-label';
+  lineLbl.textContent = 'LINES:';
+  linePal.appendChild(lineLbl);
+  LINE_PALETTE.forEach((col, i) => {
+    const b = document.createElement('button');
+    b.className = 'swatch-btn' + (i === 0 ? ' active' : '');
+    b.style.background = col;
+    if (col === '#FFFFFF') b.style.boxShadow = '0 0 0 1px rgba(255,255,255,0.4) inset';
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.swatch-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      lineColor = col;
+      window._ff.playPop();
+      renderPaint();
+    });
+    linePal.appendChild(b);
   });
 
   function getPos(e) {
@@ -393,7 +424,7 @@
     const saved = document.createElement('canvas');
     saved.width = img.naturalWidth; saved.height = img.naturalHeight;
     saved.getContext('2d').drawImage(off, dx, dy, dw, dh, 0, 0, img.naturalWidth, img.naturalHeight);
-    window._ff.savedFish.push({ fishType: fishIdx, paintOffCanvas: saved });
+    window._ff.savedFish.push({ fishType: fishIdx, paintOffCanvas: saved, lineColor });
     window._ff.paintedCanvas = saved;
     window._ff.showScreen('s-tank');
   });
@@ -549,9 +580,10 @@
     if (dw < 1 || dh < 1) return;
 
     // Pre-render the fish at its exact display size and cache it on the fish
-    // object. Re-renders only when dw/dh changes, so pixels are bit-identical
-    // every frame → no sampling flicker.
-    if (!fish._cache || fish._cache.dw !== dw || fish._cache.dh !== dh) {
+    // object. Re-renders only when dw/dh/lineColor changes, so pixels are
+    // bit-identical every frame → no sampling flicker.
+    const lc = fish.lineColor || '#ffffff';
+    if (!fish._cache || fish._cache.dw !== dw || fish._cache.dh !== dh || fish._cache.lineColor !== lc) {
       const c = document.createElement('canvas');
       c.width = dw; c.height = dh;
       const cc = c.getContext('2d');
@@ -566,8 +598,16 @@
         cc.fillStyle = 'rgba(100,200,255,0.18)';
         cc.fillRect(0, 0, dw, dh);
       }
-      cc.drawImage(img, 0, 0, dw, dh);
-      fish._cache = { dw, dh, canvas: c };
+      // Tint line-art with the fish's saved line color
+      const lt = document.createElement('canvas');
+      lt.width = dw; lt.height = dh;
+      const ltc = lt.getContext('2d');
+      ltc.drawImage(img, 0, 0, dw, dh);
+      ltc.globalCompositeOperation = 'source-atop';
+      ltc.fillStyle = lc;
+      ltc.fillRect(0, 0, dw, dh);
+      cc.drawImage(lt, 0, 0);
+      fish._cache = { dw, dh, lineColor: lc, canvas: c };
     }
 
     const cx = Math.round(fish.x), cy = Math.round(fish.y);
