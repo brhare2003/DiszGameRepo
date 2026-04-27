@@ -630,12 +630,12 @@
       ctxT.save();
       if (d.type === 'egg') {
         const eg = ctxT.createRadialGradient(d.x-2, d.y-3, 1, d.x, d.y, 7);
-        eg.addColorStop(0, 'rgba(255,255,255,0.95)');
-        eg.addColorStop(0.5, 'rgba(220,200,160,0.8)');
-        eg.addColorStop(1,   'rgba(180,140,80,0.3)');
+        eg.addColorStop(0, 'rgba(255,210,120,0.98)');
+        eg.addColorStop(0.5, 'rgba(255,140,20,0.92)');
+        eg.addColorStop(1,   'rgba(200,80,0,0.45)');
         ctxT.beginPath(); ctxT.arc(d.x, d.y, 7, 0, Math.PI*2);
         ctxT.fillStyle = eg; ctxT.fill();
-        ctxT.strokeStyle = 'rgba(180,140,80,0.5)'; ctxT.lineWidth = 1; ctxT.stroke();
+        ctxT.strokeStyle = 'rgba(180,60,0,0.6)'; ctxT.lineWidth = 1; ctxT.stroke();
       } else if (d.type === 'kelp') {
         let bx = d.x, by = d.y;
         ctxT.lineCap = 'round';
