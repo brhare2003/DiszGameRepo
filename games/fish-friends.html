@@ -131,7 +131,7 @@
     <button class="deco-pick" data-deco="shell"   title="Shell">🐚</button>
     <button class="deco-pick" data-deco="rock"    title="Rock">🪨</button>
     <button class="deco-pick" data-deco="star"    title="Star">&#11088;</button>
-    <button class="deco-pick" data-deco="egg" title="Egg"><svg width="16" height="20" viewBox="0 0 16 20" xmlns="http://www.w3.org/2000/svg"><ellipse cx="8" cy="11.5" rx="6.5" ry="8.2" fill="rgba(255,252,230,0.95)" stroke="rgba(200,170,90,0.75)" stroke-width="1.5"/><ellipse cx="5.5" cy="8" rx="1.8" ry="2.8" fill="rgba(255,255,255,0.55)" transform="rotate(-15,5.5,8)"/></svg></button>
+    <button class="deco-pick" data-deco="egg" title="Egg"><svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg"><ellipse cx="11" cy="12" rx="8" ry="9.5" fill="#FF7800" stroke="#CC4A00" stroke-width="1.5"/><ellipse cx="8.5" cy="8.5" rx="2" ry="2.8" fill="rgba(255,255,255,0.42)" transform="rotate(-15,8.5,8.5)"/></svg></button>
     <span class="bar-divider"></span>
     <button class="deco-pick" id="btn-add-fish"  title="New fish">&#43;</button>
   </div>
@@ -901,7 +901,8 @@
           dir: 1, wobble: 0, size: 34, eating: 0, boostTimer: 0,
           eatCount: 0, eatLimit: 3 + Math.floor(Math.random()*4), digestTimer: 0,
           fishType: sf ? sf.fishType : 0,
-          paintOffCanvas: sf ? sf.paintOffCanvas : null
+          paintOffCanvas: sf ? sf.paintOffCanvas : null,
+          lineColor: sf ? (sf.lineColor || '#ffffff') : '#ffffff'
         });
         window._ff.playHatch();
         for (let b = 0; b < 6; b++) bubbles.push({ x: d.x+(Math.random()-0.5)*30, y: d.y, r: 3+Math.random()*5, vy: -1-Math.random() });
