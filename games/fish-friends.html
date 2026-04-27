@@ -267,7 +267,7 @@
   resizeSel();
 
   // expose for later screens
-  window._ff = { FISH_IMAGES, FISH_MASKS, FISH_NAMES, ac, beep, playPop, playChime, playPlop, playHatch, playGrow, fishType: () => fishType, showScreen, savedFish: [] };
+  window._ff = { FISH_IMAGES, FISH_MASKS, FISH_NAMES, ac, beep, playPop, playChime, playPlop, playHatch, playGrow, fishType: () => fishType, showScreen, savedFish: [], lineColor: '#ffffff' };
 })();
 
 // ── Screen 2: Paint ──────────────────────────────────────────────────────────
@@ -278,7 +278,6 @@
   ];
   const LINE_PALETTE = ['#FFFFFF','#000000','#7EEDF4','#FF4D4D','#FFE24D','#7ED957','#FF79C6','#A04DFF'];
   let paintColor = PALETTE[0];
-  let lineColor  = '#ffffff';
 
   const cvP  = document.getElementById('cv-paint');
   const ctxP = cvP.getContext('2d');
@@ -334,7 +333,7 @@
       const ltc = lt.getContext('2d');
       ltc.drawImage(img, 0, 0, lt.width, lt.height);
       ltc.globalCompositeOperation = 'source-atop';
-      ltc.fillStyle = lineColor;
+      ltc.fillStyle = window._ff.lineColor;
       ltc.fillRect(0, 0, lt.width, lt.height);
       ctxP.drawImage(lt, dx, dy);
     }
@@ -367,7 +366,7 @@
     b.addEventListener('click', () => {
       document.querySelectorAll('.swatch-btn').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
-      lineColor = col;
+      window._ff.lineColor = col;
       window._ff.playPop();
       renderPaint();
     });
@@ -424,7 +423,7 @@
     const saved = document.createElement('canvas');
     saved.width = img.naturalWidth; saved.height = img.naturalHeight;
     saved.getContext('2d').drawImage(off, dx, dy, dw, dh, 0, 0, img.naturalWidth, img.naturalHeight);
-    window._ff.savedFish.push({ fishType: fishIdx, paintOffCanvas: saved, lineColor });
+    window._ff.savedFish.push({ fishType: fishIdx, paintOffCanvas: saved, lineColor: window._ff.lineColor });
     window._ff.paintedCanvas = saved;
     window._ff.showScreen('s-tank');
   });
