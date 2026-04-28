@@ -131,7 +131,7 @@
     <button class="deco-pick" data-deco="shell"   title="Shell">🐚</button>
     <button class="deco-pick" data-deco="rock"    title="Rock">🪨</button>
     <button class="deco-pick" data-deco="star"    title="Star">&#11088;</button>
-    <button class="deco-pick" data-deco="egg" title="Egg"><svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg"><ellipse cx="11" cy="12" rx="8" ry="9.5" fill="#FF7800" stroke="#CC4A00" stroke-width="1.5"/><ellipse cx="8.5" cy="8.5" rx="2" ry="2.8" fill="rgba(255,255,255,0.42)" transform="rotate(-15,8.5,8.5)"/></svg></button>
+    <button class="deco-pick" data-deco="egg" title="Egg"><svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg"><ellipse id="egg-icon-main" cx="11" cy="12" rx="8" ry="9.5" fill="#ffffff" stroke="rgba(0,0,0,0.25)" stroke-width="1.5"/><ellipse cx="8.5" cy="8.5" rx="2" ry="2.8" fill="rgba(255,255,255,0.42)" transform="rotate(-15,8.5,8.5)"/></svg></button>
     <span class="bar-divider"></span>
     <button class="deco-pick" id="btn-add-fish"  title="New fish">&#43;</button>
   </div>
@@ -367,11 +367,16 @@
       document.querySelectorAll('.swatch-btn').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
       window._ff.lineColor = col;
+      const eggEl = document.getElementById('egg-icon-main');
+      if (eggEl) eggEl.setAttribute('fill', col);
       window._ff.playPop();
       renderPaint();
     });
     linePal.appendChild(b);
   });
+  // Sync egg icon to default lineColor on load
+  const _eggEl = document.getElementById('egg-icon-main');
+  if (_eggEl) _eggEl.setAttribute('fill', window._ff.lineColor);
 
   function getPos(e) {
     const rect = cvP.getBoundingClientRect();
@@ -629,13 +634,15 @@
     decos.forEach(d => {
       ctxT.save();
       if (d.type === 'egg') {
-        const eg = ctxT.createRadialGradient(d.x-2, d.y-3, 1, d.x, d.y, 7);
-        eg.addColorStop(0, 'rgba(255,210,120,0.98)');
-        eg.addColorStop(0.5, 'rgba(255,140,20,0.92)');
-        eg.addColorStop(1,   'rgba(200,80,0,0.45)');
+        const sf = (d.fishIndex != null) ? window._ff.savedFish[d.fishIndex] : null;
+        const eggCol = sf ? (sf.lineColor || window._ff.lineColor) : window._ff.lineColor;
+        const shine = ctxT.createRadialGradient(d.x-2, d.y-3, 0.5, d.x, d.y, 7);
+        shine.addColorStop(0, 'rgba(255,255,255,0.45)');
+        shine.addColorStop(1, 'rgba(255,255,255,0)');
         ctxT.beginPath(); ctxT.arc(d.x, d.y, 7, 0, Math.PI*2);
-        ctxT.fillStyle = eg; ctxT.fill();
-        ctxT.strokeStyle = 'rgba(180,60,0,0.6)'; ctxT.lineWidth = 1; ctxT.stroke();
+        ctxT.fillStyle = eggCol; ctxT.fill();
+        ctxT.fillStyle = shine;  ctxT.fill();
+        ctxT.strokeStyle = 'rgba(0,0,0,0.25)'; ctxT.lineWidth = 1; ctxT.stroke();
       } else if (d.type === 'kelp') {
         let bx = d.x, by = d.y;
         ctxT.lineCap = 'round';
