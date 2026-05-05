@@ -198,6 +198,18 @@ function refreshBackdrop(){
     if(pc) bdCtx.drawImage(pc,0,0,w,h);
   });
   bdCtx.globalAlpha = 1;
+  // Faint rope guide: shows where the noose bottom sits so the player
+  // knows to draw the head top touching the top-center of this canvas.
+  const gx = w * 0.5;
+  bdCtx.save();
+  bdCtx.globalAlpha = 0.38;
+  bdCtx.strokeStyle = '#b89050';
+  bdCtx.lineCap = 'round';
+  bdCtx.lineWidth = Math.max(2, w * 0.006);
+  bdCtx.beginPath(); bdCtx.moveTo(gx, 0); bdCtx.lineTo(gx, h * 0.055); bdCtx.stroke();
+  bdCtx.lineWidth = Math.max(1.5, w * 0.004);
+  bdCtx.beginPath(); bdCtx.moveTo(gx - w*0.055, 0); bdCtx.lineTo(gx + w*0.055, 0); bdCtx.stroke();
+  bdCtx.restore();
 }
 
 function getPos(e){
@@ -564,8 +576,8 @@ function drawGallows(){
     drawDefaultCharacter(wrongGuesses, cx, headR, w, h);
   } else {
     // composite of drawn part canvases
-    const partW=w*0.35, partH=h*0.75;
-    const offX=cx-partW/2, offY=h*0.14;
+    const partW=w*0.35, partH=h*0.71;
+    const offX=cx-partW/2, offY=h*0.18;
     for(let i=0;i<wrongGuesses;i++){
       const pc=partCanvases[PARTS[i]];
       if(pc) gCtx.drawImage(pc,offX,offY,partW,partH);
