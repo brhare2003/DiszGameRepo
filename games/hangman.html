@@ -561,12 +561,12 @@ function drawGallows(){
     gCtx.fillStyle='#c8a060'; gCtx.beginPath(); gCtx.arc(bx,by,thick*0.18,0,Math.PI*2); gCtx.fill();
   });
   // rope
-  gCtx.strokeStyle='#c8a060'; gCtx.lineWidth=Math.max(2,h*0.014); gCtx.lineCap='round';
+  gCtx.strokeStyle='#c8a060'; gCtx.lineWidth=Math.max(5,h*0.032); gCtx.lineCap='round';
   gCtx.beginPath(); gCtx.moveTo(w*0.52,h*0.09+thick/2); gCtx.lineTo(w*0.52,h*0.18); gCtx.stroke();
-  gCtx.strokeStyle='#a07840'; gCtx.lineWidth=Math.max(1,h*0.005);
+  gCtx.strokeStyle='#a07840'; gCtx.lineWidth=Math.max(2,h*0.012);
   for(let i=0;i<6;i++){
     const ry=h*0.09+thick/2+i*(h*0.09/6);
-    gCtx.beginPath(); gCtx.moveTo(w*0.52-h*0.006,ry); gCtx.lineTo(w*0.52+h*0.006,ry+h*0.012); gCtx.stroke();
+    gCtx.beginPath(); gCtx.moveTo(w*0.52-h*0.013,ry); gCtx.lineTo(w*0.52+h*0.013,ry+h*0.018); gCtx.stroke();
   }
 
   const cx=w*0.52, headR=h*0.08;
