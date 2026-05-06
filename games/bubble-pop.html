@@ -93,11 +93,12 @@
     }
 
     .target-swatch {
-      width: 34px;
-      height: 34px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
-      border: 3px solid rgba(255,255,255,0.35);
-      animation: swatchPulse 1.4s ease-in-out infinite alternate;
+      border: 3px solid rgba(255,255,255,0.55);
+      box-shadow: 0 0 18px 4px currentColor;
+      animation: swatchPulse 0.9s ease-in-out infinite alternate;
     }
 
     @keyframes swatchPulse {
@@ -141,10 +142,11 @@
       opacity: 0;
     }
     #target-change-flash.flash {
-      animation: bigFlash 0.75s ease-out forwards;
+      animation: bigFlash 1.6s ease-out forwards;
     }
     @keyframes bigFlash {
-      0%   { opacity: 0.72; }
+      0%   { opacity: 0.92; }
+      35%  { opacity: 0.80; }
       100% { opacity: 0; }
     }
   </style>
@@ -247,15 +249,23 @@
     const particles = [];
     const floatingTexts = [];
 
+    const COLOR_NAMES = ['RED','YELLOW','GREEN','BLUE','PURPLE'];
+    const nameOf = hex => { const i = COLORS.indexOf(hex); return i >= 0 ? COLOR_NAMES[i] : ''; };
+
     // ── Target colour logic ───────────────────────────────────────────────
     const TARGET_INTERVAL = 15000; // ms between target changes
     let targetColors = [];
     let lastTargetChange = -TARGET_INTERVAL; // fires immediately on first frame
+    let targetChangeTs   = -9999; // for the center announcement
+
+    // ── Speed progression ─────────────────────────────────────────────────
+    let gameStartTime = null; // set on first frame
 
     function pickTargets(ts) {
       const shuffled = [...COLORS].sort(() => Math.random() - 0.5);
       targetColors = shuffled.slice(0, 2);
       lastTargetChange = ts;
+      targetChangeTs   = ts;
       playSound('target');
       renderSwatches();
 
@@ -268,13 +278,12 @@
     }
 
     function renderSwatches() {
-      // small centre swatches (kept for accessibility)
       swatchesEl.innerHTML = '';
       targetColors.forEach(color => {
         const d = document.createElement('div');
         d.className = 'target-swatch';
         d.style.background = color;
-        d.style.boxShadow = `0 0 14px 3px ${color}`;
+        d.style.boxShadow = `0 0 22px 6px ${color}`;
         swatchesEl.appendChild(d);
       });
 
@@ -285,10 +294,6 @@
       panelRight.style.background =
         `radial-gradient(circle at top right, ${c2}cc 0%, ${c2}88 25%, ${c2}33 55%, transparent 72%)`;
 
-      // update corner labels with colour names
-      const nameOf = hex => COLORS.indexOf(hex) >= 0
-        ? ['RED','YELLOW','GREEN','BLUE','PURPLE'][COLORS.indexOf(hex)]
-        : '';
       labelLeft.textContent  = 'POP ' + nameOf(c1);
       labelLeft.style.color  = c1;
       labelLeft.style.textShadow = `0 0 10px ${c1}, 0 0 4px #000`;
@@ -417,6 +422,21 @@
 
     // ── Draw a single circle with sheen ───────────────────────────────────
     function drawCircle(c) {
+      // pulsing ring for target bubbles
+      if (targetColors.includes(c.color)) {
+        const pulse = 0.55 + 0.45 * Math.sin(c.age * 0.13);
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.r + 9, 0, Math.PI * 2);
+        ctx.strokeStyle = c.color;
+        ctx.lineWidth   = 4;
+        ctx.globalAlpha = pulse;
+        ctx.shadowBlur  = 24;
+        ctx.shadowColor = c.color;
+        ctx.stroke();
+        ctx.shadowBlur  = 0;
+        ctx.globalAlpha = 1;
+      }
+
       // body
       const grad = ctx.createRadialGradient(
         c.x - c.r * 0.3, c.y - c.r * 0.3, c.r * 0.05,
@@ -473,6 +493,11 @@
 
       drawBackground();
 
+      // speed multiplier — ramps from 1× to 5× over ~3 minutes
+      if (gameStartTime === null) gameStartTime = ts;
+      const elapsed   = (ts - gameStartTime) / 1000;
+      const speedMult = Math.min(5, 1 + elapsed * 0.022);
+
       // rotate target colours
       if (ts - lastTargetChange >= TARGET_INTERVAL) {
         pickTargets(ts);
@@ -492,7 +517,7 @@
           continue;
         }
         c.age += 1;
-        c.y   -= c.speed;
+        c.y   -= c.speed * speedMult;
         c.x    = c.baseX + Math.sin(c.age * c.wobbleSpeed + c.wobbleOffset) * c.wobbleAmp * 12;
 
         if (c.y + c.r < 0) {
@@ -546,6 +571,28 @@
       }
       ctx.textAlign    = 'left';
       ctx.textBaseline = 'alphabetic';
+
+      // center announcement when target colours change
+      const announceAge = ts - targetChangeTs;
+      if (announceAge < 2400 && targetColors.length === 2) {
+        const fade  = Math.max(0, 1 - announceAge / 2400);
+        const slide = Math.min(1, announceAge / 220);
+        const fs    = Math.round(Math.min(W, H) * 0.072);
+        ctx.save();
+        ctx.globalAlpha = fade * slide;
+        ctx.textAlign   = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `900 ${fs}px "Segoe UI", sans-serif`;
+        const yOff = H * 0.5;
+        [[targetColors[0], -fs * 1.1], [targetColors[1], fs * 1.1]].forEach(([col, dy]) => {
+          ctx.fillStyle   = col;
+          ctx.shadowBlur  = 36;
+          ctx.shadowColor = col;
+          ctx.fillText('POP ' + nameOf(col), W / 2, yOff + dy);
+        });
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
     }
 
     requestAnimationFrame(loop);
